@@ -51,6 +51,7 @@ func CustomRequest(options Options) (error, *http.Response, string){
   return nil, resp, string(body)
 }
 
+
 func main(){
   /*err, response, body:= Get("http://localhost:1337")
   if err==nil && response.StatusCode == 200 {
