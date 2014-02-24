@@ -1,4 +1,4 @@
-package goreqest
+package gorequest
 
 import (
   "fmt"
