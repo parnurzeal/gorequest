@@ -9,10 +9,10 @@ import (
 )
 
 type Options struct{
-  url string
-  method string
-  body string
-  json string
+  Url string
+  Method string
+  Body string
+  Json string
 }
 
 func Get(url string) (error, *http.Response, string){
@@ -35,10 +35,10 @@ func CustomRequest(options Options) (error, *http.Response, string){
     resp *http.Response
   )
   client := &http.Client{}
-  if options.method == "POST" {
-    if options.json != ""{
-      content := strings.NewReader(options.json)
-      req, err = http.NewRequest(options.method, options.url, content)
+  if options.Method == "POST" {
+    if options.Json != ""{
+      content := strings.NewReader(options.Json)
+      req, err = http.NewRequest(options.Method, options.Url, content)
       req.Header.Set("Content-Type","application/json")
     }
   }
@@ -58,7 +58,7 @@ func main(){
     fmt.Println(body)
   }
   fmt.Println(err, response, body)*/
-  options:= Options{ url: "http://localhost:1337", method:"POST", body:"hello", json:`{ "hello":"hello"}`}
+  options:= Options{ Url: "http://localhost:1337", Method:"POST", Body:"hello", Json:`{ "hello":"hello"}`}
   CustomRequest(options)
 
 
