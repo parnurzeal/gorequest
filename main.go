@@ -1,7 +1,8 @@
-package main
+package gorequest
 
 import (
-	_ "encoding/json"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -17,16 +18,74 @@ type Options struct {
 }
 
 type SuperAgent struct {
-	Url string
+	Url    string
+	Method string
+	Header map[string]string
+	Type   string
+	Data   map[string]interface{}
 }
 
-func (s *SuperAgent) send(str string) *SuperAgent {
-	s.Url = "Hello"
+func New() *SuperAgent {
+	s := SuperAgent{
+		Type:   "json",
+		Data:   make(map[string]interface{}),
+		Header: make(map[string]string)}
+	return &s
+}
+
+func Post(url string) *SuperAgent {
+	newReq := &SuperAgent{
+		Url:    url,
+		Method: "POST",
+		Type:   "json",
+		Header: make(map[string]string),
+		Data:   make(map[string]interface{})}
+	return newReq
+}
+
+func (s *SuperAgent) Set(param string, value string) *SuperAgent {
+	s.Header[param] = value
 	return s
 }
 
-func (s *SuperAgent) end() {
-	fmt.Println(s.Url)
+func (s *SuperAgent) Send(content string) *SuperAgent {
+	if s.Type == "json" {
+		var val map[string]interface{}
+		if err := json.Unmarshal([]byte(content), &val); err != nil {
+			fmt.Println("ERROR to json.Unmarshal in send", err)
+		}
+		for k, v := range val {
+			s.Data[k] = v
+		}
+	}
+	return s
+}
+
+func (s *SuperAgent) End() (error, *http.Response, string) {
+	var (
+		req  *http.Request
+		err  error
+		resp *http.Response
+	)
+	client := &http.Client{}
+	if s.Method == "POST" {
+		if s.Type == "json" {
+			contentJson, _ := json.Marshal(s.Data)
+			contentReader := bytes.NewReader(contentJson)
+			req, err = http.NewRequest(s.Method, s.Url, contentReader)
+			req.Header.Set("Content-Type", "application/json")
+		}
+	}
+	for k, v := range s.Header {
+		req.Header.Set(k, v)
+	}
+	resp, err = client.Do(req)
+	if err != nil {
+		return err, nil, ""
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	return nil, resp, string(body)
 }
 
 func Get(url string) (error, *http.Response, string) {
@@ -74,8 +133,11 @@ func main() {
 	options := Options{Url: "http://localhost:1337", Method: "POST", Body: "hello", Json: `{ "hello":"hello"}`}
 	CustomRequest(options)
 
-	s := SuperAgent{}
-	s.send("Yes").end()
+	//s.post("/api/pet").send(`{"name":"tg"}`).end()
+	Post("http://requestb.in/1f7ur5s1").
+		Send(`{"nickname":"a"}`).
+		Set("Accept", "application/json").
+		End()
 	/*client:= &http.Client{}
 	  req,_ := http.NewRequest("GET", "http://localhost:1337", nil)
 	  req.Header.Add("Content-Type","application/json")
