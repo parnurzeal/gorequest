@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -23,6 +24,7 @@ type SuperAgent struct {
 	Header map[string]string
 	Type   string
 	Data   map[string]interface{}
+	Query  url.Values
 }
 
 func New() *SuperAgent {
@@ -33,13 +35,14 @@ func New() *SuperAgent {
 	return &s
 }
 
-func Post(url string) *SuperAgent {
+func Post(targetUrl string) *SuperAgent {
 	newReq := &SuperAgent{
-		Url:    url,
+		Url:    targetUrl,
 		Method: "POST",
 		Type:   "json",
 		Header: make(map[string]string),
-		Data:   make(map[string]interface{})}
+		Data:   make(map[string]interface{}),
+		Query:  url.Values{}}
 	return newReq
 }
 
@@ -49,15 +52,22 @@ func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 }
 
 func (s *SuperAgent) Send(content string) *SuperAgent {
-	if s.Type == "json" {
-		var val map[string]interface{}
-		if err := json.Unmarshal([]byte(content), &val); err != nil {
-			fmt.Println("ERROR to json.Unmarshal in send", err)
-		}
+	var val map[string]interface{}
+	// check if it is json format
+	if err := json.Unmarshal([]byte(content), &val); err == nil {
+		s.Type = "json"
 		for k, v := range val {
 			s.Data[k] = v
 		}
+	} else {
+		// not json format (just normal string)
+		s.Type = "form"
+		queryVal, _ := url.ParseQuery(content)
+		for k, _ := range queryVal {
+			s.Query.Add(k, queryVal.Get(k))
+		}
 	}
+
 	return s
 }
 
@@ -74,6 +84,9 @@ func (s *SuperAgent) End() (error, *http.Response, string) {
 			contentReader := bytes.NewReader(contentJson)
 			req, err = http.NewRequest(s.Method, s.Url, contentReader)
 			req.Header.Set("Content-Type", "application/json")
+		} else if s.Type == "form" {
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.Query.Encode()))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 	}
 	for k, v := range s.Header {
@@ -135,7 +148,7 @@ func main() {
 
 	//s.post("/api/pet").send(`{"name":"tg"}`).end()
 	Post("http://requestb.in/1f7ur5s1").
-		Send(`{"nickname":"a"}`).
+		Send(`nickname=a`).
 		Set("Accept", "application/json").
 		End()
 	/*client:= &http.Client{}
