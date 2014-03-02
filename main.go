@@ -1,4 +1,4 @@
-package gorequest
+package main
 
 import (
 	_ "encoding/json"
@@ -13,6 +13,20 @@ type Options struct {
 	Method string
 	Body   string
 	Json   string
+	Header string
+}
+
+type SuperAgent struct {
+	Url string
+}
+
+func (s *SuperAgent) send(str string) *SuperAgent {
+	s.Url = "Hello"
+	return s
+}
+
+func (s *SuperAgent) end() {
+	fmt.Println(s.Url)
 }
 
 func Get(url string) (error, *http.Response, string) {
@@ -60,6 +74,8 @@ func main() {
 	options := Options{Url: "http://localhost:1337", Method: "POST", Body: "hello", Json: `{ "hello":"hello"}`}
 	CustomRequest(options)
 
+	s := SuperAgent{}
+	s.send("Yes").end()
 	/*client:= &http.Client{}
 	  req,_ := http.NewRequest("GET", "http://localhost:1337", nil)
 	  req.Header.Add("Content-Type","application/json")
