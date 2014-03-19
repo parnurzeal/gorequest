@@ -35,6 +35,16 @@ func New() *SuperAgent {
 	return &s
 }
 
+func Get(targetUrl string) *SuperAgent {
+	newReq := &SuperAgent{
+		Url:    targetUrl,
+		Method: "GET",
+		Header: make(map[string]string),
+		Data:   make(map[string]interface{}),
+		Query:  url.Values{}}
+	return newReq
+}
+
 func Post(targetUrl string) *SuperAgent {
 	newReq := &SuperAgent{
 		Url:    targetUrl,
@@ -88,23 +98,13 @@ func (s *SuperAgent) End() (error, *http.Response, string) {
 			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.Query.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
+	} else if s.Method == "GET" {
+		req, err = http.NewRequest(s.Method, s.Url, nil)
 	}
 	for k, v := range s.Header {
 		req.Header.Set(k, v)
 	}
 	resp, err = client.Do(req)
-	if err != nil {
-		return err, nil, ""
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	return nil, resp, string(body)
-}
-
-func Get(url string) (error, *http.Response, string) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	resp, err := client.Do(req)
 	if err != nil {
 		return err, nil, ""
 	}
