@@ -117,13 +117,16 @@ func (s *SuperAgent) End(callback ...func(response Response)) (error, *http.Resp
 		return err, nil, ""
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
 
 	// test callback func
+	// TODO: be able to return body and using callback together. Right now, ifwe use ioutil.ReadAll data disappear
 	if len(callback) != 0 {
 		callback[0](resp)
+		return nil, resp, ""
+	} else {
+		body, _ := ioutil.ReadAll(resp.Body)
+		return nil, resp, string(body)
 	}
-	return nil, resp, string(body)
 }
 
 func CustomRequest(options Options) (error, *http.Response, string) {
