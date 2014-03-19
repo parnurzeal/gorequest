@@ -18,13 +18,15 @@ type Options struct {
 	Header string
 }
 
+type Response *http.Response
+
 type SuperAgent struct {
-	Url    string
-	Method string
-	Header map[string]string
-	Type   string
-	Data   map[string]interface{}
-	Query  url.Values
+	Url       string
+	Method    string
+	Header    map[string]string
+	Type      string
+	Data      map[string]interface{}
+	QueryData url.Values
 }
 
 func New() *SuperAgent {
@@ -37,22 +39,28 @@ func New() *SuperAgent {
 
 func Get(targetUrl string) *SuperAgent {
 	newReq := &SuperAgent{
-		Url:    targetUrl,
-		Method: "GET",
-		Header: make(map[string]string),
-		Data:   make(map[string]interface{}),
-		Query:  url.Values{}}
+		Url:       targetUrl,
+		Method:    "GET",
+		Header:    make(map[string]string),
+		Data:      make(map[string]interface{}),
+		QueryData: url.Values{}}
 	return newReq
+}
+
+// TODO: query func for get
+func (s *SuperAgent) Query(content string) *SuperAgent {
+	_ = content
+	return s
 }
 
 func Post(targetUrl string) *SuperAgent {
 	newReq := &SuperAgent{
-		Url:    targetUrl,
-		Method: "POST",
-		Type:   "json",
-		Header: make(map[string]string),
-		Data:   make(map[string]interface{}),
-		Query:  url.Values{}}
+		Url:       targetUrl,
+		Method:    "POST",
+		Type:      "json",
+		Header:    make(map[string]string),
+		Data:      make(map[string]interface{}),
+		QueryData: url.Values{}}
 	return newReq
 }
 
@@ -74,14 +82,14 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 		s.Type = "form"
 		queryVal, _ := url.ParseQuery(content)
 		for k, _ := range queryVal {
-			s.Query.Add(k, queryVal.Get(k))
+			s.QueryData.Add(k, queryVal.Get(k))
 		}
 	}
 
 	return s
 }
 
-func (s *SuperAgent) End() (error, *http.Response, string) {
+func (s *SuperAgent) End(callback ...func(response Response)) (error, *http.Response, string) {
 	var (
 		req  *http.Request
 		err  error
@@ -95,7 +103,7 @@ func (s *SuperAgent) End() (error, *http.Response, string) {
 			req, err = http.NewRequest(s.Method, s.Url, contentReader)
 			req.Header.Set("Content-Type", "application/json")
 		} else if s.Type == "form" {
-			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.Query.Encode()))
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.QueryData.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 	} else if s.Method == "GET" {
@@ -110,6 +118,11 @@ func (s *SuperAgent) End() (error, *http.Response, string) {
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
+
+	// test callback func
+	if len(callback) != 0 {
+		callback[0](resp)
+	}
 	return nil, resp, string(body)
 }
 
@@ -150,7 +163,9 @@ func main() {
 	Post("http://requestb.in/1f7ur5s1").
 		Send(`nickname=a`).
 		Set("Accept", "application/json").
-		End()
+		End(func(response Response) {
+		fmt.Println(response)
+	})
 	/*client:= &http.Client{}
 	  req,_ := http.NewRequest("GET", "http://localhost:1337", nil)
 	  req.Header.Add("Content-Type","application/json")
