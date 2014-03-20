@@ -1,3 +1,6 @@
+\\ This is a work in progress and not totally support all specification
+\\ Right now, you can only do simple get and post with easy to specify header like in examples
+
 GoRequest
 =========
 
