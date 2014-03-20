@@ -89,7 +89,7 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 	return s
 }
 
-func (s *SuperAgent) End(callback ...func(response Response)) (error, *http.Response, string) {
+func (s *SuperAgent) End(callback ...func(response Response, body []byte)) (*http.Response, string, error) {
 	var (
 		req  *http.Request
 		err  error
@@ -114,19 +114,17 @@ func (s *SuperAgent) End(callback ...func(response Response)) (error, *http.Resp
 	}
 	resp, err = client.Do(req)
 	if err != nil {
-		return err, nil, ""
+		return nil, "", err
 	}
 	defer resp.Body.Close()
 
 	// test callback func
-	// TODO: be able to return body and using callback together. Right now, ifwe use ioutil.ReadAll data disappear
+	// TODO: be able to return body and using callback together. Right now, if we use ioutil.ReadAll data disappear
+	body, _ := ioutil.ReadAll(resp.Body)
 	if len(callback) != 0 {
-		callback[0](resp)
-		return nil, resp, ""
-	} else {
-		body, _ := ioutil.ReadAll(resp.Body)
-		return nil, resp, string(body)
+		callback[0](resp, body)
 	}
+	return resp, string(body), nil
 }
 
 func CustomRequest(options Options) (error, *http.Response, string) {
@@ -166,7 +164,7 @@ func main() {
 	Post("http://requestb.in/1f7ur5s1").
 		Send(`nickname=a`).
 		Set("Accept", "application/json").
-		End(func(response Response) {
+		End(func(response Response, body []byte) {
 		fmt.Println(response)
 	})
 	/*client:= &http.Client{}
