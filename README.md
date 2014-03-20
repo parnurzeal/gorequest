@@ -47,7 +47,7 @@ Why making things ugly while you can just do as follows:
 
 ```
 ### policy is not supported yet
-gorequest.Get("http://example.com").
+resp, body, err := gorequest.Get("http://example.com").
   Set("If-None-Match", `W/"wyzzy"`).
   End()
 ```
