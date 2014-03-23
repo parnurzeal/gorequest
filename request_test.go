@@ -30,6 +30,22 @@ func TestGetFormat(t *testing.T) {
 }
 
 func TestGetSetHeader(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			t.Errorf("Expected method %q; got %q", "GET", r.Method)
+		}
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+		if r.Header.Get("API-Key") != "fookey" {
+			t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+		}
+	}))
+	defer ts.Close()
+
+	Get(ts.URL).
+		Set("API-Key", "fookey").
+		End()
 
 }
 
