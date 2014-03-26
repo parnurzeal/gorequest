@@ -46,7 +46,6 @@ func TestGetSetHeader(t *testing.T) {
 	Get(ts.URL).
 		Set("API-Key", "fookey").
 		End()
-
 }
 
 func TestPostFormat(t *testing.T) {
@@ -54,4 +53,20 @@ func TestPostFormat(t *testing.T) {
 }
 
 func TestPostSetHeader(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("Expected method %q; got %q", "POST", r.Method)
+		}
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+		if r.Header.Get("API-Key") != "fookey" {
+			t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+		}
+	}))
+	defer ts.Close()
+
+	Post(ts.URL).
+		Set("API-Key", "fookey").
+		End()
 }
