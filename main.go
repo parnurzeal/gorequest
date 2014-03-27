@@ -21,12 +21,13 @@ type Options struct {
 type Response *http.Response
 
 type SuperAgent struct {
-	Url      string
-	Method   string
-	Header   map[string]string
-	Type     string
-	Data     map[string]interface{}
-	FormData url.Values
+	Url       string
+	Method    string
+	Header    map[string]string
+	Type      string
+	Data      map[string]interface{}
+	FormData  url.Values
+	QueryData map[string]string
 }
 
 func New() *SuperAgent {
@@ -39,33 +40,44 @@ func New() *SuperAgent {
 
 func Get(targetUrl string) *SuperAgent {
 	newReq := &SuperAgent{
-		Url:      targetUrl,
-		Method:   "GET",
-		Header:   make(map[string]string),
-		Data:     make(map[string]interface{}),
-		FormData: url.Values{}}
+		Url:       targetUrl,
+		Method:    "GET",
+		Header:    make(map[string]string),
+		Data:      make(map[string]interface{}),
+		FormData:  url.Values{},
+		QueryData: make(map[string]string)}
 	return newReq
-}
-
-// TODO: query func for get
-func (s *SuperAgent) Query(content string) *SuperAgent {
-	_ = content
-	return s
 }
 
 func Post(targetUrl string) *SuperAgent {
 	newReq := &SuperAgent{
-		Url:      targetUrl,
-		Method:   "POST",
-		Type:     "json",
-		Header:   make(map[string]string),
-		Data:     make(map[string]interface{}),
-		FormData: url.Values{}}
+		Url:       targetUrl,
+		Method:    "POST",
+		Type:      "json",
+		Header:    make(map[string]string),
+		Data:      make(map[string]interface{}),
+		FormData:  url.Values{},
+		QueryData: make(map[string]string)}
 	return newReq
 }
 
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 	s.Header[param] = value
+	return s
+}
+
+// TODO: adding query to url func for get and post
+func (s *SuperAgent) Query(content string) *SuperAgent {
+	var val map[string]string
+	if err := json.Unmarshal([]byte(content), &val); err == nil {
+		for k, v := range val {
+			s.QueryData[k] = v
+		}
+	} else {
+		// not json format but querystring
+		// TODO: need to check correct format of 'field=val&field=val&...'
+
+	}
 	return s
 }
 
