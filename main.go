@@ -80,9 +80,9 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 	} else {
 		// not json format (just normal string)
 		s.Type = "form"
-		queryVal, _ := url.ParseQuery(content)
-		for k, _ := range queryVal {
-			s.FormData.Add(k, queryVal.Get(k))
+		formVal, _ := url.ParseQuery(content)
+		for k, _ := range formVal {
+			s.FormData.Add(k, formVal.Get(k))
 		}
 	}
 
