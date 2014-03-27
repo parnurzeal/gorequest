@@ -70,3 +70,10 @@ func TestPostSetHeader(t *testing.T) {
 		Set("API-Key", "fookey").
 		End()
 }
+
+/* Testing post for application/x-www-form-urlencoded
+post.query(json), post.query(string), post.send(json), post.send(string), post.query(both).send(both)
+*/
+func TestPostFormSend(t *testing.T) {
+
+}

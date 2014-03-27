@@ -21,12 +21,12 @@ type Options struct {
 type Response *http.Response
 
 type SuperAgent struct {
-	Url       string
-	Method    string
-	Header    map[string]string
-	Type      string
-	Data      map[string]interface{}
-	QueryData url.Values
+	Url      string
+	Method   string
+	Header   map[string]string
+	Type     string
+	Data     map[string]interface{}
+	FormData url.Values
 }
 
 func New() *SuperAgent {
@@ -39,11 +39,11 @@ func New() *SuperAgent {
 
 func Get(targetUrl string) *SuperAgent {
 	newReq := &SuperAgent{
-		Url:       targetUrl,
-		Method:    "GET",
-		Header:    make(map[string]string),
-		Data:      make(map[string]interface{}),
-		QueryData: url.Values{}}
+		Url:      targetUrl,
+		Method:   "GET",
+		Header:   make(map[string]string),
+		Data:     make(map[string]interface{}),
+		FormData: url.Values{}}
 	return newReq
 }
 
@@ -55,12 +55,12 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 
 func Post(targetUrl string) *SuperAgent {
 	newReq := &SuperAgent{
-		Url:       targetUrl,
-		Method:    "POST",
-		Type:      "json",
-		Header:    make(map[string]string),
-		Data:      make(map[string]interface{}),
-		QueryData: url.Values{}}
+		Url:      targetUrl,
+		Method:   "POST",
+		Type:     "json",
+		Header:   make(map[string]string),
+		Data:     make(map[string]interface{}),
+		FormData: url.Values{}}
 	return newReq
 }
 
@@ -82,7 +82,7 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 		s.Type = "form"
 		queryVal, _ := url.ParseQuery(content)
 		for k, _ := range queryVal {
-			s.QueryData.Add(k, queryVal.Get(k))
+			s.FormData.Add(k, queryVal.Get(k))
 		}
 	}
 
@@ -103,7 +103,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body []byte)) (*htt
 			req, err = http.NewRequest(s.Method, s.Url, contentReader)
 			req.Header.Set("Content-Type", "application/json")
 		} else if s.Type == "form" {
-			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.QueryData.Encode()))
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.FormData.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 	} else if s.Method == "GET" {
