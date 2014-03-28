@@ -87,12 +87,16 @@ func TestQueryFunc(t *testing.T) {
 		fmt.Println(r.URL.Query())
 	}))
 	defer ts.Close()
-	Post(ts.URL).
+	resp, _ := Post(ts.URL).
 		Query("query1=test").
 		Query("query2=test").
-		End()
+		End(func(r *http.Response) {
+		r.Status = "10"
+	})
+	fmt.Println(resp.Status)
 
 }
 
 func TestIntegration(t *testing.T) {
+
 }
