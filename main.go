@@ -27,7 +27,7 @@ type SuperAgent struct {
 	Type      string
 	Data      map[string]interface{}
 	FormData  url.Values
-	QueryData map[string]string
+	QueryData url.Values
 }
 
 func New() *SuperAgent {
@@ -45,7 +45,7 @@ func Get(targetUrl string) *SuperAgent {
 		Header:    make(map[string]string),
 		Data:      make(map[string]interface{}),
 		FormData:  url.Values{},
-		QueryData: make(map[string]string)}
+		QueryData: url.Values{}}
 	return newReq
 }
 
@@ -57,7 +57,7 @@ func Post(targetUrl string) *SuperAgent {
 		Header:    make(map[string]string),
 		Data:      make(map[string]interface{}),
 		FormData:  url.Values{},
-		QueryData: make(map[string]string)}
+		QueryData: url.Values{}}
 	return newReq
 }
 
@@ -66,21 +66,19 @@ func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 	return s
 }
 
-// TODO: adding query to url func for get and post
+// TODO: check error
 func (s *SuperAgent) Query(content string) *SuperAgent {
 	var val map[string]string
 	if err := json.Unmarshal([]byte(content), &val); err == nil {
 		for k, v := range val {
-			s.QueryData[k] = v
+			s.QueryData.Add(k, v)
 		}
 	} else {
-		queryVal, err := url.ParseQuery(content)
+		queryVal, _ := url.ParseQuery(content)
 		for k, _ := range queryVal {
 			s.QueryData.Add(k, queryVal.Get(k))
 		}
-		// not json format but querystring
 		// TODO: need to check correct format of 'field=val&field=val&...'
-
 	}
 	return s
 }
@@ -128,6 +126,15 @@ func (s *SuperAgent) End(callback ...func(response Response, body []byte)) (*htt
 	for k, v := range s.Header {
 		req.Header.Set(k, v)
 	}
+	// Add all querystring from Query func
+	q := req.URL.Query()
+	for k, v := range s.QueryData {
+		for _, vv := range v {
+			q.Add(k, vv)
+		}
+	}
+	req.URL.RawQuery = q.Encode()
+	// Send request
 	resp, err = client.Do(req)
 	if err != nil {
 		return nil, "", err
