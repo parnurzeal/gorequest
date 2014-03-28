@@ -74,6 +74,10 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 			s.QueryData[k] = v
 		}
 	} else {
+		queryVal, err := url.ParseQuery(content)
+		for k, _ := range queryVal {
+			s.QueryData.Add(k, queryVal.Get(k))
+		}
 		// not json format but querystring
 		// TODO: need to check correct format of 'field=val&field=val&...'
 
