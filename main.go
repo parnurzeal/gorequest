@@ -150,38 +150,12 @@ func (s *SuperAgent) End(callback ...func(response *http.Response)) (*http.Respo
 	return resp, nil
 }
 
-func CustomRequest(options Options) (error, *http.Response, string) {
-	fmt.Println(options)
-	var (
-		req  *http.Request
-		err  error
-		resp *http.Response
-	)
-	client := &http.Client{}
-	if options.Method == "POST" {
-		if options.Json != "" {
-			content := strings.NewReader(options.Json)
-			req, err = http.NewRequest(options.Method, options.Url, content)
-			req.Header.Set("Content-Type", "application/json")
-		}
-	}
-	resp, err = client.Do(req)
-	if err != nil {
-		return err, nil, ""
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	return nil, resp, string(body)
-}
-
 func main() {
 	/*err, response, body:= Get("http://localhost:1337")
 	  if err==nil && response.StatusCode == 200 {
 	    fmt.Println(body)
 	  }
 	  fmt.Println(err, response, body)*/
-	options := Options{Url: "http://localhost:1337", Method: "POST", Body: "hello", Json: `{ "hello":"hello"}`}
-	CustomRequest(options)
 
 	//s.post("/api/pet").send(`{"name":"tg"}`).end()
 	Post("http://requestb.in/1f7ur5s1").
