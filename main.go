@@ -87,9 +87,17 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 	var val map[string]interface{}
 	// check if it is json format
 	if err := json.Unmarshal([]byte(content), &val); err == nil {
-		s.Type = "json"
-		for k, v := range val {
-			s.Data[k] = v
+		if s.Type == "form" {
+			for k, v := range val {
+				// TODO: check if cannot convert to string, return error
+				// Also, check that this is the right way to do. (Check superagent)
+				s.FormData.Add(k, v.(string))
+			}
+		} else {
+			s.Type = "json"
+			for k, v := range val {
+				s.Data[k] = v
+			}
 		}
 	} else {
 		// not json format (just normal string)
@@ -157,7 +165,7 @@ func main() {
 	  }
 	  fmt.Println(err, response, body)*/
 
-	//s.post("/api/pet").send(`{"name":"tg"}`).end()
+	//s.post("/api/pet").send(`{"name":"tg"}`).end(
 	Post("http://requestb.in/1f7ur5s1").
 		Send(`nickname=a`).
 		Set("Accept", "application/json").
