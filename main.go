@@ -93,6 +93,12 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 				// Also, check that this is the right way to do. (Check superagent)
 				s.FormData.Add(k, v.(string))
 			}
+			// in case previously sending json before knowing it's a form style, we need to include previous added data to formData as well
+			for k, v := range s.Data {
+				s.FormData.Add(k, v.(string))
+			}
+			// clear data
+			s.Data = nil
 		} else {
 			s.Type = "json"
 			for k, v := range val {
