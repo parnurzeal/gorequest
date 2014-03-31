@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	_ "io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -112,6 +112,13 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 		for k, _ := range formVal {
 			s.FormData.Add(k, formVal.Get(k))
 		}
+		// change all json data to form style
+		for k, v := range s.Data {
+			fmt.Println("Added")
+			s.FormData.Add(k, v.(string))
+		}
+		// clear data
+		s.Data = nil
 	}
 
 	return s
@@ -156,7 +163,6 @@ func (s *SuperAgent) End(callback ...func(response *http.Response)) (*http.Respo
 	defer resp.Body.Close()
 
 	// deep copy response to give it to both return and callback func
-
 	respCallback := *resp
 	if len(callback) != 0 {
 		callback[0](&respCallback)

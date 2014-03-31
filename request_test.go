@@ -71,11 +71,47 @@ func TestPostSetHeader(t *testing.T) {
 		End()
 }
 
-/* Testing post for application/x-www-form-urlencoded
+/* TODO:Testing post for application/x-www-form-urlencoded
 post.query(json), post.query(string), post.send(json), post.send(string), post.query(both).send(both)
 */
-func TestPostFormSend(t *testing.T) {
-
+func TestPostFormSendString(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+		fmt.Println(r.URL.Query())
+	}))
+	defer ts.Close()
+	Post(ts.URL).
+		Send("query1=test").
+		Send("query2=test").
+		End()
+}
+func TestPostFormSendJson(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+		fmt.Println(r.URL.Query())
+	}))
+	defer ts.Close()
+	Post(ts.URL).
+		Send(`{"query1":"test"}`).
+		Send(`{"query2":"test"}`).
+		End()
+}
+func TestPostFormSendJsonAndString(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+		fmt.Println(r.URL.Query())
+	}))
+	defer ts.Close()
+	Post(ts.URL).
+		Send("query1=test").
+		Send(`{"query2":"test"}`).
+		End()
 }
 
 // TODO: check url query (all testcases)
