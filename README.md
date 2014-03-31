@@ -58,12 +58,12 @@ mJson, _ := json.Marshal(m)
 contentReader := bytes.NewReader(mJson)
 req, _ := http.NewRequest("POST", "http://example.com", contentReader)
 req.Header.Set("Content-Type", "application/json")
-req.Header.Set("Notes","gorequest is coming!")
+req.Header.Set("Notes","GoRequest is coming!")
 client := &http.Client{}
 resp, _ := client.Do(req)
 ```
 
-Compared to our gorequest version, JSON is for sure a default. So, it turns to be just one simple line!:
+Compared to our GoRequest version, JSON is for sure a default. So, it turns to be just one simple line!:
 
 ```
 resp, err := gorequest.Post("http://example.com").
