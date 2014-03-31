@@ -1,6 +1,3 @@
-Note: This is a work in progress and not totally support all specifications.
-Right now, you can only do simple get and post with easy to specify header like in examples
-
 GoRequest
 =========
 
@@ -50,7 +47,7 @@ resp, err := gorequest.Get("http://example.com").
   End()
 ```
 
-For __a JSON POST__ with standard libraries, you might need to marshal map data structure to json format, setting header to 'application/json' (and other headers if you need to) and declare http.Client. So, you code become longer and hard to maintain:
+For a __JSON POST__ with standard libraries, you might need to marshal map data structure to json format, setting header to 'application/json' (and other headers if you need to) and declare http.Client. So, you code become longer and hard to maintain:
 
 ```
 m := map[string]interface{}{
@@ -74,4 +71,12 @@ resp, err := gorequest.Post("http://example.com").
   Send(`{"name":"backy", "species":"dog"}`).
   End()
 ```
+
+Note: This is a work in progress and not totally support all specifications.
+Right now, you can only do simple get and post with easy to specify header like in examples which is enough in many cases.
+
+## License
+
+GoRequest is MIT-Licensed.
+
 
