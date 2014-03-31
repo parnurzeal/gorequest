@@ -10,7 +10,7 @@ $ go get github.com/parnurzeal/gorequest
 ```
 
 ## Documentation
-
+See [Go Doc](http://godoc.org/github.com/parnurzeal/gorequest) for full usage and details.
 
 ## Status
 
