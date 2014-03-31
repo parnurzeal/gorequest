@@ -10,14 +10,6 @@ import (
 	"strings"
 )
 
-type Options struct {
-	Url    string
-	Method string
-	Body   string
-	Json   string
-	Header string
-}
-
 type Response *http.Response
 
 type SuperAgent struct {
