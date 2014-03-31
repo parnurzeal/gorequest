@@ -96,40 +96,53 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 	var val map[string]interface{}
 	// check if it is json format
 	if err := json.Unmarshal([]byte(content), &val); err == nil {
-		if s.Type == "form" {
-			for k, v := range val {
-				// TODO: check if cannot convert to string, return error
-				// Also, check that this is the right way to do. (Check superagent)
-				s.FormData.Add(k, v.(string))
-			}
-			// in case previously sending json before knowing it's a form style, we need to include previous added data to formData as well
-			for k, v := range s.Data {
-				s.FormData.Add(k, v.(string))
-			}
-			// clear data
-			s.Data = nil
-		} else {
-			s.Type = "json"
-			for k, v := range val {
-				s.Data[k] = v
-			}
+		for k, v := range val {
+			s.Data[k] = v
 		}
 	} else {
-		// not json format (just normal string)
-		s.Type = "form"
 		formVal, _ := url.ParseQuery(content)
 		for k, _ := range formVal {
-			s.FormData.Add(k, formVal.Get(k))
+			// make it array if already have key
+			if val, ok := s.Data[k]; ok {
+				var strArray []string
+				strArray = append(strArray, formVal.Get(k))
+				// check if previous data is one string or array
+				switch oldValue := val.(type) {
+				case []string:
+					strArray = append(strArray, oldValue...)
+				case string:
+					strArray = append(strArray, oldValue)
+				}
+				s.Data[k] = strArray
+			} else {
+				// make it just string if does not already have same key
+				s.Data[k] = formVal.Get(k)
+			}
 		}
-		// change all json data to form style
-		for k, v := range s.Data {
-			s.FormData.Add(k, v.(string))
-		}
-		// clear data
-		s.Data = make(map[string]interface{})
+		s.Type = "form"
 	}
-
 	return s
+}
+
+func changeMapToURLValues(data map[string]interface{}) url.Values {
+	var newUrlValues = url.Values{}
+	for k, v := range data {
+		switch val := v.(type) {
+		case string:
+			newUrlValues.Add(k, string(val))
+		case []interface{}:
+			for _, element := range val {
+				if elementStr, ok := element.(string); ok {
+					newUrlValues.Add(k, elementStr)
+				}
+			}
+		case []string:
+			for _, element := range val {
+				newUrlValues.Add(k, element)
+			}
+		}
+	}
+	return newUrlValues
 }
 
 func (s *SuperAgent) End(callback ...func(response Response)) (Response, error) {
@@ -139,32 +152,21 @@ func (s *SuperAgent) End(callback ...func(response Response)) (Response, error) 
 		resp Response
 	)
 	client := &http.Client{}
+	// check if there is forced type
+	if s.ForceType == "json" {
+		s.Type = "json"
+	} else if s.ForceType == "form" {
+		s.Type = "form"
+	}
 	if s.Method == "POST" {
-		// if force type, change all data to that type
-		if s.ForceType == "json" {
-			s.Type = "json"
-			// change all json data to form style
-			for k, v := range s.FormData {
-				s.Data[k] = v
-			}
-			// clear data
-			s.FormData = make(url.Values)
-		} else if s.ForceType == "form" {
-			s.Type = "form"
-			// in case previously sending json before knowing it's a form style, we need to include previous added data to formData as well
-			for k, v := range s.Data {
-				s.FormData.Add(k, v.(string))
-			}
-			// clear data
-			s.Data = make(map[string]interface{})
-		}
 		if s.Type == "json" {
 			contentJson, _ := json.Marshal(s.Data)
 			contentReader := bytes.NewReader(contentJson)
 			req, err = http.NewRequest(s.Method, s.Url, contentReader)
 			req.Header.Set("Content-Type", "application/json")
 		} else if s.Type == "form" {
-			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.FormData.Encode()))
+			formData := changeMapToURLValues(s.Data)
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(formData.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 	} else if s.Method == "GET" {
