@@ -25,7 +25,7 @@ resp, err := http.Get("http://example.com/")
 With GoRequest:
 
 ```
-resp, body, err := gorequest.Get("http://example.com/").End()
+resp, err := gorequest.Get("http://example.com/").End()
 ```
 
 How about getting control over HTTP client headers, redirect policy, and etc. Things is getting more complicated in golang. You need to create a Client, setting header in different comamnd, ... to do just only one __GET__
@@ -45,25 +45,33 @@ Why making things ugly while you can just do as follows:
 
 ```
 ### policy is not supported yet
-resp, body, err := gorequest.Get("http://example.com").
+resp, err := gorequest.Get("http://example.com").
   Set("If-None-Match", `W/"wyzzy"`).
   End()
 ```
 
-For __a JSON POST__, you might need to marshal map data to json format, setting header to 'application/json' and declare http.Client with standard library. So, you code might look like:
+For __a JSON POST__, you might need to marshal map data structure to json format, setting header to 'application/json' (and other headers if you need to) and declare http.Client with standard library. So, you code become longer and hard to maintain:
 
 ```
 m := map[string]interface{}{
-  "value1": "one",
-  "value2": "two",
+  "name": "backy",
+  "species": "dog",
 }
 mJson, _ := json.Marshal(m)
 contentReader := bytes.NewReader(mJson)
-req, _ := http.NewRequest("POST", "http://requestb.in/1kovd3s1", contentReader)
+req, _ := http.NewRequest("POST", "http://example.com", contentReader)
 req.Header.Set("Content-Type", "application/json")
+req.Header.Set("Warning","gorequest/is/coming")
 client := &http.Client{}
 resp, _ := client.Do(req)
 ```
 
+Compared to our gorequest version, JSON is for sure a default. So, it turns to be just one simple line!:
 
+```
+gorequest.Post("http://example.com").
+  Set("Warning","gorequst/is/coming").
+  Send(`{"name":"backy", "species":"dog"}`).
+  End()
+```
 
