@@ -130,12 +130,6 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 		switch val := v.(type) {
 		case string:
 			newUrlValues.Add(k, string(val))
-		case []interface{}:
-			for _, element := range val {
-				if elementStr, ok := element.(string); ok {
-					newUrlValues.Add(k, elementStr)
-				}
-			}
 		case []string:
 			for _, element := range val {
 				newUrlValues.Add(k, element)
