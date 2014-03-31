@@ -9,6 +9,13 @@ GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.
 $ go get github.com/parnurzeal/gorequest
 ```
 
+## Documentation
+
+
+## Status
+
+[![Drone Build Status](https://drone.io/github.com/jmcvetta/restclient/status.png)](https://drone.io/github.com/parnurzeal/gorequest/latest)
+
 ## Why should you use GoRequest?
 
 GoRequest makes thing much more simple for you, making http client more awesome and fun like SuperAgent + golang style usage.
