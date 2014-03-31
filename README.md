@@ -63,7 +63,7 @@ client := &http.Client{}
 resp, _ := client.Do(req)
 ```
 
-Compared to our GoRequest version, JSON is for sure a default. So, it turns to be just one simple line!:
+Compared to our GoRequest version, JSON is for sure a default. So, it turns out to be just one simple line!:
 
 ```
 resp, err := gorequest.Post("http://example.com").
