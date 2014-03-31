@@ -116,11 +116,11 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 	return s
 }
 
-func (s *SuperAgent) End(callback ...func(response *http.Response)) (*http.Response, error) {
+func (s *SuperAgent) End(callback ...func(response Response)) (Response, error) {
 	var (
 		req  *http.Request
 		err  error
-		resp *http.Response
+		resp Response
 	)
 	client := &http.Client{}
 	if s.Method == "POST" {
@@ -173,7 +173,7 @@ func main() {
 	Post("http://requestb.in/1f7ur5s1").
 		Send(`nickname=a`).
 		Set("Accept", "application/json").
-		End(func(response *http.Response) {
+		End(func(response Response) {
 		fmt.Println(response)
 	})
 	/*client:= &http.Client{}
