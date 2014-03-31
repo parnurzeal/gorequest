@@ -35,8 +35,6 @@ client := &http.Client{
   CheckRedirect: redirectPolicyFunc,
 }
 
-resp, err := client.Get("http://example.com")
-
 req, err := http.NewRequest("GET", "http://example.com", nil)
 
 req.Header.Add("If-None-Match", `W/"wyzzy"`)
@@ -51,4 +49,21 @@ resp, body, err := gorequest.Get("http://example.com").
   Set("If-None-Match", `W/"wyzzy"`).
   End()
 ```
+
+For __a JSON POST__, you might need to marshal map data to json format, setting header to 'application/json' and declare http.Client with standard library. So, you code might look like:
+
+```
+m := map[string]interface{}{
+  "value1": "one",
+  "value2": "two",
+}
+mJson, _ := json.Marshal(m)
+contentReader := bytes.NewReader(mJson)
+req, _ := http.NewRequest("POST", "http://requestb.in/1kovd3s1", contentReader)
+req.Header.Set("Content-Type", "application/json")
+client := &http.Client{}
+resp, _ := client.Do(req)
+```
+
+
 
