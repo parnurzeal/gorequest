@@ -69,7 +69,7 @@ resp, _ := client.Do(req)
 Compared to our gorequest version, JSON is for sure a default. So, it turns to be just one simple line!:
 
 ```
-gorequest.Post("http://example.com").
+resp, err := gorequest.Post("http://example.com").
   Set("Notes","gorequst is coming!").
   Send(`{"name":"backy", "species":"dog"}`).
   End()
