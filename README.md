@@ -15,6 +15,7 @@ $ go get github.com/parnurzeal/gorequest
 ## Status
 
 [![Drone Build Status](https://drone.io/github.com/jmcvetta/restclient/status.png)](https://drone.io/github.com/parnurzeal/gorequest/latest)
+[![Travis Build Status](https://travis-ci.org/parnurzeal/gorequest.svg?branch=master)](https://travis-ci.org/parnurzeal/gorequest)
 
 ## Why should you use GoRequest?
 
