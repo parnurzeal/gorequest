@@ -17,6 +17,7 @@ type SuperAgent struct {
 	Method    string
 	Header    map[string]string
 	Type      string
+	ForceType string
 	Data      map[string]interface{}
 	FormData  url.Values
 	QueryData url.Values
@@ -55,6 +56,22 @@ func Post(targetUrl string) *SuperAgent {
 
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 	s.Header[param] = value
+	return s
+}
+
+var Types = map[string]string{
+	"html":       "text/html",
+	"json":       "application/json",
+	"xml":        "application/xml",
+	"urlencoded": "application/x-www-form-urlencoded",
+	"form":       "application/x-www-form-urlencoded",
+	"form-data":  "application/x-www-form-urlencoded",
+}
+
+func (s *SuperAgent) SetType(typeStr string) *SuperAgent {
+	if _, ok := Types[typeStr]; ok {
+		s.ForceType = typeStr
+	}
 	return s
 }
 
@@ -106,11 +123,10 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 		}
 		// change all json data to form style
 		for k, v := range s.Data {
-			fmt.Println("Added")
 			s.FormData.Add(k, v.(string))
 		}
 		// clear data
-		s.Data = nil
+		s.Data = make(map[string]interface{})
 	}
 
 	return s
@@ -124,6 +140,24 @@ func (s *SuperAgent) End(callback ...func(response Response)) (Response, error) 
 	)
 	client := &http.Client{}
 	if s.Method == "POST" {
+		// if force type, change all data to that type
+		if s.ForceType == "json" {
+			s.Type = "json"
+			// change all json data to form style
+			for k, v := range s.FormData {
+				s.Data[k] = v
+			}
+			// clear data
+			s.FormData = make(url.Values)
+		} else if s.ForceType == "form" {
+			s.Type = "form"
+			// in case previously sending json before knowing it's a form style, we need to include previous added data to formData as well
+			for k, v := range s.Data {
+				s.FormData.Add(k, v.(string))
+			}
+			// clear data
+			s.Data = make(map[string]interface{})
+		}
 		if s.Type == "json" {
 			contentJson, _ := json.Marshal(s.Data)
 			contentReader := bytes.NewReader(contentJson)
