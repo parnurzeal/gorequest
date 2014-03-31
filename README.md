@@ -50,7 +50,7 @@ resp, err := gorequest.Get("http://example.com").
   End()
 ```
 
-For __a JSON POST__, you might need to marshal map data structure to json format, setting header to 'application/json' (and other headers if you need to) and declare http.Client with standard library. So, you code become longer and hard to maintain:
+For __a JSON POST__ with standard libraries, you might need to marshal map data structure to json format, setting header to 'application/json' (and other headers if you need to) and declare http.Client. So, you code become longer and hard to maintain:
 
 ```
 m := map[string]interface{}{
@@ -61,7 +61,7 @@ mJson, _ := json.Marshal(m)
 contentReader := bytes.NewReader(mJson)
 req, _ := http.NewRequest("POST", "http://example.com", contentReader)
 req.Header.Set("Content-Type", "application/json")
-req.Header.Set("Warning","gorequest/is/coming")
+req.Header.Set("Notes","gorequest is coming!")
 client := &http.Client{}
 resp, _ := client.Do(req)
 ```
@@ -70,7 +70,7 @@ Compared to our gorequest version, JSON is for sure a default. So, it turns to b
 
 ```
 gorequest.Post("http://example.com").
-  Set("Warning","gorequst/is/coming").
+  Set("Notes","gorequst is coming!").
   Send(`{"name":"backy", "species":"dog"}`).
   End()
 ```
