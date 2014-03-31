@@ -1,3 +1,4 @@
+// Package gorequest inspired by Nodejs SuperAgent provides easy-way to write http client
 package gorequest
 
 import (
