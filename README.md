@@ -77,6 +77,6 @@ Right now, you can only do simple get and post with easy to specify header like 
 
 ## License
 
-GoRequest is MIT-Licensed.
+GoRequest is MIT License.
 
 
