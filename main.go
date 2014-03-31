@@ -193,30 +193,10 @@ func (s *SuperAgent) End(callback ...func(response Response)) (Response, error) 
 }
 
 func main() {
-	/*err, response, body:= Get("http://localhost:1337")
-	  if err==nil && response.StatusCode == 200 {
-	    fmt.Println(body)
-	  }
-	  fmt.Println(err, response, body)*/
-
-	//s.post("/api/pet").send(`{"name":"tg"}`).end(
 	Post("http://requestb.in/1f7ur5s1").
 		Send(`nickname=a`).
 		Set("Accept", "application/json").
 		End(func(response Response) {
 		fmt.Println(response)
 	})
-	/*client:= &http.Client{}
-	  req,_ := http.NewRequest("GET", "http://localhost:1337", nil)
-	  req.Header.Add("Content-Type","application/json")
-	  fmt.Println("main",req)
-	  res, _ :=  client.Do(req)
-	  fmt.Println(res.Body)
-	  /*const jsonStream =`{"sn":"sn1"}`
-	  reader:=strings.NewReader(jsonStream)
-	  resp,_ := http.Post("http://localhost:1337", "application/json", reader)
-	  defer resp.Body.Close()
-	  body,_ :=ioutil.ReadAll(resp.Body)
-	  fmt.Println(resp)
-	  fmt.Println(string(body))*/
 }
