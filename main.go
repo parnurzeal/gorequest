@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	_ "io/ioutil"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -140,7 +140,7 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 	return newUrlValues
 }
 
-func (s *SuperAgent) End(callback ...func(response Response)) (Response, error) {
+func (s *SuperAgent) End(callback ...func(response Response, body string)) (Response, string, error) {
 	var (
 		req  *http.Request
 		err  error
@@ -179,25 +179,28 @@ func (s *SuperAgent) End(callback ...func(response Response)) (Response, error) 
 	}
 	req.URL.RawQuery = q.Encode()
 	// Send request
+	fmt.Println(req.URL)
 	resp, err = client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer resp.Body.Close()
 
+	body, _ := ioutil.ReadAll(resp.Body)
+	bodyCallback := body
 	// deep copy response to give it to both return and callback func
 	respCallback := *resp
 	if len(callback) != 0 {
-		callback[0](&respCallback)
+		callback[0](&respCallback, string(bodyCallback))
 	}
-	return resp, nil
+	return resp, string(body), nil
 }
 
 func main() {
 	Post("http://requestb.in/1f7ur5s1").
 		Send(`nickname=a`).
 		Set("Accept", "application/json").
-		End(func(response Response) {
+		End(func(response Response, body string) {
 		fmt.Println(response)
 	})
 }

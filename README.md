@@ -30,7 +30,7 @@ resp, err := http.Get("http://example.com/")
 With GoRequest:
 
 ```
-resp, err := gorequest.Get("http://example.com/").End()
+resp, body, err := gorequest.Get("http://example.com/").End()
 ```
 
 How about getting control over HTTP client headers, redirect policy, and etc. Things is getting more complicated in golang. You need to create a Client, setting header in different comamnd, ... to do just only one __GET__
@@ -50,7 +50,7 @@ Why making things ugly while you can just do as follows:
 
 ```
 ### policy is not supported yet
-resp, err := gorequest.Get("http://example.com").
+resp, body, err := gorequest.Get("http://example.com").
   Set("If-None-Match", `W/"wyzzy"`).
   End()
 ```
@@ -74,7 +74,7 @@ resp, _ := client.Do(req)
 Compared to our GoRequest version, JSON is for sure a default. So, it turns out to be just one simple line!:
 
 ```
-resp, err := gorequest.Post("http://example.com").
+resp, body, err := gorequest.Post("http://example.com").
   Set("Notes","gorequst is coming!").
   Send(`{"name":"backy", "species":"dog"}`).
   End()
