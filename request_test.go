@@ -123,10 +123,10 @@ func TestQueryFunc(t *testing.T) {
 		fmt.Println(r.URL.Query())
 	}))
 	defer ts.Close()
-	resp, _ := Post(ts.URL).
+	resp, _, _ := Post(ts.URL).
 		Query("query1=test").
 		Query("query2=test").
-		End(func(r Response) {
+		End(func(r Response, body string) {
 		r.Status = "10"
 	})
 	fmt.Println(resp.Status)
