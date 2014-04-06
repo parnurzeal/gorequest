@@ -49,8 +49,8 @@ resp, err := client.Do(req)
 Why making things ugly while you can just do as follows:
 
 ```
-### policy is not supported yet
 resp, body, err := gorequest.Get("http://example.com").
+  RedirectPolicy(redirectPolicyFunc).
   Set("If-None-Match", `W/"wyzzy"`).
   End()
 ```
