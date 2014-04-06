@@ -11,24 +11,25 @@ import (
 	"strings"
 )
 
+type Request *http.Request
 type Response *http.Response
 
 type SuperAgent struct {
-	Url       string
-	Method    string
-	Header    map[string]string
-	Type      string
-	ForceType string
-	Data      map[string]interface{}
-	FormData  url.Values
-	QueryData url.Values
+	Url        string
+	Method     string
+	Header     map[string]string
+	TargetType string
+	ForceType  string
+	Data       map[string]interface{}
+	FormData   url.Values
+	QueryData  url.Values
 }
 
 func New() *SuperAgent {
 	s := SuperAgent{
-		Type:   "json",
-		Data:   make(map[string]interface{}),
-		Header: make(map[string]string)}
+		TargetType: "json",
+		Data:       make(map[string]interface{}),
+		Header:     make(map[string]string)}
 	return &s
 }
 
@@ -45,13 +46,13 @@ func Get(targetUrl string) *SuperAgent {
 
 func Post(targetUrl string) *SuperAgent {
 	newReq := &SuperAgent{
-		Url:       targetUrl,
-		Method:    "POST",
-		Type:      "json",
-		Header:    make(map[string]string),
-		Data:      make(map[string]interface{}),
-		FormData:  url.Values{},
-		QueryData: url.Values{}}
+		Url:        targetUrl,
+		Method:     "POST",
+		TargetType: "json",
+		Header:     make(map[string]string),
+		Data:       make(map[string]interface{}),
+		FormData:   url.Values{},
+		QueryData:  url.Values{}}
 	return newReq
 }
 
@@ -69,7 +70,7 @@ var Types = map[string]string{
 	"form-data":  "application/x-www-form-urlencoded",
 }
 
-func (s *SuperAgent) SetType(typeStr string) *SuperAgent {
+func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 	if _, ok := Types[typeStr]; ok {
 		s.ForceType = typeStr
 	}
@@ -120,7 +121,7 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 				s.Data[k] = formVal.Get(k)
 			}
 		}
-		s.Type = "form"
+		s.TargetType = "form"
 	}
 	return s
 }
@@ -149,17 +150,17 @@ func (s *SuperAgent) End(callback ...func(response Response, body string)) (Resp
 	client := &http.Client{}
 	// check if there is forced type
 	if s.ForceType == "json" {
-		s.Type = "json"
+		s.TargetType = "json"
 	} else if s.ForceType == "form" {
-		s.Type = "form"
+		s.TargetType = "form"
 	}
 	if s.Method == "POST" {
-		if s.Type == "json" {
+		if s.TargetType == "json" {
 			contentJson, _ := json.Marshal(s.Data)
 			contentReader := bytes.NewReader(contentJson)
 			req, err = http.NewRequest(s.Method, s.Url, contentReader)
 			req.Header.Set("Content-Type", "application/json")
-		} else if s.Type == "form" {
+		} else if s.TargetType == "form" {
 			formData := changeMapToURLValues(s.Data)
 			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(formData.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
