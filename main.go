@@ -11,18 +11,18 @@ import (
 	"strings"
 )
 
-type Request *http.Request
 type Response *http.Response
 
 type SuperAgent struct {
-	Url        string
-	Method     string
-	Header     map[string]string
-	TargetType string
-	ForceType  string
-	Data       map[string]interface{}
-	FormData   url.Values
-	QueryData  url.Values
+	Url          string
+	Method       string
+	Header       map[string]string
+	TargetType   string
+	ForceType    string
+	Data         map[string]interface{}
+	FormData     url.Values
+	QueryData    url.Values
+	RedirectFunc func(req *http.Request, via []*http.Request) error
 }
 
 func New() *SuperAgent {
@@ -94,6 +94,11 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 	return s
 }
 
+func (s *SuperAgent) RedirectPolicy(policy func(req *http.Request, via []*http.Request) error) *SuperAgent {
+	s.RedirectFunc = policy
+	return s
+}
+
 func (s *SuperAgent) Send(content string) *SuperAgent {
 	var val map[string]interface{}
 	// check if it is json format
@@ -147,7 +152,9 @@ func (s *SuperAgent) End(callback ...func(response Response, body string)) (Resp
 		err  error
 		resp Response
 	)
-	client := &http.Client{}
+	client := &http.Client{
+		CheckRedirect: s.RedirectFunc,
+	}
 	// check if there is forced type
 	if s.ForceType == "json" {
 		s.TargetType = "json"
