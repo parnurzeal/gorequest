@@ -25,7 +25,7 @@ func TestGetFormat(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	Get(ts.URL).
+	New().Get(ts.URL).
 		End()
 }
 
@@ -43,7 +43,7 @@ func TestGetSetHeader(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	Get(ts.URL).
+	New().Get(ts.URL).
 		Set("API-Key", "fookey").
 		End()
 }
@@ -66,7 +66,7 @@ func TestPostSetHeader(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	Post(ts.URL).
+	New().Post(ts.URL).
 		Set("API-Key", "fookey").
 		End()
 }
@@ -82,7 +82,7 @@ func TestPostFormSendString(t *testing.T) {
 		fmt.Println(r.URL.Query())
 	}))
 	defer ts.Close()
-	Post(ts.URL).
+	New().Post(ts.URL).
 		Send("query1=test").
 		Send("query2=test").
 		End()
@@ -95,7 +95,7 @@ func TestPostFormSendJson(t *testing.T) {
 		fmt.Println(r.URL.Query())
 	}))
 	defer ts.Close()
-	Post(ts.URL).
+	New().Post(ts.URL).
 		Send(`{"query1":"test"}`).
 		Send(`{"query2":"test"}`).
 		End()
@@ -108,7 +108,7 @@ func TestPostFormSendJsonAndString(t *testing.T) {
 		fmt.Println(r.URL.Query())
 	}))
 	defer ts.Close()
-	Post(ts.URL).
+	New().Post(ts.URL).
 		Send("query1=test").
 		Send(`{"query2":"test"}`).
 		End()
@@ -123,7 +123,7 @@ func TestQueryFunc(t *testing.T) {
 		fmt.Println(r.URL.Query())
 	}))
 	defer ts.Close()
-	resp, _, _ := Post(ts.URL).
+	resp, _, _ := New().Post(ts.URL).
 		Query("query1=test").
 		Query("query2=test").
 		End(func(r Response, body string) {

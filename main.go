@@ -14,46 +14,51 @@ import (
 type Response *http.Response
 
 type SuperAgent struct {
-	Url          string
-	Method       string
-	Header       map[string]string
-	TargetType   string
-	ForceType    string
-	Data         map[string]interface{}
-	FormData     url.Values
-	QueryData    url.Values
-	RedirectFunc func(req *http.Request, via []*http.Request) error
+	Url        string
+	Method     string
+	Header     map[string]string
+	TargetType string
+	ForceType  string
+	Data       map[string]interface{}
+	FormData   url.Values
+	QueryData  url.Values
+	Client     *http.Client
 }
 
 func New() *SuperAgent {
-	s := SuperAgent{
+	s := &SuperAgent{
 		TargetType: "json",
 		Data:       make(map[string]interface{}),
-		Header:     make(map[string]string)}
-	return &s
-}
-
-func Get(targetUrl string) *SuperAgent {
-	newReq := &SuperAgent{
-		Url:       targetUrl,
-		Method:    "GET",
-		Header:    make(map[string]string),
-		Data:      make(map[string]interface{}),
-		FormData:  url.Values{},
-		QueryData: url.Values{}}
-	return newReq
-}
-
-func Post(targetUrl string) *SuperAgent {
-	newReq := &SuperAgent{
-		Url:        targetUrl,
-		Method:     "POST",
-		TargetType: "json",
 		Header:     make(map[string]string),
-		Data:       make(map[string]interface{}),
 		FormData:   url.Values{},
-		QueryData:  url.Values{}}
-	return newReq
+		QueryData:  url.Values{},
+		Client:     &http.Client{},
+	}
+	return s
+}
+func (s *SuperAgent) ClearSuperAgent() {
+	s.Url = ""
+	s.Method = ""
+	s.Header = make(map[string]string)
+	s.Data = make(map[string]interface{})
+	s.FormData = url.Values{}
+	s.QueryData = url.Values{}
+	s.ForceType = ""
+	s.TargetType = "json"
+}
+
+func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
+	s.ClearSuperAgent()
+	s.Method = "GET"
+	s.Url = targetUrl
+	return s
+}
+
+func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
+	s.ClearSuperAgent()
+	s.Method = "POST"
+	s.Url = targetUrl
+	return s
 }
 
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
@@ -95,7 +100,7 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 }
 
 func (s *SuperAgent) RedirectPolicy(policy func(req *http.Request, via []*http.Request) error) *SuperAgent {
-	s.RedirectFunc = policy
+	s.Client.CheckRedirect = policy
 	return s
 }
 
@@ -152,9 +157,6 @@ func (s *SuperAgent) End(callback ...func(response Response, body string)) (Resp
 		err  error
 		resp Response
 	)
-	client := &http.Client{
-		CheckRedirect: s.RedirectFunc,
-	}
 	// check if there is forced type
 	if s.ForceType == "json" {
 		s.TargetType = "json"
@@ -188,7 +190,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string)) (Resp
 	req.URL.RawQuery = q.Encode()
 	// Send request
 	fmt.Println(req.URL)
-	resp, err = client.Do(req)
+	resp, err = s.Client.Do(req)
 	if err != nil {
 		return nil, "", err
 	}
@@ -205,7 +207,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string)) (Resp
 }
 
 func main() {
-	Post("http://requestb.in/1f7ur5s1").
+	New().Post("http://requestb.in/1f7ur5s1").
 		Send(`nickname=a`).
 		Set("Accept", "application/json").
 		End(func(response Response, body string) {
