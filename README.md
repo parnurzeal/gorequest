@@ -30,7 +30,14 @@ resp, err := http.Get("http://example.com/")
 With GoRequest:
 
 ```
-resp, body, err := gorequest.Get("http://example.com/").End()
+request := gorequest.New()
+resp, body, err := request.Get("http://example.com/").End()
+```
+
+Or below if you don't want to reuse it for other requests.
+
+```
+resp, body, err := gorequest.New().Get("http://example.com/").End()
 ```
 
 How about getting control over HTTP client headers, redirect policy, and etc. Things is getting more complicated in golang. You need to create a Client, setting header in different comamnd, ... to do just only one __GET__
