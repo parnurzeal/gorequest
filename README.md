@@ -83,7 +83,7 @@ resp, body, err := request.Post("http://example.com").
 ```
 
 Note: This is a work in progress and not totally support all specifications.
-Right now, you can only do simple get and post with easy to specify header like in examples which is enough in many cases.
+Right now, you can do simple get and post with easy to specify header like in examples which is enough in many cases.
 
 ## License
 
