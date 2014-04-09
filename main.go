@@ -13,6 +13,7 @@ import (
 
 type Response *http.Response
 
+// A SuperAgent is a object storing all request data for client.
 type SuperAgent struct {
 	Url        string
 	Method     string
@@ -25,6 +26,7 @@ type SuperAgent struct {
 	Client     *http.Client
 }
 
+// Used to create a new SuperAgent object.
 func New() *SuperAgent {
 	s := &SuperAgent{
 		TargetType: "json",
@@ -36,6 +38,8 @@ func New() *SuperAgent {
 	}
 	return s
 }
+
+// Clear SuperAgent data for another new request.
 func (s *SuperAgent) ClearSuperAgent() {
 	s.Url = ""
 	s.Method = ""
