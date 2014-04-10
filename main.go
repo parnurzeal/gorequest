@@ -87,6 +87,38 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 }
 
 // Query method accepts ether json string or strings which will form a query-string in url of GET method or body of POST method.
+// For example, making "/search?query=bicycle&size=50x50&weight=20kg" using GET method:
+//
+//      gorequest.New().
+//        Get('/search').
+//        Query(`{ query: 'bicycle' }`).
+//        Query(`{ size: '50x50' }`).
+//        Query(`{ weight: '20kg' }`).
+//        End()
+//
+// Or you can put multiple json values:
+//
+//      gorequest.New().
+//        Get('/search').
+//        Query(`{ query: 'bicycle', size: '50x50', weight: '20kg' }`).
+//        End()
+//
+// Strings are also acceptable:
+//
+//      gorequest.New().
+//        Get('/search').
+//        Query('query=bicycle&size=50x50').
+//        Query('weight=20kg').
+//        End()
+//
+// Or even Mixed! :)
+//
+//      gorequest.New().
+//        Get('/search').
+//        Query('query=bicycle').
+//        Query(`{ size: '50x50', weight:'20kg' }`).
+//        End()
+//
 // TODO: check error
 func (s *SuperAgent) Query(content string) *SuperAgent {
 	var val map[string]string
