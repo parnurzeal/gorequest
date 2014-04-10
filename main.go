@@ -86,6 +86,7 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 	return s
 }
 
+// Query method accepts ether json string or strings which will form a query-string in url of GET method or body of POST method.
 // TODO: check error
 func (s *SuperAgent) Query(content string) *SuperAgent {
 	var val map[string]string
