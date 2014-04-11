@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+type Request *http.Request
 type Response *http.Response
 
 // A SuperAgent is a object storing all request data for client.
@@ -137,7 +138,7 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 }
 
 // TODO: find a way to change it to gorequest's Request and Response itself
-func (s *SuperAgent) RedirectPolicy(policy func(req *http.Request, via []*http.Request) error) *SuperAgent {
+func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) error) *SuperAgent {
 	s.Client.CheckRedirect = policy
 	return s
 }
