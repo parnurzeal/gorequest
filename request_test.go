@@ -133,6 +133,25 @@ func TestQueryFunc(t *testing.T) {
 
 }
 
+// TODO: check redirect
+func TestRedirectPolicyFunc(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+		fmt.Println(r.URL.Query())
+	}))
+	defer ts.Close()
+	/*resp, _, _ := New().Post(ts.URL).
+		RedirectPolicy(func(req Request, via []Request) error {
+	}).
+		End(func(r Response, body string) {
+		r.Status = "10"
+	})
+	fmt.Println(resp.Status)*/
+
+}
+
 func TestIntegration(t *testing.T) {
 
 }
