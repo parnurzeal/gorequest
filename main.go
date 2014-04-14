@@ -137,7 +137,6 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 	return s
 }
 
-// TODO: find a way to change it to gorequest's Request and Response itself
 func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) error) *SuperAgent {
 	s.Client.CheckRedirect = func(r *http.Request, v []*http.Request) error {
 		vv := make([]Request, len(v))
