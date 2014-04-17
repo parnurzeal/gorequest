@@ -80,6 +80,24 @@ var Types = map[string]string{
 	"form-data":  "application/x-www-form-urlencoded",
 }
 
+// Type is a convenience function to specify the data type to send.
+// For example, to send data as `application/x-www-form-urlencoded` :
+//
+//    gorequest.New().
+//      POST('/recipe').
+//      Type('form').
+//      Send(`{ name: "egg benedict", category: "brunch" }`).
+//      End()
+//
+// This will POST the body "name=egg benedict&category=brunch" to url /recipe
+//
+// GoRequest supports
+//
+//    "text/html" uses "html"
+//    "application/json" uses "json"
+//    "application/xml" uses "xml"
+//    "application/x-www-form-urlencoded" uses "urlencoded", "form" or "form-data"
+//
 func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 	if _, ok := Types[typeStr]; ok {
 		s.ForceType = typeStr
@@ -87,7 +105,7 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 	return s
 }
 
-// Query method accepts ether json string or strings which will form a query-string in url of GET method or body of POST method.
+// Query function accepts either json string or strings which will form a query-string in url of GET method or body of POST method.
 // For example, making "/search?query=bicycle&size=50x50&weight=20kg" using GET method:
 //
 //      gorequest.New().
