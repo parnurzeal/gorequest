@@ -4,6 +4,7 @@ package gorequest
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -25,6 +26,7 @@ type SuperAgent struct {
 	FormData   url.Values
 	QueryData  url.Values
 	Client     *http.Client
+	Errors     []error
 }
 
 // Used to create a new SuperAgent object.
@@ -36,6 +38,7 @@ func New() *SuperAgent {
 		FormData:   url.Values{},
 		QueryData:  url.Values{},
 		Client:     &http.Client{},
+		Errors:     make([]error, 0),
 	}
 	return s
 }
@@ -50,12 +53,14 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.QueryData = url.Values{}
 	s.ForceType = ""
 	s.TargetType = "json"
+	s.Errors = make([]error, 0)
 }
 
 func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = "GET"
 	s.Url = targetUrl
+	s.Errors = make([]error, 0)
 	return s
 }
 
@@ -63,6 +68,7 @@ func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = "POST"
 	s.Url = targetUrl
+	s.Errors = make([]error, 0)
 	return s
 }
 
@@ -101,6 +107,8 @@ var Types = map[string]string{
 func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 	if _, ok := Types[typeStr]; ok {
 		s.ForceType = typeStr
+	} else {
+		s.Errors = append(s.Errors, errors.New("Type func: incorrect type \""+typeStr+"\""))
 	}
 	return s
 }
@@ -146,9 +154,12 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 			s.QueryData.Add(k, v)
 		}
 	} else {
-		queryVal, _ := url.ParseQuery(content)
-		for k, _ := range queryVal {
-			s.QueryData.Add(k, queryVal.Get(k))
+		if queryVal, err := url.ParseQuery(content); err == nil {
+			for k, _ := range queryVal {
+				s.QueryData.Add(k, queryVal.Get(k))
+			}
+		} else {
+			s.Errors = append(s.Errors, err)
 		}
 		// TODO: need to check correct format of 'field=val&field=val&...'
 	}
@@ -213,7 +224,7 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 	return newUrlValues
 }
 
-func (s *SuperAgent) End(callback ...func(response Response, body string)) (Response, string, error) {
+func (s *SuperAgent) End(callback ...func(response Response, body string)) (Response, string, []error) {
 	var (
 		req  *http.Request
 		err  error
@@ -254,7 +265,8 @@ func (s *SuperAgent) End(callback ...func(response Response, body string)) (Resp
 	fmt.Println(req.URL)
 	resp, err = s.Client.Do(req)
 	if err != nil {
-		return nil, "", err
+		s.Errors = append(s.Errors, err)
+		return nil, "", s.Errors
 	}
 	defer resp.Body.Close()
 
@@ -265,7 +277,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string)) (Resp
 	if len(callback) != 0 {
 		callback[0](&respCallback, string(bodyCallback))
 	}
-	return resp, string(body), nil
+	return resp, string(body), s.Errors
 }
 
 func main() {
