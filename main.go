@@ -72,6 +72,14 @@ func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 	return s
 }
 
+// Set is used for setting header fields.
+// Example. To set `Accept` as `application/json`
+//
+//    gorequest.New().
+//      Post("/gamelist").
+//      Set("Accept", "application/json").
+//      End()
+// TODO: make Set be able to get multiple fields
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 	s.Header[param] = value
 	return s
@@ -90,8 +98,8 @@ var Types = map[string]string{
 // For example, to send data as `application/x-www-form-urlencoded` :
 //
 //    gorequest.New().
-//      POST('/recipe').
-//      Type('form').
+//      Post("/recipe").
+//      Type("form").
 //      Send(`{ name: "egg benedict", category: "brunch" }`).
 //      End()
 //
@@ -117,7 +125,7 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 // For example, making "/search?query=bicycle&size=50x50&weight=20kg" using GET method:
 //
 //      gorequest.New().
-//        Get('/search').
+//        Get("/search").
 //        Query(`{ query: 'bicycle' }`).
 //        Query(`{ size: '50x50' }`).
 //        Query(`{ weight: '20kg' }`).
@@ -126,23 +134,23 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 // Or you can put multiple json values:
 //
 //      gorequest.New().
-//        Get('/search').
+//        Get("/search").
 //        Query(`{ query: 'bicycle', size: '50x50', weight: '20kg' }`).
 //        End()
 //
 // Strings are also acceptable:
 //
 //      gorequest.New().
-//        Get('/search').
-//        Query('query=bicycle&size=50x50').
-//        Query('weight=20kg').
+//        Get("/search").
+//        Query("query=bicycle&size=50x50").
+//        Query("weight=20kg").
 //        End()
 //
 // Or even Mixed! :)
 //
 //      gorequest.New().
-//        Get('/search').
-//        Query('query=bicycle').
+//        Get("/search").
+//        Query("query=bicycle").
 //        Query(`{ size: '50x50', weight:'20kg' }`).
 //        End()
 //
@@ -181,23 +189,23 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 // Without specifying any type, if you give Send with json data, you are doing requesting in json format:
 //
 //      gorequest.New().
-//        Post('/search').
+//        Post("/search").
 //        Send(`{ query: 'sushi' }`).
 //        End()
 //
 // While if you use at least one of querystring, GoRequest understands and automatically set the Content-Type to `application/x-www-form-urlencoded`
 //
 //      gorequest.New().
-//        Post('/search').
-//        Send('query=tonkatsu').
+//        Post("/search").
+//        Send("query=tonkatsu").
 //        End()
 //
 // So, if you want to strictly send json format, you need to use Type func to set it as `json` (Please see more details in Type function).
 // You can also do multiple chain of Send:
 //
 //      gorequest.New().
-//        Post('/search').
-//        Send('query=bicycle&size=50x50').
+//        Post("/search").
+//        Send("query=bicycle&size=50x50").
 //        Send(`{ wheel: '4'}`).
 //        End()
 //
