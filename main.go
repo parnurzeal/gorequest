@@ -177,6 +177,31 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 	return s
 }
 
+// Send function accepts either json string or query strings which is usually used to assign data to POST or PUT method.
+// Without specifying any type, if you give Send with json data, you are doing requesting in json format:
+//
+//      gorequest.New().
+//        Post('/search').
+//        Send(`{ query: 'sushi' }`).
+//        End()
+//
+// While if you use at least one of querystring, GoRequest understands and automatically set the Content-Type to `application/x-www-form-urlencoded`
+//
+//      gorequest.New().
+//        Post('/search').
+//        Send('query=tonkatsu').
+//        End()
+//
+// So, if you want to strictly send json format, you need to use Type func to set it as `json` (Please see more details in Type function).
+// You can also do multiple chain of Send:
+//
+//      gorequest.New().
+//        Post('/search').
+//        Send('query=bicycle&size=50x50').
+//        Send(`{ wheel: '4'}`).
+//        End()
+//
+// TODO: check error
 func (s *SuperAgent) Send(content string) *SuperAgent {
 	var val map[string]interface{}
 	// check if it is json format
