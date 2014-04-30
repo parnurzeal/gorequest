@@ -5,7 +5,7 @@ GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.
 
 ## Installation
 
-```
+```go
 $ go get github.com/parnurzeal/gorequest
 ```
 
@@ -23,26 +23,26 @@ GoRequest makes thing much more simple for you, making http client more awesome 
 
 This is what you normally do for a simple GET without GoRequest:
 
-```
+```go
 resp, err := http.Get("http://example.com/")
 ```
 
 With GoRequest:
 
-```
+```go
 request := gorequest.New()
 resp, body, err := request.Get("http://example.com/").End()
 ```
 
 Or below if you don't want to reuse it for other requests.
 
-```
+```go
 resp, body, err := gorequest.New().Get("http://example.com/").End()
 ```
 
 How about getting control over HTTP client headers, redirect policy, and etc. Things is getting more complicated in golang. You need to create a Client, setting header in different comamnd, ... to do just only one __GET__
 
-```
+```go
 client := &http.Client{
   CheckRedirect: redirectPolicyFunc,
 }
@@ -55,7 +55,7 @@ resp, err := client.Do(req)
 
 Why making things ugly while you can just do as follows:
 
-```
+```go
 request := gorequest.New()
 resp, body, err := request.Get("http://example.com").
   RedirectPolicy(redirectPolicyFunc).
@@ -65,7 +65,7 @@ resp, body, err := request.Get("http://example.com").
 
 For a __JSON POST__ with standard libraries, you might need to marshal map data structure to json format, setting header to 'application/json' (and other headers if you need to) and declare http.Client. So, you code become longer and hard to maintain:
 
-```
+```go
 m := map[string]interface{}{
   "name": "backy",
   "species": "dog",
@@ -81,7 +81,7 @@ resp, _ := client.Do(req)
 
 Compared to our GoRequest version, JSON is for sure a default. So, it turns out to be just one simple line!:
 
-```
+```go
 request := gorequest.New()
 resp, body, err := request.Post("http://example.com").
   Set("Notes","gorequst is coming!").
