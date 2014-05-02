@@ -310,7 +310,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string)) (Resp
 	if len(callback) != 0 {
 		callback[0](&respCallback, string(bodyCallback))
 	}
-	return resp, string(body), s.Errors
+	return resp, string(body), nil
 }
 
 func main() {
