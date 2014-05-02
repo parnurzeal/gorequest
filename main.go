@@ -270,7 +270,7 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 //    fmt.Println(resp, body)
 //
 // Moreover, End function also supports callback which you can put as a parameter.
-// This extends the flexibility and makes GoRequest in whatever style you want!
+// This extends the flexibility and makes GoRequest fun and clean! You can use GoRequest in whatever style you love!
 //
 // For example:
 //
