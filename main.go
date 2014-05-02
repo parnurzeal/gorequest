@@ -261,6 +261,23 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 // End function returns Response which matchs the structure of Response type in Golang's http package (but without Body data). The body data itself returns as a string in a 2nd return value.
 // Lastly but worht noticing, error array (NOTE: not just single error value) is returned as a 3rd value and nil otherwise.
 //
+// For example:
+//
+//    resp, body, errs := gorequest.New().Get("http://www.google.com").End()
+//    if( errs != nil){
+//      fmt.Pritnln(errs)
+//    }
+//    fmt.Println(resp, body)
+//
+// Moreover, End function also supports callback which you can put as a parameter.
+// This extends the flexibility and makes GoRequest in whatever style you want!
+//
+// For example:
+//
+//    func printBody(resp gorequest.Response, body string){
+//      fmt.Println(resp.Status)
+//    }
+//    gorequest.New().Get("http://www..google.com").End(printBody)
 //
 func (s *SuperAgent) End(callback ...func(response Response, body string)) (Response, string, []error) {
 	var (
