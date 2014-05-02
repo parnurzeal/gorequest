@@ -274,12 +274,12 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 //
 // For example:
 //
-//    func printBody(resp gorequest.Response, body string){
+//    func printBody(resp gorequest.Response, body string, errs []error){
 //      fmt.Println(resp.Status)
 //    }
 //    gorequest.New().Get("http://www..google.com").End(printBody)
 //
-func (s *SuperAgent) End(callback ...func(response Response, body string)) (Response, string, []error) {
+func (s *SuperAgent) End(callback ...func(response Response, body string, errs []error)) (Response, string, []error) {
 	var (
 		req  *http.Request
 		err  error
@@ -330,7 +330,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string)) (Resp
 	// deep copy response to give it to both return and callback func
 	respCallback := *resp
 	if len(callback) != 0 {
-		callback[0](&respCallback, string(bodyCallback))
+		callback[0](&respCallback, string(bodyCallback), s.Errors)
 	}
 	return resp, string(body), nil
 }
@@ -339,7 +339,7 @@ func main() {
 	New().Post("http://requestb.in/1f7ur5s1").
 		Send(`nickname=a`).
 		Set("Accept", "application/json").
-		End(func(response Response, body string) {
+		End(func(response Response, body string, errs []error) {
 		fmt.Println(response)
 	})
 }
