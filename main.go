@@ -285,6 +285,10 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 		err  error
 		resp Response
 	)
+	// check whether there is an error. if yes, return all errors
+	if len(s.Errors) != 0 {
+		return nil, "", s.Errors
+	}
 	// check if there is forced type
 	if s.ForceType == "json" {
 		s.TargetType = "json"
