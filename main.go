@@ -257,12 +257,38 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 	return newUrlValues
 }
 
-func (s *SuperAgent) End(callback ...func(response Response, body string)) (Response, string, []error) {
+// End is the most important function that you need to call when ending the chain. The request won't proceed without calling it.
+// End function returns Response which matchs the structure of Response type in Golang's http package (but without Body data). The body data itself returns as a string in a 2nd return value.
+// Lastly but worht noticing, error array (NOTE: not just single error value) is returned as a 3rd value and nil otherwise.
+//
+// For example:
+//
+//    resp, body, errs := gorequest.New().Get("http://www.google.com").End()
+//    if( errs != nil){
+//      fmt.Pritnln(errs)
+//    }
+//    fmt.Println(resp, body)
+//
+// Moreover, End function also supports callback which you can put as a parameter.
+// This extends the flexibility and makes GoRequest fun and clean! You can use GoRequest in whatever style you love!
+//
+// For example:
+//
+//    func printBody(resp gorequest.Response, body string, errs []error){
+//      fmt.Println(resp.Status)
+//    }
+//    gorequest.New().Get("http://www..google.com").End(printBody)
+//
+func (s *SuperAgent) End(callback ...func(response Response, body string, errs []error)) (Response, string, []error) {
 	var (
 		req  *http.Request
 		err  error
 		resp Response
 	)
+	// check whether there is an error. if yes, return all errors
+	if len(s.Errors) != 0 {
+		return nil, "", s.Errors
+	}
 	// check if there is forced type
 	if s.ForceType == "json" {
 		s.TargetType = "json"
@@ -308,16 +334,16 @@ func (s *SuperAgent) End(callback ...func(response Response, body string)) (Resp
 	// deep copy response to give it to both return and callback func
 	respCallback := *resp
 	if len(callback) != 0 {
-		callback[0](&respCallback, string(bodyCallback))
+		callback[0](&respCallback, string(bodyCallback), s.Errors)
 	}
-	return resp, string(body), s.Errors
+	return resp, string(body), nil
 }
 
 func main() {
 	New().Post("http://requestb.in/1f7ur5s1").
 		Send(`nickname=a`).
 		Set("Accept", "application/json").
-		End(func(response Response, body string) {
+		End(func(response Response, body string, errs []error) {
 		fmt.Println(response)
 	})
 }
