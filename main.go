@@ -26,6 +26,7 @@ type SuperAgent struct {
 	FormData   url.Values
 	QueryData  url.Values
 	Client     *http.Client
+	Transport  *http.Transport
 	Errors     []error
 }
 
@@ -38,6 +39,7 @@ func New() *SuperAgent {
 		FormData:   url.Values{},
 		QueryData:  url.Values{},
 		Client:     &http.Client{},
+		Transport:  &http.Transport{},
 		Errors:     nil,
 	}
 	return s
@@ -170,6 +172,16 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 			s.Errors = append(s.Errors, err)
 		}
 		// TODO: need to check correct format of 'field=val&field=val&...'
+	}
+	return s
+}
+
+func (s *SuperAgent) Proxy(proxyUrl string) *SuperAgent {
+	parsedProxyUrl, err := url.Parse(proxyUrl)
+	if err != nil {
+		s.Errors = append(s.Errors, err)
+	} else {
+		s.Transport.Proxy = http.ProxyURL(parsedProxyUrl)
 	}
 	return s
 }
@@ -320,6 +332,9 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 		}
 	}
 	req.URL.RawQuery = q.Encode()
+
+	// Set Transport
+	s.Client.Transport = s.Transport
 	// Send request
 	fmt.Println(req.URL)
 	resp, err = s.Client.Do(req)
