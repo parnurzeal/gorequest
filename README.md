@@ -96,7 +96,7 @@ Let's see a bit of callback example:
 func printBody(resp gorequest.Response, body string, errs []error){
   fmt.Println(resp.Status)
 }
-gorequest.New().Get("http://www..google.com").End(printBody)
+gorequest.New().Get("http://example.com").End(printBody)
 ```
 
 ## Proxy
@@ -105,7 +105,7 @@ In the case when you are behind proxy, GoRequest can handle it easily with Proxy
 
 ```go
 request := gorequest.New().Proxy("http://proxy:999")
-resp, body, errs:= request.Get("http://www.google.com").End()
+resp, body, errs:= request.Get("http://example.com").End()
 ```
 
 Note: This is a work in progress and not totally support all specifications. 
