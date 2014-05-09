@@ -99,6 +99,15 @@ func printBody(resp gorequest.Response, body string, errs []error){
 gorequest.New().Get("http://www..google.com").End(printBody)
 ```
 
+## Proxy
+
+In the case when you are behind proxy, GoRequest can handle it easily with Proxy func:
+
+```go
+request := gorequest.New().Proxy("http://proxy:999")
+resp, body, errs:= request.Get("http://www.google.com").End()
+```
+
 Note: This is a work in progress and not totally support all specifications. 
 Right now, you can do get and post with easy to specify header like in examples which is enough in many cases.
 More features are coming soon! (Proxy, Transport customization, etc. )
