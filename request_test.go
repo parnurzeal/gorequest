@@ -126,7 +126,7 @@ func TestQueryFunc(t *testing.T) {
 	resp, _, _ := New().Post(ts.URL).
 		Query("query1=test").
 		Query("query2=test").
-		End(func(r Response, body string) {
+		End(func(r Response, body string, errs []error) {
 		r.Status = "10"
 	})
 	fmt.Println(resp.Status)

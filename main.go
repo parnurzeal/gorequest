@@ -38,7 +38,7 @@ func New() *SuperAgent {
 		FormData:   url.Values{},
 		QueryData:  url.Values{},
 		Client:     &http.Client{},
-		Errors:     make([]error, 0),
+		Errors:     nil,
 	}
 	return s
 }
@@ -53,14 +53,14 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.QueryData = url.Values{}
 	s.ForceType = ""
 	s.TargetType = "json"
-	s.Errors = make([]error, 0)
+	s.Errors = nil
 }
 
 func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = "GET"
 	s.Url = targetUrl
-	s.Errors = make([]error, 0)
+	s.Errors = nil
 	return s
 }
 
@@ -68,7 +68,7 @@ func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = "POST"
 	s.Url = targetUrl
-	s.Errors = make([]error, 0)
+	s.Errors = nil
 	return s
 }
 
