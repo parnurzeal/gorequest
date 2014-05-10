@@ -336,7 +336,6 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	// Set Transport
 	s.Client.Transport = s.Transport
 	// Send request
-	fmt.Println(req.URL)
 	resp, err = s.Client.Do(req)
 	if err != nil {
 		s.Errors = append(s.Errors, err)
