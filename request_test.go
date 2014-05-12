@@ -152,6 +152,9 @@ func TestRedirectPolicyFunc(t *testing.T) {
 
 }
 
+func TestProxyFunc(t *testing.T) {
+
+}
 func TestIntegration(t *testing.T) {
 
 }
