@@ -362,12 +362,3 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	}
 	return resp, string(body), nil
 }
-
-func main() {
-	New().Post("http://requestb.in/1f7ur5s1").
-		Send(`nickname=a`).
-		Set("Accept", "application/json").
-		End(func(response Response, body string, errs []error) {
-		fmt.Println(response)
-	})
-}
