@@ -3,6 +3,12 @@ GoRequest
 
 GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.js )
 
+#### Rich features
+It currently supports: 
+* Proxy 
+* Timeout
+* more to come.. 
+
 ## Installation
 
 ```bash

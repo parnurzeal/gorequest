@@ -177,6 +177,10 @@ func TestProxyFunc(t *testing.T) {
 	}
 }
 
+func TestTimeoutFunc(t *testing.T) {
+
+}
+
 func TestIntegration(t *testing.T) {
 
 }

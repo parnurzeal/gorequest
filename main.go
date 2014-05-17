@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type Request *http.Request
@@ -171,6 +173,16 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 			s.Errors = append(s.Errors, err)
 		}
 		// TODO: need to check correct format of 'field=val&field=val&...'
+	}
+	return s
+}
+
+// TODO-1: Add docs for Timeout
+// TODO-2: a test for Timeout, check time and slow server
+func (s *SuperAgent) Timeout(ms int64) *SuperAgent {
+	timeout := time.Duration(ms) * time.Millisecond
+	s.Transport.Dial = func(network, addr string) (net.Conn, error) {
+		return net.DialTimeout(network, addr, timeout)
 	}
 	return s
 }
