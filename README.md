@@ -4,8 +4,9 @@ GoRequest
 GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.js )
 
 
-## Rich features
-It comes with lots of feature and sending request would never been easier than this.
+## Rich Features
+It comes with lots of feature. Sending request would never been fun and easier than this.
+
 Currently, it supports:
 * Get/Post  
 * Set - simple header setting 
