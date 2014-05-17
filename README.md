@@ -4,10 +4,9 @@ GoRequest
 GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.js )
 
 
-## Rich Features
-It comes with lots of feature. Sending request would never been fun and easier than this.
+## Current Features
+It comes with lots of feature. Sending request would never been fun and easier than this. Current features are:
 
-Currently, it supports:
 * Get/Post  
 * Set - simple header setting 
 * JSON - made it simple with JSON string as a parameter
@@ -121,10 +120,6 @@ request := gorequest.New().Proxy("http://proxy:999")
 resp, body, errs:= request.Get("http://example.com").End()
 ```
 
-Note: This is a work in progress and not totally support all specifications. 
-Right now, you can do get and post with easy to specify header like in examples which is enough in many cases.
-More features are coming soon! (Proxy, Transport customization, etc. )
-
 ## Timeout
 
 Timeout can be set in milliseconds by:
@@ -133,6 +128,10 @@ Timeout can be set in milliseconds by:
 request := gorequest.New().Timeout(1000)
 resp, body, errs:= request.Get("http://example.com").End()
 ```
+
+Note: This is a work in progress and not totally support all specifications. 
+Right now, you can do get and post with easy to specify header like in examples which is enough in many cases.
+More features are coming soon! (Proxy, Transport customization, etc. )
 
 ## License
 
