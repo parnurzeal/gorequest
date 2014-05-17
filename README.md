@@ -125,6 +125,15 @@ Note: This is a work in progress and not totally support all specifications.
 Right now, you can do get and post with easy to specify header like in examples which is enough in many cases.
 More features are coming soon! (Proxy, Transport customization, etc. )
 
+## Timeout
+
+Timeout can be set in milliseconds by:
+
+```go
+request := gorequest.New().Timeout(1000)
+resp, body, errs:= request.Get("http://example.com").End()
+```
+
 ## License
 
 GoRequest is MIT License.
