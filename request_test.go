@@ -2,6 +2,7 @@ package gorequest
 
 import (
 	"fmt"
+	"github.com/elazarl/goproxy"
 	_ "io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -153,8 +154,29 @@ func TestRedirectPolicyFunc(t *testing.T) {
 }
 
 func TestProxyFunc(t *testing.T) {
-
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "proxy passed")
+	}))
+	defer ts.Close()
+	// start proxy
+	proxy := goproxy.NewProxyHttpServer()
+	proxy.OnRequest().DoFunc(
+		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+			return r, nil
+		})
+	ts2 := httptest.NewServer(proxy)
+	// sending request via Proxy
+	resp, body, _ := New().Proxy(ts2.URL).Get(ts.URL).End()
+	fmt.Println(resp.Status)
+	if resp.StatusCode != 200 {
+		t.Errorf("Expected 200 Status code")
+	}
+	fmt.Println(body)
+	if body != "proxy passed" {
+		t.Errorf("Expected 'proxy passed' body string")
+	}
 }
+
 func TestIntegration(t *testing.T) {
 
 }
