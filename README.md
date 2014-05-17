@@ -3,10 +3,16 @@ GoRequest
 
 GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.js )
 
-#### Rich features
-It currently supports: 
-* Proxy 
-* Timeout
+
+## Rich features
+It comes with lots of feature and sending request would never been easier than this.
+Currently, it supports:
+* Get/Post  
+* Set - simple header setting 
+* JSON - made it simple with JSON string as a parameter
+* Proxy - sending request via proxy
+* Timeout - setting timeout for a request
+* RedirectPolicy
 * more to come.. 
 
 ## Installation
