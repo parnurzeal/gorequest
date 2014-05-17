@@ -1,4 +1,6 @@
 language: go
+install:
+  - go get github.com/elazarl/goproxy
 notifications:
   email:
     recipients: parnurzeal@gmail.com
