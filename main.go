@@ -75,6 +75,15 @@ func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 	return s
 }
 
+// TODO: testing for Head func
+func (s *SuperAgent) Head(targetUrl string) *SuperAgent {
+	s.ClearSuperAgent()
+	s.Method = "HEAD"
+	s.Url = targetUrl
+	s.Errors = nil
+	return s
+}
+
 // Set is used for setting header fields.
 // Example. To set `Accept` as `application/json`
 //
@@ -340,6 +349,8 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 	} else if s.Method == "GET" {
+		req, err = http.NewRequest(s.Method, s.Url, nil)
+	} else if s.Method == "HEAD" {
 		req, err = http.NewRequest(s.Method, s.Url, nil)
 	}
 	for k, v := range s.Header {

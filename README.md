@@ -7,7 +7,7 @@ GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.
 ## Current Features
 It comes with lots of feature. Sending request would never been fun and easier than this. Current features are:
 
-* Get/Post  
+* Get/Post/Head 
 * Set - simple header setting 
 * JSON - made it simple with JSON string as a parameter
 * Proxy - sending request via proxy
