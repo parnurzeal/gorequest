@@ -188,8 +188,7 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 
 // TODO-1: Add docs for Timeout
 // TODO-2: a test for Timeout, check time and slow server
-func (s *SuperAgent) Timeout(ms int64) *SuperAgent {
-	timeout := time.Duration(ms) * time.Millisecond
+func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 	s.Transport.Dial = func(network, addr string) (net.Conn, error) {
 		return net.DialTimeout(network, addr, timeout)
 	}
@@ -206,10 +205,18 @@ func (s *SuperAgent) Timeout(ms int64) *SuperAgent {
 //        Post("http://www.google.com").
 //        End()
 //
+// To set no_proxy, just put empty string to Proxy func:
+//
+//      gorequest.New().Proxy("").
+//        Post("http://www.google.com").
+//        End()
+//
 func (s *SuperAgent) Proxy(proxyUrl string) *SuperAgent {
 	parsedProxyUrl, err := url.Parse(proxyUrl)
 	if err != nil {
 		s.Errors = append(s.Errors, err)
+	} else if proxyUrl == "" {
+		s.Transport.Proxy = nil
 	} else {
 		s.Transport.Proxy = http.ProxyURL(parsedProxyUrl)
 	}
