@@ -67,6 +67,7 @@ func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 	return s
 }
 
+// TODO: add test for Post
 func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = "POST"
@@ -79,6 +80,14 @@ func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 func (s *SuperAgent) Head(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = "HEAD"
+	s.Url = targetUrl
+	s.Errors = nil
+	return s
+}
+
+func (s *SuperAgent) Put(targetUrl string) *SuperAgent {
+	s.ClearSuperAgent()
+	s.Method = "PUT"
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -344,7 +353,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	} else if s.ForceType == "form" {
 		s.TargetType = "form"
 	}
-	if s.Method == "POST" {
+	if s.Method == "POST" || s.Method == "PUT" {
 		if s.TargetType == "json" {
 			contentJson, _ := json.Marshal(s.Data)
 			contentReader := bytes.NewReader(contentJson)
