@@ -99,6 +99,8 @@ resp, body, errs := request.Post("http://example.com").
   End()
 ```
 
+## Callback
+
 Moreover, GoRequest also supports callback function. This gives you much more flexibility on using it. You can use it any way to match your own style!
 Let's see a bit of callback example:
 
