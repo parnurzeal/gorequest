@@ -5,7 +5,7 @@ GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.
 
 Sending request would never been fun and easier than this. It comes with lots of feature: 
 
-* Get/Post/Put/Head 
+* Get/Post/Put/Head/Delete
 * Set - simple header setting 
 * JSON - made it simple with JSON string as a parameter
 * Proxy - sending request via proxy
@@ -72,6 +72,18 @@ resp, body, errs := request.Get("http://example.com").
   Set("If-None-Match", `W/"wyzzy"`).
   End()
 ```
+
+DELETE, HEAD, POST, PUT are now supported and can be used the same way as GET:
+
+```go
+request := gorequest.New()
+resp, body, errs := request.Post("http://example.com").End()
+// PUT -> request.Put("http://example.com").End()
+// DELETE -> request.Delete("http://example.com").End()
+// HEAD -> request.Head("http://example.com").End()
+```
+
+### JSON
 
 For a __JSON POST__ with standard libraries, you might need to marshal map data structure to json format, setting header to 'application/json' (and other headers if you need to) and declare http.Client. So, you code become longer and hard to maintain:
 
