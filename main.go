@@ -93,6 +93,14 @@ func (s *SuperAgent) Put(targetUrl string) *SuperAgent {
 	return s
 }
 
+func (s *SuperAgent) Delete(targetUrl string) *SuperAgent {
+	s.ClearSuperAgent()
+	s.Method = "DELETE"
+	s.Url = targetUrl
+	s.Errors = nil
+	return s
+}
+
 // Set is used for setting header fields.
 // Example. To set `Accept` as `application/json`
 //
@@ -368,7 +376,10 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 		req, err = http.NewRequest(s.Method, s.Url, nil)
 	} else if s.Method == "HEAD" {
 		req, err = http.NewRequest(s.Method, s.Url, nil)
+	} else if s.Method == "DELETE" {
+		req, err = http.NewRequest(s.Method, s.Url, nil)
 	}
+
 	for k, v := range s.Header {
 		req.Header.Set(k, v)
 	}
