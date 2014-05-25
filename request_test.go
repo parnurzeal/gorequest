@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 var robotsTxtHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -177,8 +178,13 @@ func TestProxyFunc(t *testing.T) {
 	}
 }
 
+// TODO: added check for the correct timeout error string
+// Right now, I see 2 different errors from timeout. Need to check why there are two of them. (i/o timeout and operation timed out)
 func TestTimeoutFunc(t *testing.T) {
-
+	_, _, errs := New().Timeout(1000 * time.Millisecond).Get("http://www.google.com:81").End()
+	if errs == nil {
+		t.Errorf("Expected timeout error but get nothing")
+	}
 }
 
 func TestIntegration(t *testing.T) {
