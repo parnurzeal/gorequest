@@ -73,7 +73,7 @@ resp, body, errs := request.Get("http://example.com").
   End()
 ```
 
-DELETE, HEAD, POST, PUT are now supported and can be used the same way as GET:
+__DELETE__, __HEAD__, __POST__, __PUT__ are now supported and can be used the same way as __GET__:
 
 ```go
 request := gorequest.New()
