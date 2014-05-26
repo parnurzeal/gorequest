@@ -249,7 +249,7 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 //        Send(`{ wheel: '4'}`).
 //        End()
 //
-// TODO: check error
+// TODO: check error from form and add normal text mode or other mode to Send func
 func (s *SuperAgent) Send(content string) *SuperAgent {
 	var val map[string]interface{}
 	// check if it is json format
@@ -257,8 +257,7 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 		for k, v := range val {
 			s.Data[k] = v
 		}
-	} else {
-		formVal, _ := url.ParseQuery(content)
+	} else if formVal, err := url.ParseQuery(content); err == nil {
 		for k, _ := range formVal {
 			// make it array if already have key
 			if val, ok := s.Data[k]; ok {
@@ -278,6 +277,8 @@ func (s *SuperAgent) Send(content string) *SuperAgent {
 			}
 		}
 		s.TargetType = "form"
+	} else {
+		// need to add text mode or other format body request to this func
 	}
 	return s
 }
