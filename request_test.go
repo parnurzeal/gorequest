@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 var robotsTxtHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +81,7 @@ func TestPostFormSendString(t *testing.T) {
 		if r.Header == nil {
 			t.Errorf("Expected non-nil request Header")
 		}
-		fmt.Println(r.URL.Query())
+		//fmt.Println(r.URL.Query())
 	}))
 	defer ts.Close()
 	New().Post(ts.URL).
@@ -93,7 +94,7 @@ func TestPostFormSendJson(t *testing.T) {
 		if r.Header == nil {
 			t.Errorf("Expected non-nil request Header")
 		}
-		fmt.Println(r.URL.Query())
+		//fmt.Println(r.URL.Query())
 	}))
 	defer ts.Close()
 	New().Post(ts.URL).
@@ -106,7 +107,7 @@ func TestPostFormSendJsonAndString(t *testing.T) {
 		if r.Header == nil {
 			t.Errorf("Expected non-nil request Header")
 		}
-		fmt.Println(r.URL.Query())
+		//fmt.Println(r.URL.Query())
 	}))
 	defer ts.Close()
 	New().Post(ts.URL).
@@ -121,36 +122,44 @@ func TestQueryFunc(t *testing.T) {
 		if r.Header == nil {
 			t.Errorf("Expected non-nil request Header")
 		}
-		fmt.Println(r.URL.Query())
+		//fmt.Println(r.URL.Query())
 	}))
 	defer ts.Close()
-	resp, _, _ := New().Post(ts.URL).
+	New().Post(ts.URL).
 		Query("query1=test").
 		Query("query2=test").
 		End(func(r Response, body string, errs []error) {
 		r.Status = "10"
 	})
-	fmt.Println(resp.Status)
+	//fmt.Println(resp.Status)
 
 }
 
 // TODO: check redirect
 func TestRedirectPolicyFunc(t *testing.T) {
+	redirectSuccess := false
+	redirectFuncGetCalled := false
+	tsRedirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		redirectSuccess = true
+	}))
+	defer tsRedirect.Close()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
-		}
-		fmt.Println(r.URL.Query())
+		http.Redirect(w, r, tsRedirect.URL, http.StatusMovedPermanently)
 	}))
 	defer ts.Close()
-	/*resp, _, _ := New().Post(ts.URL).
-		RedirectPolicy(func(req Request, via []Request) error {
-	}).
-		End(func(r Response, body string) {
-		r.Status = "10"
-	})
-	fmt.Println(resp.Status)*/
 
+	New().
+		Get(ts.URL).
+		RedirectPolicy(func(req Request, via []Request) error {
+		redirectFuncGetCalled = true
+		return nil
+	}).End()
+	if !redirectSuccess {
+		t.Errorf("Expected reaching another redirect url not original one")
+	}
+	if !redirectFuncGetCalled {
+		t.Errorf("Expected redirect policy func to get called")
+	}
 }
 
 func TestProxyFunc(t *testing.T) {
@@ -167,18 +176,21 @@ func TestProxyFunc(t *testing.T) {
 	ts2 := httptest.NewServer(proxy)
 	// sending request via Proxy
 	resp, body, _ := New().Proxy(ts2.URL).Get(ts.URL).End()
-	fmt.Println(resp.Status)
 	if resp.StatusCode != 200 {
 		t.Errorf("Expected 200 Status code")
 	}
-	fmt.Println(body)
 	if body != "proxy passed" {
 		t.Errorf("Expected 'proxy passed' body string")
 	}
 }
 
+// TODO: added check for the correct timeout error string
+// Right now, I see 2 different errors from timeout. Need to check why there are two of them. (i/o timeout and operation timed out)
 func TestTimeoutFunc(t *testing.T) {
-
+	_, _, errs := New().Timeout(1000 * time.Millisecond).Get("http://www.google.com:81").End()
+	if errs == nil {
+		t.Errorf("Expected timeout error but get nothing")
+	}
 }
 
 func TestIntegration(t *testing.T) {

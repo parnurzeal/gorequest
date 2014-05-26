@@ -3,9 +3,9 @@ GoRequest
 
 GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.js )
 
-It comes with lots of feature. Sending request would never been fun and easier than this. Current features are:
+Sending request would never been fun and easier than this. It comes with lots of feature: 
 
-* Get/Post  
+* Get/Post/Put/Head/Delete
 * Set - simple header setting 
 * JSON - made it simple with JSON string as a parameter
 * Proxy - sending request via proxy
@@ -73,6 +73,18 @@ resp, body, errs := request.Get("http://example.com").
   End()
 ```
 
+DELETE, HEAD, POST, PUT are now supported and can be used the same way as GET:
+
+```go
+request := gorequest.New()
+resp, body, errs := request.Post("http://example.com").End()
+// PUT -> request.Put("http://example.com").End()
+// DELETE -> request.Delete("http://example.com").End()
+// HEAD -> request.Head("http://example.com").End()
+```
+
+### JSON
+
 For a __JSON POST__ with standard libraries, you might need to marshal map data structure to json format, setting header to 'application/json' (and other headers if you need to) and declare http.Client. So, you code become longer and hard to maintain:
 
 ```go
@@ -98,6 +110,8 @@ resp, body, errs := request.Post("http://example.com").
   Send(`{"name":"backy", "species":"dog"}`).
   End()
 ```
+
+## Callback
 
 Moreover, GoRequest also supports callback function. This gives you much more flexibility on using it. You can use it any way to match your own style!
 Let's see a bit of callback example:
@@ -128,10 +142,6 @@ Timeout can be set in any time duration using time package:
 request := gorequest.New().Timeout(2*time.Millisecond)
 resp, body, errs:= request.Get("http://example.com").End()
 ```
-
-Note: This is a work in progress and not totally support all specifications. 
-Right now, you can do get and post with easy to specify header like in examples which is enough in many cases.
-More features are coming soon! (Proxy, Transport customization, etc. )
 
 ## License
 
