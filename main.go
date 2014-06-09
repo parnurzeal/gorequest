@@ -276,7 +276,18 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 //        End()
 //
 // TODO: check error from form and add normal text mode or other mode to Send func
-func (s *SuperAgent) Send(content string) *SuperAgent {
+func (s *SuperAgent) Send(content interface{}) *SuperAgent {
+	switch v := content.(type) {
+	case string:
+		s.SendString(v)
+	default:
+		// implement struct handling
+		// Also, might need to handle other types such as number, byte, etc...
+	}
+	return s
+}
+
+func (s *SuperAgent) SendString(content string) *SuperAgent {
 	var val map[string]interface{}
 	// check if it is json format
 	if err := json.Unmarshal([]byte(content), &val); err == nil {
