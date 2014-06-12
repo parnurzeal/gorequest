@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -277,9 +278,9 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 //
 // TODO: check error from form and add normal text mode or other mode to Send func
 func (s *SuperAgent) Send(content interface{}) *SuperAgent {
-	switch v := content.(type) {
-	case string:
-		s.SendString(v)
+	switch v := reflect.ValueOf(content); v.Kind() {
+	case reflect.String:
+		s.SendString(v.String())
 	default:
 		// implement struct handling
 		// Also, might need to handle other types such as number, byte, etc...
@@ -287,6 +288,9 @@ func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	return s
 }
 
+// SendString returns SuperAgent's itself for any next chaining and takes content string as a parameter.
+// Its duty is to transform String into appropriate format as json, form, text, etc.
+// Send implicitly uses SendString and you should use Send instead of this.
 func (s *SuperAgent) SendString(content string) *SuperAgent {
 	var val map[string]interface{}
 	// check if it is json format
