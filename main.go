@@ -281,15 +281,34 @@ func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	switch v := reflect.ValueOf(content); v.Kind() {
 	case reflect.String:
 		s.SendString(v.String())
+	case reflect.Struct:
+		s.sendStruct(v.Interface())
 	default:
-		// implement struct handling
-		// Also, might need to handle other types such as number, byte, etc...
+		// TODO: leave default for handling other types in the future such as number, byte, etc...
 	}
 	return s
 }
 
-// SendString returns SuperAgent's itself for any next chaining and takes content string as a parameter.
-// Its duty is to transform String into appropriate format as json, form, text, etc.
+// sendStruct (similar to SendString) returns SuperAgent's itself for any next chain and takes content interface{} as a parameter.
+// Its duty is to transfrom interface{} (implicitly always a struct) into s.Data (map[string]interface{}) which later changes into appropriate format such as json, form, text, etc. in the End() func.
+func (s *SuperAgent) sendStruct(content interface{}) *SuperAgent {
+	if marshalContent, err := json.Marshal(content); err != nil {
+		s.Errors = append(s.Errors, err)
+	} else {
+		var val map[string]interface{}
+		if err := json.Unmarshal(marshalContent, &val); err != nil {
+			s.Errors = append(s.Errors, err)
+		} else {
+			for k, v := range val {
+				s.Data[k] = v
+			}
+		}
+	}
+	return s
+}
+
+// SendString returns SuperAgent's itself for any next chain and takes content string as a parameter.
+// Its duty is to transform String into s.Data (map[string]interface{}) which later changes into appropriate format such as json, form, text, etc. in the End func.
 // Send implicitly uses SendString and you should use Send instead of this.
 func (s *SuperAgent) SendString(content string) *SuperAgent {
 	var val map[string]interface{}
