@@ -111,7 +111,7 @@ resp, body, errs := request.Post("http://example.com").
   End()
 ```
 
-Moreover, GoRequest also supports struct type. So, you can have fun mix & match sending the different data types for your request.
+Moreover, it also supports struct type. So, you can have a fun __Mix & Match__ sending the different data types for your request:
 
 ```go
 type BrowserVersionSupport struct {
