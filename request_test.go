@@ -1,13 +1,15 @@
 package gorequest
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/elazarl/goproxy"
-	_ "io/ioutil"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/elazarl/goproxy"
 )
 
 var robotsTxtHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -182,6 +184,44 @@ func TestProxyFunc(t *testing.T) {
 	if body != "proxy passed" {
 		t.Errorf("Expected 'proxy passed' body string")
 	}
+}
+
+// 1. test normal struct
+// 2. test 2nd layer nested struct
+// 3. test struct pointer
+// 4. test lowercase won't be export to json
+// 5. test field tag change to json field name
+func TestSendStructFunc(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
+		comparedBody := []byte(`{"Lower":{"Color":"green","Size":1.7},"Upper":{"Color":"red","Size":0},"a":"a","name":"Cindy"}`)
+		if !bytes.Equal(body, comparedBody) {
+			t.Errorf(`Expected correct json but got ` + string(body))
+		}
+	}))
+	defer ts.Close()
+	type Upper struct {
+		Color string
+		Size  int
+		note  string
+	}
+	type Lower struct {
+		Color string
+		Size  float64
+		note  string
+	}
+
+	type Style struct {
+		Upper Upper
+		Lower Lower
+		Name  string `json:"name"`
+	}
+	myStyle := Style{Upper: Upper{Color: "red"}, Name: "Cindy", Lower: Lower{Color: "green", Size: 1.7}}
+	New().Post(ts.URL).
+		Send(`{"a":"a"}`).
+		Send(myStyle).
+		End()
 }
 
 // TODO: added check for the correct timeout error string

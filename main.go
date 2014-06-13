@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -275,8 +276,54 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 //        Send(`{ wheel: '4'}`).
 //        End()
 //
+// From v0.2.0, Send function provide another convenience way to work with Struct type. You can mix and match it with json and query string:
+//
+//      type BrowserVersionSupport struct {
+//        Chrome string
+//        Firefox string
+//      }
+//      ver := BrowserVersionSupport{ Chrome: "37.0.2041.6", Firefox: "30.0" }
+//      gorequest.New().
+//        Post("/update_version").
+//        Send(ver).
+//        Send(`{"Safari":"5.1.10"}`).
+//        End()
+//
 // TODO: check error from form and add normal text mode or other mode to Send func
-func (s *SuperAgent) Send(content string) *SuperAgent {
+func (s *SuperAgent) Send(content interface{}) *SuperAgent {
+	switch v := reflect.ValueOf(content); v.Kind() {
+	case reflect.String:
+		s.SendString(v.String())
+	case reflect.Struct:
+		s.sendStruct(v.Interface())
+	default:
+		// TODO: leave default for handling other types in the future such as number, byte, etc...
+	}
+	return s
+}
+
+// sendStruct (similar to SendString) returns SuperAgent's itself for any next chain and takes content interface{} as a parameter.
+// Its duty is to transfrom interface{} (implicitly always a struct) into s.Data (map[string]interface{}) which later changes into appropriate format such as json, form, text, etc. in the End() func.
+func (s *SuperAgent) sendStruct(content interface{}) *SuperAgent {
+	if marshalContent, err := json.Marshal(content); err != nil {
+		s.Errors = append(s.Errors, err)
+	} else {
+		var val map[string]interface{}
+		if err := json.Unmarshal(marshalContent, &val); err != nil {
+			s.Errors = append(s.Errors, err)
+		} else {
+			for k, v := range val {
+				s.Data[k] = v
+			}
+		}
+	}
+	return s
+}
+
+// SendString returns SuperAgent's itself for any next chain and takes content string as a parameter.
+// Its duty is to transform String into s.Data (map[string]interface{}) which later changes into appropriate format such as json, form, text, etc. in the End func.
+// Send implicitly uses SendString and you should use Send instead of this.
+func (s *SuperAgent) SendString(content string) *SuperAgent {
 	var val map[string]interface{}
 	// check if it is json format
 	if err := json.Unmarshal([]byte(content), &val); err == nil {
