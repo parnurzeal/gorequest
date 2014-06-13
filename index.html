@@ -1,0 +1,210 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Gorequest by parnurzeal</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Gorequest</h1>
+        <p>GoRequest -- Simplified HTTP client ( inspired by nodejs SuperAgent )</p>
+
+        <p class="view"><a href="https://github.com/parnurzeal/gorequest">View the Project on GitHub <small>parnurzeal/gorequest</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/parnurzeal/gorequest/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/parnurzeal/gorequest/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/parnurzeal/gorequest">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a name="gorequest" class="anchor" href="#gorequest"><span class="octicon octicon-link"></span></a>GoRequest</h1>
+
+<p>GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.js )</p>
+
+<p>Sending request would never been fun and easier than this. It comes with lots of feature: </p>
+
+<ul>
+<li>Get/Post/Put/Head/Delete</li>
+<li>Set - simple header setting </li>
+<li>JSON - made it simple with JSON string as a parameter</li>
+<li>Proxy - sending request via proxy</li>
+<li>Timeout - setting timeout for a request</li>
+<li>RedirectPolicy</li>
+<li>more to come.. </li>
+</ul><h2>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<div class="highlight highlight-bash"><pre><span class="nv">$ </span>go get github.com/parnurzeal/gorequest
+</pre></div>
+
+<h2>
+<a name="documentation" class="anchor" href="#documentation"><span class="octicon octicon-link"></span></a>Documentation</h2>
+
+<p>See <a href="http://godoc.org/github.com/parnurzeal/gorequest">Go Doc</a> or <a href="http://gowalker.org/github.com/parnurzeal/gorequest">Go Walker</a> for usage and details.</p>
+
+<h2>
+<a name="status" class="anchor" href="#status"><span class="octicon octicon-link"></span></a>Status</h2>
+
+<p><a href="https://drone.io/github.com/parnurzeal/gorequest/latest"><img src="https://drone.io/github.com/jmcvetta/restclient/status.png" alt="Drone Build Status"></a>
+<a href="https://travis-ci.org/parnurzeal/gorequest"><img src="https://travis-ci.org/parnurzeal/gorequest.svg?branch=master" alt="Travis Build Status"></a></p>
+
+<h2>
+<a name="why-should-you-use-gorequest" class="anchor" href="#why-should-you-use-gorequest"><span class="octicon octicon-link"></span></a>Why should you use GoRequest?</h2>
+
+<p>GoRequest makes thing much more simple for you, making http client more awesome and fun like SuperAgent + golang style usage.</p>
+
+<p>This is what you normally do for a simple GET without GoRequest:</p>
+
+<div class="highlight highlight-go"><pre><span class="nx">resp</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">Get</span><span class="p">(</span><span class="s">"http://example.com/"</span><span class="p">)</span>
+</pre></div>
+
+<p>With GoRequest:</p>
+
+<div class="highlight highlight-go"><pre><span class="nx">request</span> <span class="o">:=</span> <span class="nx">gorequest</span><span class="p">.</span><span class="nx">New</span><span class="p">()</span>
+<span class="nx">resp</span><span class="p">,</span> <span class="nx">body</span><span class="p">,</span> <span class="nx">errs</span> <span class="o">:=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">Get</span><span class="p">(</span><span class="s">"http://example.com/"</span><span class="p">).</span><span class="nx">End</span><span class="p">()</span>
+</pre></div>
+
+<p>Or below if you don't want to reuse it for other requests.</p>
+
+<div class="highlight highlight-go"><pre><span class="nx">resp</span><span class="p">,</span> <span class="nx">body</span><span class="p">,</span> <span class="nx">errs</span> <span class="o">:=</span> <span class="nx">gorequest</span><span class="p">.</span><span class="nx">New</span><span class="p">().</span><span class="nx">Get</span><span class="p">(</span><span class="s">"http://example.com/"</span><span class="p">).</span><span class="nx">End</span><span class="p">()</span>
+</pre></div>
+
+<p>How about getting control over HTTP client headers, redirect policy, and etc. Things is getting more complicated in golang. You need to create a Client, setting header in different command, ... to do just only one <strong>GET</strong></p>
+
+<div class="highlight highlight-go"><pre><span class="nx">client</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">http</span><span class="p">.</span><span class="nx">Client</span><span class="p">{</span>
+  <span class="nx">CheckRedirect</span><span class="p">:</span> <span class="nx">redirectPolicyFunc</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="nx">req</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">NewRequest</span><span class="p">(</span><span class="s">"GET"</span><span class="p">,</span> <span class="s">"http://example.com"</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
+
+<span class="nx">req</span><span class="p">.</span><span class="nx">Header</span><span class="p">.</span><span class="nx">Add</span><span class="p">(</span><span class="s">"If-None-Match"</span><span class="p">,</span> <span class="s">`W/"wyzzy"`</span><span class="p">)</span>
+<span class="nx">resp</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">client</span><span class="p">.</span><span class="nx">Do</span><span class="p">(</span><span class="nx">req</span><span class="p">)</span>
+</pre></div>
+
+<p>Why making things ugly while you can just do as follows:</p>
+
+<div class="highlight highlight-go"><pre><span class="nx">request</span> <span class="o">:=</span> <span class="nx">gorequest</span><span class="p">.</span><span class="nx">New</span><span class="p">()</span>
+<span class="nx">resp</span><span class="p">,</span> <span class="nx">body</span><span class="p">,</span> <span class="nx">errs</span> <span class="o">:=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">Get</span><span class="p">(</span><span class="s">"http://example.com"</span><span class="p">).</span>
+  <span class="nx">RedirectPolicy</span><span class="p">(</span><span class="nx">redirectPolicyFunc</span><span class="p">).</span>
+  <span class="nx">Set</span><span class="p">(</span><span class="s">"If-None-Match"</span><span class="p">,</span> <span class="s">`W/"wyzzy"`</span><span class="p">).</span>
+  <span class="nx">End</span><span class="p">()</span>
+</pre></div>
+
+<p><strong>DELETE</strong>, <strong>HEAD</strong>, <strong>POST</strong>, <strong>PUT</strong> are now supported and can be used the same way as <strong>GET</strong>:</p>
+
+<div class="highlight highlight-go"><pre><span class="nx">request</span> <span class="o">:=</span> <span class="nx">gorequest</span><span class="p">.</span><span class="nx">New</span><span class="p">()</span>
+<span class="nx">resp</span><span class="p">,</span> <span class="nx">body</span><span class="p">,</span> <span class="nx">errs</span> <span class="o">:=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">Post</span><span class="p">(</span><span class="s">"http://example.com"</span><span class="p">).</span><span class="nx">End</span><span class="p">()</span>
+<span class="c1">// PUT -&gt; request.Put("http://example.com").End()</span>
+<span class="c1">// DELETE -&gt; request.Delete("http://example.com").End()</span>
+<span class="c1">// HEAD -&gt; request.Head("http://example.com").End()</span>
+</pre></div>
+
+<h3>
+<a name="json" class="anchor" href="#json"><span class="octicon octicon-link"></span></a>JSON</h3>
+
+<p>For a <strong>JSON POST</strong> with standard libraries, you might need to marshal map data structure to json format, setting header to 'application/json' (and other headers if you need to) and declare http.Client. So, you code become longer and hard to maintain:</p>
+
+<div class="highlight highlight-go"><pre><span class="nx">m</span> <span class="o">:=</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{}{</span>
+  <span class="s">"name"</span><span class="p">:</span> <span class="s">"backy"</span><span class="p">,</span>
+  <span class="s">"species"</span><span class="p">:</span> <span class="s">"dog"</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="nx">mJson</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">json</span><span class="p">.</span><span class="nx">Marshal</span><span class="p">(</span><span class="nx">m</span><span class="p">)</span>
+<span class="nx">contentReader</span> <span class="o">:=</span> <span class="nx">bytes</span><span class="p">.</span><span class="nx">NewReader</span><span class="p">(</span><span class="nx">mJson</span><span class="p">)</span>
+<span class="nx">req</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">NewRequest</span><span class="p">(</span><span class="s">"POST"</span><span class="p">,</span> <span class="s">"http://example.com"</span><span class="p">,</span> <span class="nx">contentReader</span><span class="p">)</span>
+<span class="nx">req</span><span class="p">.</span><span class="nx">Header</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s">"Content-Type"</span><span class="p">,</span> <span class="s">"application/json"</span><span class="p">)</span>
+<span class="nx">req</span><span class="p">.</span><span class="nx">Header</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s">"Notes"</span><span class="p">,</span><span class="s">"GoRequest is coming!"</span><span class="p">)</span>
+<span class="nx">client</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">http</span><span class="p">.</span><span class="nx">Client</span><span class="p">{}</span>
+<span class="nx">resp</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">client</span><span class="p">.</span><span class="nx">Do</span><span class="p">(</span><span class="nx">req</span><span class="p">)</span>
+</pre></div>
+
+<p>Compared to our GoRequest version, JSON is for sure a default. So, it turns out to be just one simple line!:</p>
+
+<div class="highlight highlight-go"><pre><span class="nx">request</span> <span class="o">:=</span> <span class="nx">gorequest</span><span class="p">.</span><span class="nx">New</span><span class="p">()</span>
+<span class="nx">resp</span><span class="p">,</span> <span class="nx">body</span><span class="p">,</span> <span class="nx">errs</span> <span class="o">:=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">Post</span><span class="p">(</span><span class="s">"http://example.com"</span><span class="p">).</span>
+  <span class="nx">Set</span><span class="p">(</span><span class="s">"Notes"</span><span class="p">,</span><span class="s">"gorequst is coming!"</span><span class="p">).</span>
+  <span class="nx">Send</span><span class="p">(</span><span class="s">`{"name":"backy", "species":"dog"}`</span><span class="p">).</span>
+  <span class="nx">End</span><span class="p">()</span>
+</pre></div>
+
+<p>Moreover, it also supports struct type. So, you can have a fun <strong>Mix &amp; Match</strong> sending the different data types for your request:</p>
+
+<div class="highlight highlight-go"><pre><span class="kd">type</span> <span class="nx">BrowserVersionSupport</span> <span class="kd">struct</span> <span class="p">{</span>
+  <span class="nx">Chrome</span> <span class="kt">string</span>
+  <span class="nx">Firefox</span> <span class="kt">string</span>
+<span class="p">}</span>
+<span class="nx">ver</span> <span class="o">:=</span> <span class="nx">BrowserVersionSupport</span><span class="p">{</span> <span class="nx">Chrome</span><span class="p">:</span> <span class="s">"37.0.2041.6"</span><span class="p">,</span> <span class="nx">Firefox</span><span class="p">:</span> <span class="s">"30.0"</span> <span class="p">}</span>
+<span class="nx">request</span> <span class="o">:=</span> <span class="nx">gorequest</span><span class="p">.</span><span class="nx">New</span><span class="p">()</span>
+<span class="nx">resp</span><span class="p">,</span> <span class="nx">body</span><span class="p">,</span> <span class="nx">errs</span> <span class="o">:=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">Post</span><span class="p">(</span><span class="s">"http://version.com/update"</span><span class="p">)</span>
+  <span class="nx">Send</span><span class="p">(</span><span class="nx">ver</span><span class="p">).</span>
+  <span class="nx">Send</span><span class="p">(</span><span class="s">`{"Safari":"5.1.10"}`</span><span class="p">).</span>
+  <span class="nx">End</span><span class="p">()</span>
+</pre></div>
+
+<h2>
+<a name="callback" class="anchor" href="#callback"><span class="octicon octicon-link"></span></a>Callback</h2>
+
+<p>Moreover, GoRequest also supports callback function. This gives you much more flexibility on using it. You can use it any way to match your own style!
+Let's see a bit of callback example:</p>
+
+<div class="highlight highlight-go"><pre><span class="kd">func</span> <span class="nx">printBody</span><span class="p">(</span><span class="nx">resp</span> <span class="nx">gorequest</span><span class="p">.</span><span class="nx">Response</span><span class="p">,</span> <span class="nx">body</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">errs</span> <span class="p">[]</span><span class="kt">error</span><span class="p">){</span>
+  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">Status</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="nx">gorequest</span><span class="p">.</span><span class="nx">New</span><span class="p">().</span><span class="nx">Get</span><span class="p">(</span><span class="s">"http://example.com"</span><span class="p">).</span><span class="nx">End</span><span class="p">(</span><span class="nx">printBody</span><span class="p">)</span>
+</pre></div>
+
+<h2>
+<a name="proxy" class="anchor" href="#proxy"><span class="octicon octicon-link"></span></a>Proxy</h2>
+
+<p>In the case when you are behind proxy, GoRequest can handle it easily with Proxy func:</p>
+
+<div class="highlight highlight-go"><pre><span class="nx">request</span> <span class="o">:=</span> <span class="nx">gorequest</span><span class="p">.</span><span class="nx">New</span><span class="p">().</span><span class="nx">Proxy</span><span class="p">(</span><span class="s">"http://proxy:999"</span><span class="p">)</span>
+<span class="nx">resp</span><span class="p">,</span> <span class="nx">body</span><span class="p">,</span> <span class="nx">errs</span><span class="o">:=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">Get</span><span class="p">(</span><span class="s">"http://example-proxy.com"</span><span class="p">).</span><span class="nx">End</span><span class="p">()</span>
+<span class="c1">// To reuse same client with no_proxy, use empty string:</span>
+<span class="nx">resp</span><span class="p">,</span> <span class="nx">body</span><span class="p">,</span> <span class="nx">errs</span><span class="p">=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">Proxy</span><span class="p">(</span><span class="s">""</span><span class="p">).(</span><span class="s">"http://example-no-proxy.com"</span><span class="p">).</span><span class="nx">End</span><span class="p">()</span>
+</pre></div>
+
+<h2>
+<a name="timeout" class="anchor" href="#timeout"><span class="octicon octicon-link"></span></a>Timeout</h2>
+
+<p>Timeout can be set in any time duration using time package:</p>
+
+<div class="highlight highlight-go"><pre><span class="nx">request</span> <span class="o">:=</span> <span class="nx">gorequest</span><span class="p">.</span><span class="nx">New</span><span class="p">().</span><span class="nx">Timeout</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Millisecond</span><span class="p">)</span>
+<span class="nx">resp</span><span class="p">,</span> <span class="nx">body</span><span class="p">,</span> <span class="nx">errs</span><span class="o">:=</span> <span class="nx">request</span><span class="p">.</span><span class="nx">Get</span><span class="p">(</span><span class="s">"http://example.com"</span><span class="p">).</span><span class="nx">End</span><span class="p">()</span>
+</pre></div>
+
+<h2>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p>GoRequest is MIT License.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/parnurzeal">parnurzeal</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-13298764-3");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
