@@ -276,6 +276,19 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 //        Send(`{ wheel: '4'}`).
 //        End()
 //
+// From v0.2.0, Send function provide another convenience way to work with Struct type. You can mix and match it with json and query string:
+//
+//      type BrowserVersionSupport struct {
+//        Chrome string
+//        Firefox string
+//      }
+//      ver := BrowserVersionSupport{ Chrome: "37.0.2041.6", Firefox: "30.0" }
+//      gorequest.New().
+//        Post("/update_version").
+//        Send(ver).
+//        Send(`{"Safari":"5.1.10"}`).
+//        End()
+//
 // TODO: check error from form and add normal text mode or other mode to Send func
 func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	switch v := reflect.ValueOf(content); v.Kind() {

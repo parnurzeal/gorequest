@@ -111,6 +111,21 @@ resp, body, errs := request.Post("http://example.com").
   End()
 ```
 
+Moreover, it is just too flexible that it also supports Struct type. So, you can have fun mix & match your request.
+
+```go
+type BrowserVersionSupport struct {
+  Chrome string
+  Firefox string
+}
+ver := BrowserVersionSupport{ Chrome: "37.0.2041.6", Firefox: "30.0" }
+request := gorequest.New()
+resp, body, errs := request.Post("http://version.com/update")
+  Send(ver).
+  Send(`{"Safari":"5.1.10"}`).
+  End()
+```
+
 ## Callback
 
 Moreover, GoRequest also supports callback function. This gives you much more flexibility on using it. You can use it any way to match your own style!
