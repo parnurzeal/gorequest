@@ -1,0 +1,56 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ClearSuperAgent	main.go	/^func (s *SuperAgent) ClearSuperAgent() {$/;"	d
+Delete	main.go	/^func (s *SuperAgent) Delete(targetUrl string) *SuperAgent {$/;"	d
+End	main.go	/^func (s *SuperAgent) End(callback ...func(response Response, body string, errs []error)) (Response, string, []error) {$/;"	d
+Get	main.go	/^func (s *SuperAgent) Get(targetUrl string) *SuperAgent {$/;"	d
+Head	main.go	/^func (s *SuperAgent) Head(targetUrl string) *SuperAgent {$/;"	d
+Lower	request_test.go	/^	type Lower struct {$/;"	d
+New	main.go	/^func New() *SuperAgent {$/;"	d
+Post	main.go	/^func (s *SuperAgent) Post(targetUrl string) *SuperAgent {$/;"	d
+Proxy	main.go	/^func (s *SuperAgent) Proxy(proxyUrl string) *SuperAgent {$/;"	d
+Put	main.go	/^func (s *SuperAgent) Put(targetUrl string) *SuperAgent {$/;"	d
+Query	main.go	/^func (s *SuperAgent) Query(content string) *SuperAgent {$/;"	d
+RedirectPolicy	main.go	/^func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) error) *SuperAgent {$/;"	d
+Request	main.go	/^type Request *http.Request$/;"	d
+Response	main.go	/^type Response *http.Response$/;"	d
+Send	main.go	/^func (s *SuperAgent) Send(content interface{}) *SuperAgent {$/;"	d
+SendString	main.go	/^func (s *SuperAgent) SendString(content string) *SuperAgent {$/;"	d
+Set	main.go	/^func (s *SuperAgent) Set(param string, value string) *SuperAgent {$/;"	d
+Style	request_test.go	/^	type Style struct {$/;"	d
+SuperAgent	main.go	/^type SuperAgent struct {$/;"	d
+TestErrorTypeWrongKey	error_test.go	/^func TestErrorTypeWrongKey(t *testing.T) {$/;"	d
+TestGetFormat	request_test.go	/^func TestGetFormat(t *testing.T) {$/;"	d
+TestGetSetHeader	request_test.go	/^func TestGetSetHeader(t *testing.T) {$/;"	d
+TestIntegration	request_test.go	/^func TestIntegration(t *testing.T) {$/;"	d
+TestPostFormSendJson	request_test.go	/^func TestPostFormSendJson(t *testing.T) {$/;"	d
+TestPostFormSendJsonAndString	request_test.go	/^func TestPostFormSendJsonAndString(t *testing.T) {$/;"	d
+TestPostFormSendString	request_test.go	/^func TestPostFormSendString(t *testing.T) {$/;"	d
+TestPostFormat	request_test.go	/^func TestPostFormat(t *testing.T) {$/;"	d
+TestPostSetHeader	request_test.go	/^func TestPostSetHeader(t *testing.T) {$/;"	d
+TestProxyFunc	request_test.go	/^func TestProxyFunc(t *testing.T) {$/;"	d
+TestQueryFunc	request_test.go	/^func TestQueryFunc(t *testing.T) {$/;"	d
+TestRedirectPolicyFunc	request_test.go	/^func TestRedirectPolicyFunc(t *testing.T) {$/;"	d
+TestSendStructFunc	request_test.go	/^func TestSendStructFunc(t *testing.T) {$/;"	d
+TestTimeoutFunc	request_test.go	/^func TestTimeoutFunc(t *testing.T) {$/;"	d
+Timeout	main.go	/^func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {$/;"	d
+Type	main.go	/^func (s *SuperAgent) Type(typeStr string) *SuperAgent {$/;"	d
+Types	main.go	/^var Types = map[string]string{$/;"	d
+Upper	request_test.go	/^	type Upper struct {$/;"	d
+changeMapToURLValues	main.go	/^func changeMapToURLValues(data map[string]interface{}) url.Values {$/;"	d
+in	main.go	/^\/\/ End function returns Response which matchs the structure of Response type in Golang's http package (but without Body data). The body data itself returns as a string in a 2nd return value.$/;"	d
+newUrlValues	main.go	/^	var newUrlValues = url.Values{}$/;"	d
+printBody	main.go	/^\/\/    func printBody(resp gorequest.Response, body string, errs []error){$/;"	d
+robotsTxtHandler	request_test.go	/^var robotsTxtHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {$/;"	d
+sendStruct	main.go	/^func (s *SuperAgent) sendStruct(content interface{}) *SuperAgent {$/;"	d
+strArray	main.go	/^				var strArray []string$/;"	d
+to	main.go	/^\/\/ So, if you want to strictly send json format, you need to use Type func to set it as `json` (Please see more details in Type function).$/;"	d
+to	main.go	/^\/\/ Type is a convenience function to specify the data type to send.$/;"	d
+to	request_test.go	/^		t.Errorf("Expected redirect policy func to get called")$/;"	d
+val	main.go	/^		var val map[string]interface{}$/;"	d
+val	main.go	/^	var val map[string]interface{}$/;"	d
+val	main.go	/^	var val map[string]string$/;"	d
