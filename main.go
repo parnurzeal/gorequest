@@ -404,12 +404,13 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 		return nil, "", s.Errors
 	}
 	// check if there is forced type
-	if s.ForceType == "json" {
-		s.TargetType = "json"
-	} else if s.ForceType == "form" {
-		s.TargetType = "form"
+	switch s.ForceType {
+	case "json", "form":
+		s.TargetType = s.ForceType
 	}
-	if s.Method == "POST" || s.Method == "PUT" {
+
+	switch s.Method {
+	case "POST", "PUT":
 		if s.TargetType == "json" {
 			contentJson, _ := json.Marshal(s.Data)
 			contentReader := bytes.NewReader(contentJson)
@@ -420,11 +421,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(formData.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
-	} else if s.Method == "GET" {
-		req, err = http.NewRequest(s.Method, s.Url, nil)
-	} else if s.Method == "HEAD" {
-		req, err = http.NewRequest(s.Method, s.Url, nil)
-	} else if s.Method == "DELETE" {
+	case "GET", "HEAD", "DELETE":
 		req, err = http.NewRequest(s.Method, s.Url, nil)
 	}
 
