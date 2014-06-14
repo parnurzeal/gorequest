@@ -124,7 +124,7 @@ type BrowserVersionSupport struct {
 }
 ver := BrowserVersionSupport{ Chrome: "37.0.2041.6", Firefox: "30.0" }
 request := gorequest.New()
-resp, body, errs := request.Post("http://version.com/update")
+resp, body, errs := request.Post("http://version.com/update").
   Send(ver).
   Send(`{"Safari":"5.1.10"}`).
   End()
