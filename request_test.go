@@ -20,8 +20,8 @@ var robotsTxtHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Requ
 func TestGetFormat(t *testing.T) {
 	//defer afterTest(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			t.Errorf("Expected method %q; got %q", "GET", r.Method)
+		if r.Method != GET {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
 		}
 		if r.Header == nil {
 			t.Errorf("Expected non-nil request Header")
@@ -35,8 +35,8 @@ func TestGetFormat(t *testing.T) {
 
 func TestGetSetHeader(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "GET" {
-			t.Errorf("Expected method %q; got %q", "GET", r.Method)
+		if r.Method != GET {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
 		}
 		if r.Header == nil {
 			t.Errorf("Expected non-nil request Header")
@@ -58,8 +58,8 @@ func TestPostFormat(t *testing.T) {
 
 func TestPostSetHeader(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			t.Errorf("Expected method %q; got %q", "POST", r.Method)
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
 		}
 		if r.Header == nil {
 			t.Errorf("Expected non-nil request Header")

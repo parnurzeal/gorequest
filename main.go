@@ -17,6 +17,15 @@ import (
 type Request *http.Request
 type Response *http.Response
 
+// HTTP methods we support
+const (
+	POST   = "POST"
+	GET    = "GET"
+	HEAD   = "HEAD"
+	PUT    = "PUT"
+	DELETE = "DELETE"
+)
+
 // A SuperAgent is a object storing all request data for client.
 type SuperAgent struct {
 	Url        string
@@ -62,7 +71,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 
 func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
-	s.Method = "GET"
+	s.Method = GET
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -71,7 +80,7 @@ func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 // TODO: add test for Post
 func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
-	s.Method = "POST"
+	s.Method = POST
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -80,7 +89,7 @@ func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 // TODO: testing for Head func
 func (s *SuperAgent) Head(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
-	s.Method = "HEAD"
+	s.Method = HEAD
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -88,7 +97,7 @@ func (s *SuperAgent) Head(targetUrl string) *SuperAgent {
 
 func (s *SuperAgent) Put(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
-	s.Method = "PUT"
+	s.Method = PUT
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -96,7 +105,7 @@ func (s *SuperAgent) Put(targetUrl string) *SuperAgent {
 
 func (s *SuperAgent) Delete(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
-	s.Method = "DELETE"
+	s.Method = DELETE
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -410,7 +419,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	}
 
 	switch s.Method {
-	case "POST", "PUT":
+	case POST, PUT:
 		if s.TargetType == "json" {
 			contentJson, _ := json.Marshal(s.Data)
 			contentReader := bytes.NewReader(contentJson)
@@ -421,7 +430,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(formData.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
-	case "GET", "HEAD", "DELETE":
+	case GET, HEAD, DELETE:
 		req, err = http.NewRequest(s.Method, s.Url, nil)
 	}
 
