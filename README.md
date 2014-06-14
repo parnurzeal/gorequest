@@ -164,7 +164,7 @@ resp, body, errs:= request.Get("http://example.com").End()
 
 ## Credits
 
-* Renee French - the creator of Gopher.
+* Renee French - the creator of Gopher mascot
 * [Wisi Mongkhonsrisawat](https://www.facebook.com/puairw) for providing an awesome GoRequest's Gopher image :)
 
 ## License
