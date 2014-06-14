@@ -451,11 +451,11 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
-	bodyCallback := body
+	bodyString := string(body)
 	// deep copy response to give it to both return and callback func
 	respCallback := *resp
 	if len(callback) != 0 {
-		callback[0](&respCallback, string(bodyCallback), s.Errors)
+		callback[0](&respCallback, bodyString, s.Errors)
 	}
-	return resp, string(body), nil
+	return resp, bodyString, nil
 }
