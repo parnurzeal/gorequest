@@ -5,7 +5,7 @@ GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.
 
 ![GopherGoRequest](https://raw.githubusercontent.com/parnurzeal/gorequest/gh-pages/images/Gopher_GoRequest_400x300.jpg)
 
-#### "Shooting Requests like a Machine Gun" - by Gopher
+#### "Shooting Requests like a Machine Gun" - Gopher
 
 Sending request would never been fun and easier than this. It comes with lots of feature: 
 
