@@ -361,7 +361,7 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 	for k, v := range data {
 		switch val := v.(type) {
 		case string:
-			newUrlValues.Add(k, string(val))
+			newUrlValues.Add(k, val)
 		case []string:
 			for _, element := range val {
 				newUrlValues.Add(k, element)
