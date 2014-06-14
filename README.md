@@ -3,6 +3,11 @@ GoRequest
 
 GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.js )
 
+![GopherGoRequest](https://raw.githubusercontent.com/parnurzeal/gorequest/gh-pages/images/Gopher_GoRequest_400x300.jpg)
+
+#### "Shooting Requests like a Machine Gun"
+> By Gopher
+
 Sending request would never been fun and easier than this. It comes with lots of feature: 
 
 * Get/Post/Put/Head/Delete
@@ -157,6 +162,12 @@ Timeout can be set in any time duration using time package:
 request := gorequest.New().Timeout(2*time.Millisecond)
 resp, body, errs:= request.Get("http://example.com").End()
 ```
+
+## Credits
+
+Thanks to 
+* Renee French - the creator of Gopher.
+* [Wisi Mongkhonsrisawat](https://www.facebook.com/puairw) for providing an awesome GoRequest's Gopher image :)
 
 ## License
 
