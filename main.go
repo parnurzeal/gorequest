@@ -17,6 +17,15 @@ import (
 type Request *http.Request
 type Response *http.Response
 
+// HTTP methods we support
+const (
+	POST   = "POST"
+	GET    = "GET"
+	HEAD   = "HEAD"
+	PUT    = "PUT"
+	DELETE = "DELETE"
+)
+
 // A SuperAgent is a object storing all request data for client.
 type SuperAgent struct {
 	Url        string
@@ -62,7 +71,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 
 func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
-	s.Method = "GET"
+	s.Method = GET
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -71,7 +80,7 @@ func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 // TODO: add test for Post
 func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
-	s.Method = "POST"
+	s.Method = POST
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -80,7 +89,7 @@ func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 // TODO: testing for Head func
 func (s *SuperAgent) Head(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
-	s.Method = "HEAD"
+	s.Method = HEAD
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -88,7 +97,7 @@ func (s *SuperAgent) Head(targetUrl string) *SuperAgent {
 
 func (s *SuperAgent) Put(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
-	s.Method = "PUT"
+	s.Method = PUT
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -96,7 +105,7 @@ func (s *SuperAgent) Put(targetUrl string) *SuperAgent {
 
 func (s *SuperAgent) Delete(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
-	s.Method = "DELETE"
+	s.Method = DELETE
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -361,7 +370,7 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 	for k, v := range data {
 		switch val := v.(type) {
 		case string:
-			newUrlValues.Add(k, string(val))
+			newUrlValues.Add(k, val)
 		case []string:
 			for _, element := range val {
 				newUrlValues.Add(k, element)
@@ -404,12 +413,13 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 		return nil, "", s.Errors
 	}
 	// check if there is forced type
-	if s.ForceType == "json" {
-		s.TargetType = "json"
-	} else if s.ForceType == "form" {
-		s.TargetType = "form"
+	switch s.ForceType {
+	case "json", "form":
+		s.TargetType = s.ForceType
 	}
-	if s.Method == "POST" || s.Method == "PUT" {
+
+	switch s.Method {
+	case POST, PUT:
 		if s.TargetType == "json" {
 			contentJson, _ := json.Marshal(s.Data)
 			contentReader := bytes.NewReader(contentJson)
@@ -420,11 +430,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(formData.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
-	} else if s.Method == "GET" {
-		req, err = http.NewRequest(s.Method, s.Url, nil)
-	} else if s.Method == "HEAD" {
-		req, err = http.NewRequest(s.Method, s.Url, nil)
-	} else if s.Method == "DELETE" {
+	case GET, HEAD, DELETE:
 		req, err = http.NewRequest(s.Method, s.Url, nil)
 	}
 
@@ -451,11 +457,11 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
-	bodyCallback := body
+	bodyString := string(body)
 	// deep copy response to give it to both return and callback func
 	respCallback := *resp
 	if len(callback) != 0 {
-		callback[0](&respCallback, string(bodyCallback), s.Errors)
+		callback[0](&respCallback, bodyString, s.Errors)
 	}
-	return resp, string(body), nil
+	return resp, bodyString, nil
 }
