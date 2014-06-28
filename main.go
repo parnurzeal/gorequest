@@ -77,7 +77,6 @@ func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 	return s
 }
 
-// TODO: add test for Post
 func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = POST
@@ -86,7 +85,6 @@ func (s *SuperAgent) Post(targetUrl string) *SuperAgent {
 	return s
 }
 
-// TODO: testing for Head func
 func (s *SuperAgent) Head(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = HEAD
@@ -118,7 +116,6 @@ func (s *SuperAgent) Delete(targetUrl string) *SuperAgent {
 //      Post("/gamelist").
 //      Set("Accept", "application/json").
 //      End()
-// TODO: make Set be able to get multiple fields
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 	s.Header[param] = value
 	return s
@@ -193,7 +190,6 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 //        Query(`{ size: '50x50', weight:'20kg' }`).
 //        End()
 //
-// TODO: check error
 func (s *SuperAgent) Query(content string) *SuperAgent {
 	var val map[string]string
 	if err := json.Unmarshal([]byte(content), &val); err == nil {
@@ -213,8 +209,6 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 	return s
 }
 
-// TODO-1: Add docs for Timeout
-// TODO-2: a test for Timeout, check time and slow server
 func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 	s.Transport.Dial = func(network, addr string) (net.Conn, error) {
 		return net.DialTimeout(network, addr, timeout)
@@ -298,8 +292,8 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 //        Send(`{"Safari":"5.1.10"}`).
 //        End()
 //
-// TODO: check error from form and add normal text mode or other mode to Send func
 func (s *SuperAgent) Send(content interface{}) *SuperAgent {
+	// TODO: add normal text mode or other mode to Send func
 	switch v := reflect.ValueOf(content); v.Kind() {
 	case reflect.String:
 		s.SendString(v.String())

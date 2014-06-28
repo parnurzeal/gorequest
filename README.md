@@ -136,10 +136,10 @@ Moreover, GoRequest also supports callback function. This gives you much more fl
 Let's see a bit of callback example:
 
 ```go
-func printBody(resp gorequest.Response, body string, errs []error){
+func printStatus(resp gorequest.Response, body string, errs []error){
   fmt.Println(resp.Status)
 }
-gorequest.New().Get("http://example.com").End(printBody)
+gorequest.New().Get("http://example.com").End(printStatus)
 ```
 
 ## Proxy
