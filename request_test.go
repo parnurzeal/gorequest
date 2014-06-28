@@ -53,7 +53,19 @@ func TestGetSetHeader(t *testing.T) {
 }
 
 func TestPostFormat(t *testing.T) {
+	//defer afterTest(t)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+	}))
+	defer ts.Close()
 
+	New().Post(ts.URL).
+		End()
 }
 
 func TestPostSetHeader(t *testing.T) {
