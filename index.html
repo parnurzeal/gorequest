@@ -151,10 +151,10 @@
 <p>Moreover, GoRequest also supports callback function. This gives you much more flexibility on using it. You can use it any way to match your own style!
 Let's see a bit of callback example:</p>
 
-<div class="highlight highlight-go"><pre><span class="kd">func</span> <span class="nx">printBody</span><span class="p">(</span><span class="nx">resp</span> <span class="nx">gorequest</span><span class="p">.</span><span class="nx">Response</span><span class="p">,</span> <span class="nx">body</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">errs</span> <span class="p">[]</span><span class="kt">error</span><span class="p">){</span>
+<div class="highlight highlight-go"><pre><span class="kd">func</span> <span class="nx">printStatus</span><span class="p">(</span><span class="nx">resp</span> <span class="nx">gorequest</span><span class="p">.</span><span class="nx">Response</span><span class="p">,</span> <span class="nx">body</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">errs</span> <span class="p">[]</span><span class="kt">error</span><span class="p">){</span>
   <span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">Status</span><span class="p">)</span>
 <span class="p">}</span>
-<span class="nx">gorequest</span><span class="p">.</span><span class="nx">New</span><span class="p">().</span><span class="nx">Get</span><span class="p">(</span><span class="s">"http://example.com"</span><span class="p">).</span><span class="nx">End</span><span class="p">(</span><span class="nx">printBody</span><span class="p">)</span>
+<span class="nx">gorequest</span><span class="p">.</span><span class="nx">New</span><span class="p">().</span><span class="nx">Get</span><span class="p">(</span><span class="s">"http://example.com"</span><span class="p">).</span><span class="nx">End</span><span class="p">(</span><span class="nx">printStatus</span><span class="p">)</span>
 </pre></div>
 
 <h2>
