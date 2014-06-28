@@ -133,23 +133,26 @@ func TestPostFormSendJsonAndString(t *testing.T) {
 		End()
 }
 
-// TODO: check url query (all testcases)
+// TODO: more check on url query (all testcases)
 func TestQueryFunc(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header == nil {
 			t.Errorf("Expected non-nil request Header")
 		}
-		//fmt.Println(r.URL.Query())
+		v := r.URL.Query()
+		if v["query1"][0] != "test" {
+			t.Error("Expected query1:test", "| but got", v["query1"][0])
+		}
+		if v["query2"][0] != "test" {
+			t.Error("Expected query2:test", "| but got", v["query2"][0])
+		}
 	}))
 	defer ts.Close()
 	New().Post(ts.URL).
 		Query("query1=test").
 		Query("query2=test").
-		End(func(r Response, body string, errs []error) {
-		r.Status = "10"
-	})
+		End()
 	//fmt.Println(resp.Status)
-
 }
 
 // TODO: check redirect
