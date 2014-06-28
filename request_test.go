@@ -106,6 +106,7 @@ func TestPostFormSendString(t *testing.T) {
 		Send("query2=test").
 		End()
 }
+
 func TestPostFormSendJson(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header == nil {
@@ -122,12 +123,16 @@ func TestPostFormSendJson(t *testing.T) {
 		Send(`{"query2":"test"}`).
 		End()
 }
-func TestPostFormSendJsonAndString(t *testing.T) {
+
+func TestPostFormSendJsonSend_ShouldGive_FormBody(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header == nil {
 			t.Errorf("Expected non-nil request Header")
 		}
-		//fmt.Println(r.URL.Query())
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != "query1=test&query2=test" {
+			t.Error("Expected Body with \"query1=test&query2=test\"", "| but got", string(body))
+		}
 	}))
 	defer ts.Close()
 	New().Post(ts.URL).
@@ -155,7 +160,6 @@ func TestQueryFunc(t *testing.T) {
 		Query("query1=test").
 		Query("query2=test").
 		End()
-	//fmt.Println(resp.Status)
 }
 
 // TODO: check redirect
