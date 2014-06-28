@@ -92,10 +92,13 @@ post.query(json), post.query(string), post.send(json), post.send(string), post.q
 */
 func TestPostFormSendString(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
+		if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+			t.Error("Expected Header Content-Type -> application/x-www-form-urlencoded", "| but got", r.Header.Get("Content-Type"))
 		}
-		//fmt.Println(r.URL.Query())
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != "query1=test&query2=test" {
+			t.Error("Expected Body with \"query1=test&query2=test\"", "| but got", string(body))
+		}
 	}))
 	defer ts.Close()
 	New().Post(ts.URL).
