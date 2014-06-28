@@ -87,7 +87,7 @@ func TestPostSetHeader(t *testing.T) {
 		End()
 }
 
-/* TODO:Testing post for application/x-www-form-urlencoded
+/* TODO: More testing post for application/x-www-form-urlencoded
 post.query(json), post.query(string), post.send(json), post.send(string), post.query(both).send(both)
 */
 func TestPostFormSendString(t *testing.T) {
@@ -111,7 +111,10 @@ func TestPostFormSendJson(t *testing.T) {
 		if r.Header == nil {
 			t.Errorf("Expected non-nil request Header")
 		}
-		//fmt.Println(r.URL.Query())
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != `{"query1":"test","query2":"test"}` {
+			t.Error(`Expected Body with {"query1":"test","query2":"test"}`, "| but got", string(body))
+		}
 	}))
 	defer ts.Close()
 	New().Post(ts.URL).
@@ -251,6 +254,7 @@ func TestTimeoutFunc(t *testing.T) {
 	}
 }
 
+// TODO: complete integration test
 func TestIntegration(t *testing.T) {
 
 }
