@@ -162,7 +162,7 @@ request := gorequest.New().Timeout(2*time.Millisecond)
 resp, body, errs:= request.Get("http://example.com").End()
 ```
 
-Timeout func defines both control + read/write timeout to specify value.
+Timeout func defines both control + read/write timeout to the specified time parameter.
 
 ## Credits
 
