@@ -252,10 +252,46 @@ func TestSendStructFunc(t *testing.T) {
 // TODO: added check for the correct timeout error string
 // Right now, I see 2 different errors from timeout. Need to check why there are two of them. (i/o timeout and operation timed out)
 func TestTimeoutFunc(t *testing.T) {
+	// 1st case, dial timeout
+	startTime := time.Now()
 	_, _, errs := New().Timeout(1000 * time.Millisecond).Get("http://www.google.com:81").End()
+	elapsedTime := time.Since(startTime)
 	if errs == nil {
-		t.Errorf("Expected timeout error but get nothing")
+		t.Errorf("Expected dial timeout error but get nothing")
 	}
+	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
+	}
+	// 2st case, read/write timeout (Can dial to url but want to timeout because too long operation on the server)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(1 * time.Second)
+		w.WriteHeader(200)
+	}))
+	request := New().Timeout(1000 * time.Millisecond)
+	startTime = time.Now()
+	_, _, errs = request.Get(ts.URL).End()
+	elapsedTime = time.Since(startTime)
+	if errs == nil {
+		t.Errorf("Expected dial+read/write timeout | but get nothing")
+	}
+	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
+	}
+	// 3rd case, testing reuse of same request
+	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(1 * time.Second)
+		w.WriteHeader(200)
+	}))
+	startTime = time.Now()
+	_, _, errs = request.Get(ts.URL).End()
+	elapsedTime = time.Since(startTime)
+	if errs == nil {
+		t.Errorf("Expected dial+read/write timeout | but get nothing")
+	}
+	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
+	}
+
 }
 
 // TODO: complete integration test

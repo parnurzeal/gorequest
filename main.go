@@ -211,7 +211,13 @@ func (s *SuperAgent) Query(content string) *SuperAgent {
 
 func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 	s.Transport.Dial = func(network, addr string) (net.Conn, error) {
-		return net.DialTimeout(network, addr, timeout)
+		conn, err := net.DialTimeout(network, addr, timeout)
+		if err != nil {
+			s.Errors = append(s.Errors, err)
+			return nil, err
+		}
+		conn.SetDeadline(time.Now().Add(timeout))
+		return conn, nil
 	}
 	return s
 }
