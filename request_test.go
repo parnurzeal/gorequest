@@ -12,11 +12,6 @@ import (
 	"github.com/elazarl/goproxy"
 )
 
-var robotsTxtHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Last-Modified", "sometime")
-	fmt.Fprintf(w, "User-agent: go\nDisallow: /something/")
-})
-
 func TestGetFormat(t *testing.T) {
 	//defer afterTest(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +157,7 @@ func TestQueryFunc(t *testing.T) {
 		End()
 }
 
-// TODO: check redirect
+// TODO: more tests on redirect
 func TestRedirectPolicyFunc(t *testing.T) {
 	redirectSuccess := false
 	redirectFuncGetCalled := false
@@ -249,8 +244,6 @@ func TestSendStructFunc(t *testing.T) {
 		End()
 }
 
-// TODO: added check for the correct timeout error string
-// Right now, I see 2 different errors from timeout. Need to check why there are two of them. (i/o timeout and operation timed out)
 func TestTimeoutFunc(t *testing.T) {
 	// 1st case, dial timeout
 	startTime := time.Now()
