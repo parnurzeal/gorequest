@@ -267,8 +267,9 @@ func TestTimeoutFunc(t *testing.T) {
 		time.Sleep(1 * time.Second)
 		w.WriteHeader(200)
 	}))
+	request := New().Timeout(1000 * time.Millisecond)
 	startTime = time.Now()
-	_, _, errs = New().Timeout(1000 * time.Millisecond).Get(ts.URL).End()
+	_, _, errs = request.Get(ts.URL).End()
 	elapsedTime = time.Since(startTime)
 	if errs == nil {
 		t.Errorf("Expected dial+read/write timeout | but get nothing")
@@ -276,6 +277,21 @@ func TestTimeoutFunc(t *testing.T) {
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
 		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
 	}
+	// 3rd case, testing reuse of same request
+	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(1 * time.Second)
+		w.WriteHeader(200)
+	}))
+	startTime = time.Now()
+	_, _, errs = request.Get(ts.URL).End()
+	elapsedTime = time.Since(startTime)
+	if errs == nil {
+		t.Errorf("Expected dial+read/write timeout | but get nothing")
+	}
+	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
+	}
+
 }
 
 // TODO: complete integration test
