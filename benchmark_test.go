@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func BenchmarkPostFromSendJson(b *testing.B) {
+func BenchmarkPostSendJson(b *testing.B) {
 	request := New()
 	for n := 0; n < b.N; n++ {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
