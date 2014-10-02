@@ -14,6 +14,7 @@ Sending request would never been fun and easier than this. It comes with lots of
 * JSON - made it simple with JSON string as a parameter
 * Proxy - sending request via proxy
 * Timeout - setting timeout for a request
+* TLSClientConfig - taking control over tls where at least you can disable security check for https
 * RedirectPolicy
 * more to come.. 
 

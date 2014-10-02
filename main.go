@@ -3,6 +3,7 @@ package gorequest
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -219,6 +220,18 @@ func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 		conn.SetDeadline(time.Now().Add(timeout))
 		return conn, nil
 	}
+	return s
+}
+
+// Set TLSClientConfig for underling Transport.
+// One example is you can use it to disable security check (https):
+//
+// 			gorequest.New().TLSClientConfig(&tls.Config{ InsecureSkipVerify: true}).
+// 				Get("https://disable-security-check.com").
+// 				End()
+//
+func (s *SuperAgent) TLSClientConfig(config *tls.Config) *SuperAgent {
+	s.Transport.TLSClientConfig = config
 	return s
 }
 
