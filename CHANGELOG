@@ -1,0 +1,13 @@
+Changelog
+=========
+
+v0.2.1 
+  Features
+  * Implemented timeout test
+  Bugs/Fixes
+  * Improved timeout feature by control over both dial + read/write timeout compared to previously controlling only dial connection timeout.
+
+v0.2.0 Send is now supporting Struct type as a parameter
+
+v0.1.0 Finished release with enough rich functions to do get, post, json and redirectpolicy
+
