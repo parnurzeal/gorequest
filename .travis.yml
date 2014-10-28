@@ -4,6 +4,7 @@ go:
   - tip
 install:
   - go get github.com/elazarl/goproxy
+  - go get code.google.com/p/go.net/publicsuffix
 notifications:
   email:
     recipients: parnurzeal@gmail.com
