@@ -8,10 +8,13 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"reflect"
 	"strings"
 	"time"
+
+	"code.google.com/p/go.net/publicsuffix"
 )
 
 type Request *http.Request
@@ -43,13 +46,17 @@ type SuperAgent struct {
 
 // Used to create a new SuperAgent object.
 func New() *SuperAgent {
+	o := cookiejar.Options{
+		PublicSuffixList: publicsuffix.List,
+	}
+	jar, _ := cookiejar.New(&o)
 	s := &SuperAgent{
 		TargetType: "json",
 		Data:       make(map[string]interface{}),
 		Header:     make(map[string]string),
 		FormData:   url.Values{},
 		QueryData:  url.Values{},
-		Client:     &http.Client{},
+		Client:     &http.Client{Jar: jar},
 		Transport:  &http.Transport{},
 		Errors:     nil,
 	}

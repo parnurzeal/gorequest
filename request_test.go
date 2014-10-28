@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -285,6 +286,19 @@ func TestTimeoutFunc(t *testing.T) {
 		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
 	}
 
+}
+
+func TestCookies(t *testing.T) {
+	request := New().Timeout(60 * time.Second)
+	_, _, errs := request.Get("https://github.com").End()
+	if errs != nil {
+		t.Errorf("Cookies test request did not complete")
+		return
+	}
+	domain, _ := url.Parse("https://github.com")
+	if len(request.Client.Jar.Cookies(domain)) == 0 {
+		t.Errorf("Expected cookies | but get nothing")
+	}
 }
 
 // TODO: complete integration test
