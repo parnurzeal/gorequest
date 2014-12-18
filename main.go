@@ -38,6 +38,7 @@ type SuperAgent struct {
 	QueryData  url.Values
 	Client     *http.Client
 	Transport  *http.Transport
+	Cookies    []*http.Cookie
 	Errors     []error
 }
 
@@ -51,6 +52,7 @@ func New() *SuperAgent {
 		QueryData:  url.Values{},
 		Client:     &http.Client{},
 		Transport:  &http.Transport{},
+		Cookies:    make([]*http.Cookie, 0),
 		Errors:     nil,
 	}
 	return s
@@ -66,6 +68,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.QueryData = url.Values{}
 	s.ForceType = ""
 	s.TargetType = "json"
+	s.Cookies = make([]*http.Cookie, 0)
 	s.Errors = nil
 }
 
@@ -118,6 +121,12 @@ func (s *SuperAgent) Delete(targetUrl string) *SuperAgent {
 //      End()
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 	s.Header[param] = value
+	return s
+}
+
+// AddCookie adds a cookie to the request. The behavior is the same as AddCookie on Request from net/http
+func (s *SuperAgent) AddCookie(c *http.Cookie) *SuperAgent {
+	s.Cookies = append(s.Cookies, c)
 	return s
 }
 
@@ -445,6 +454,11 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 		}
 	}
 	req.URL.RawQuery = q.Encode()
+
+	// Add cookies
+	for _, cookie := range s.Cookies {
+		req.AddCookie(cookie)
+	}
 
 	// Set Transport
 	s.Client.Transport = s.Transport
