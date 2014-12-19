@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"code.google.com/p/go.net/publicsuffix"
+	"golang.org/x/net/publicsuffix"
 )
 
 type Request *http.Request
