@@ -39,6 +39,7 @@ type SuperAgent struct {
 	Client     *http.Client
 	Transport  *http.Transport
 	Errors     []error
+	jar        http.CookieJar
 }
 
 // Used to create a new SuperAgent object.
@@ -106,6 +107,11 @@ func (s *SuperAgent) Delete(targetUrl string) *SuperAgent {
 	s.Method = DELETE
 	s.Url = targetUrl
 	s.Errors = nil
+	return s
+}
+
+func (s *SuperAgent) Cookies(jar http.CookieJar) *SuperAgent {
+	s.jar = jar
 	return s
 }
 
@@ -448,6 +454,10 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 
 	// Set Transport
 	s.Client.Transport = s.Transport
+
+	// Set cookies
+	s.Client.Jar = s.jar
+
 	// Send request
 	resp, err = s.Client.Do(req)
 	if err != nil {
