@@ -7,16 +7,18 @@ GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.
 
 #### "Shooting Requests like a Machine Gun" - Gopher
 
-Sending request would never been fun and easier than this. It comes with lots of feature: 
+Sending request would never been fun and easier than this. It comes with lots of feature:
 
 * Get/Post/Put/Head/Delete
-* Set - simple header setting 
+* Set - simple header setting
 * JSON - made it simple with JSON string as a parameter
 * Proxy - sending request via proxy
 * Timeout - setting timeout for a request
 * TLSClientConfig - taking control over tls where at least you can disable security check for https
 * RedirectPolicy
-* more to come.. 
+* Cookie - setting cookies for your request
+* CookieJar - automatic in-memory cookiejar
+* more to come..
 
 ## Installation
 
@@ -164,6 +166,10 @@ resp, body, errs:= request.Get("http://example.com").End()
 ```
 
 Timeout func defines both dial + read/write timeout to the specified time parameter.
+
+## Contributing to GoRequest:
+
+If you find any improvement or issue you want to fix, feel free to send me a pull request with testing.
 
 ## Credits
 

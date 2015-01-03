@@ -1,9 +1,12 @@
 Changelog
 =========
 
-v0.2.2 (TBD)
+v0.2.2 (2015-01-03)
   Features
-  * Added TLSClientConfig for better controling over tls
+  * Added TLSClientConfig for better control over tls
+	* Added AddCookie func to set "Cookie" field in request (pull request by
+	@austinov) - Issue #7
+	* Added CookieJar (pull request by @kemadz)
 
 v0.2.1 (2014-07-06)
   Features
