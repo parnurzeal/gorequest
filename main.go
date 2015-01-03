@@ -48,10 +48,10 @@ type SuperAgent struct {
 
 // Used to create a new SuperAgent object.
 func New() *SuperAgent {
-	o := cookiejar.Options{
+	cookiejarOptions := cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
 	}
-	jar, _ := cookiejar.New(&o)
+	jar, _ := cookiejar.New(&cookiejarOptions)
 	s := &SuperAgent{
 		TargetType: "json",
 		Data:       make(map[string]interface{}),
