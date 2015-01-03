@@ -3,15 +3,19 @@ package gorequest
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"reflect"
 	"strings"
 	"time"
+
+	"golang.org/x/net/publicsuffix"
 )
 
 type Request *http.Request
@@ -38,19 +42,25 @@ type SuperAgent struct {
 	QueryData  url.Values
 	Client     *http.Client
 	Transport  *http.Transport
+	Cookies    []*http.Cookie
 	Errors     []error
 }
 
 // Used to create a new SuperAgent object.
 func New() *SuperAgent {
+	cookiejarOptions := cookiejar.Options{
+		PublicSuffixList: publicsuffix.List,
+	}
+	jar, _ := cookiejar.New(&cookiejarOptions)
 	s := &SuperAgent{
 		TargetType: "json",
 		Data:       make(map[string]interface{}),
 		Header:     make(map[string]string),
 		FormData:   url.Values{},
 		QueryData:  url.Values{},
-		Client:     &http.Client{},
+		Client:     &http.Client{Jar: jar},
 		Transport:  &http.Transport{},
+		Cookies:    make([]*http.Cookie, 0),
 		Errors:     nil,
 	}
 	return s
@@ -66,6 +76,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.QueryData = url.Values{}
 	s.ForceType = ""
 	s.TargetType = "json"
+	s.Cookies = make([]*http.Cookie, 0)
 	s.Errors = nil
 }
 
@@ -118,6 +129,12 @@ func (s *SuperAgent) Delete(targetUrl string) *SuperAgent {
 //      End()
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 	s.Header[param] = value
+	return s
+}
+
+// AddCookie adds a cookie to the request. The behavior is the same as AddCookie on Request from net/http
+func (s *SuperAgent) AddCookie(c *http.Cookie) *SuperAgent {
+	s.Cookies = append(s.Cookies, c)
 	return s
 }
 
@@ -219,6 +236,18 @@ func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 		conn.SetDeadline(time.Now().Add(timeout))
 		return conn, nil
 	}
+	return s
+}
+
+// Set TLSClientConfig for underling Transport.
+// One example is you can use it to disable security check (https):
+//
+// 			gorequest.New().TLSClientConfig(&tls.Config{ InsecureSkipVerify: true}).
+// 				Get("https://disable-security-check.com").
+// 				End()
+//
+func (s *SuperAgent) TLSClientConfig(config *tls.Config) *SuperAgent {
+	s.Transport.TLSClientConfig = config
 	return s
 }
 
@@ -445,6 +474,11 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 		}
 	}
 	req.URL.RawQuery = q.Encode()
+
+	// Add cookies
+	for _, cookie := range s.Cookies {
+		req.AddCookie(cookie)
+	}
 
 	// Set Transport
 	s.Client.Transport = s.Transport

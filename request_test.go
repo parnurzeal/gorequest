@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -287,7 +288,42 @@ func TestTimeoutFunc(t *testing.T) {
 
 }
 
+func TestCookies(t *testing.T) {
+	request := New().Timeout(60 * time.Second)
+	_, _, errs := request.Get("https://github.com").End()
+	if errs != nil {
+		t.Errorf("Cookies test request did not complete")
+		return
+	}
+	domain, _ := url.Parse("https://github.com")
+	if len(request.Client.Jar.Cookies(domain)) == 0 {
+		t.Errorf("Expected cookies | but get nothing")
+	}
+}
+
 // TODO: complete integration test
 func TestIntegration(t *testing.T) {
 
+}
+
+func TestGetSetCookies(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != GET {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
+		}
+		c, err := r.Cookie("API-Cookie-Name")
+		if err != nil {
+			t.Error(err)
+		}
+		if c == nil {
+			t.Errorf("Expected non-nil request Cookie 'API-Cookie-Name'")
+		} else if c.Value != "api-cookie-value" {
+			t.Errorf("Expected 'API-Cookie-Name' == %q; got %q", "api-cookie-value", c.Value)
+		}
+	}))
+	defer ts.Close()
+
+	New().Get(ts.URL).
+	AddCookie(&http.Cookie{Name:"API-Cookie-Name", Value:"api-cookie-value"}).
+	End()
 }
