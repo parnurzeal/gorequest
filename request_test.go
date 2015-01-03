@@ -291,3 +291,25 @@ func TestTimeoutFunc(t *testing.T) {
 func TestIntegration(t *testing.T) {
 
 }
+
+func TestGetSetCookies(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != GET {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
+		}
+		c, err := r.Cookie("API-Cookie-Name")
+		if err != nil {
+			t.Error(err)
+		}
+		if c == nil {
+			t.Errorf("Expected non-nil request Cookie 'API-Cookie-Name'")
+		} else if c.Value != "api-cookie-value" {
+			t.Errorf("Expected 'API-Cookie-Name' == %q; got %q", "api-cookie-value", c.Value)
+		}
+	}))
+	defer ts.Close()
+
+	New().Get(ts.URL).
+	AddCookie(&http.Cookie{Name:"API-Cookie-Name", Value:"api-cookie-value"}).
+	End()
+}
