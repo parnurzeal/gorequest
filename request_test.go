@@ -13,6 +13,42 @@ import (
 	"github.com/elazarl/goproxy"
 )
 
+func TestPatch(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is PATCH before going to check other features
+		if r.Method != PATCH {
+			t.Errorf("Expected method %q; got %q", PATCH, r.Method)
+		}
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+		switch r.URL.Path {
+		default:
+		case "/send_json":
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != `{"query1":"test","query2":"test"}` {
+				t.Error(`Expected Body with {"query1":"test","query2":"test"}`, "| but got", string(body))
+			}
+		case "/set_header":
+			if r.Header.Get("API-Key") != "fookey" {
+				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+			}
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Patch(ts.URL).
+		End()
+	New().Patch(ts.URL + "/send_json").
+		Send(`{"query1":"test"}`).
+		Send(`{"query2":"test"}`).
+		End()
+	New().Patch(ts.URL+"/set_header").
+		Set("API-Key", "fookey").
+		End()
+}
+
 func TestGetFormat(t *testing.T) {
 	//defer afterTest(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -324,6 +360,6 @@ func TestGetSetCookies(t *testing.T) {
 	defer ts.Close()
 
 	New().Get(ts.URL).
-	AddCookie(&http.Cookie{Name:"API-Cookie-Name", Value:"api-cookie-value"}).
-	End()
+		AddCookie(&http.Cookie{Name: "API-Cookie-Name", Value: "api-cookie-value"}).
+		End()
 }

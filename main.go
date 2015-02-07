@@ -28,6 +28,7 @@ const (
 	HEAD   = "HEAD"
 	PUT    = "PUT"
 	DELETE = "DELETE"
+	PATCH  = "PATCH"
 )
 
 // A SuperAgent is a object storing all request data for client.
@@ -115,6 +116,14 @@ func (s *SuperAgent) Put(targetUrl string) *SuperAgent {
 func (s *SuperAgent) Delete(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = DELETE
+	s.Url = targetUrl
+	s.Errors = nil
+	return s
+}
+
+func (s *SuperAgent) Patch(targetUrl string) *SuperAgent {
+	s.ClearSuperAgent()
+	s.Method = PATCH
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -448,7 +457,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	}
 
 	switch s.Method {
-	case POST, PUT:
+	case POST, PUT, PATCH:
 		if s.TargetType == "json" {
 			contentJson, _ := json.Marshal(s.Data)
 			contentReader := bytes.NewReader(contentJson)
