@@ -9,7 +9,7 @@ GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.
 
 Sending request would never been fun and easier than this. It comes with lots of feature:
 
-* Get/Post/Put/Head/Delete
+* Get/Post/Put/Head/Delete/Patch
 * Set - simple header setting
 * JSON - made it simple with JSON string as a parameter
 * Proxy - sending request via proxy
