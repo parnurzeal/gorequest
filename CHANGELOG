@@ -1,18 +1,28 @@
 Changelog
 =========
 
+v0.2.3 (2015-02-08)
+
+	Features
+  	* Added Patch HTTP Method
+
+	Bug/Fixes
+		* Refactored testing code
+
 v0.2.2 (2015-01-03)
-  Features
-  * Added TLSClientConfig for better control over tls
-	* Added AddCookie func to set "Cookie" field in request (pull request by
-	@austinov) - Issue #7
-	* Added CookieJar (pull request by @kemadz)
+
+	Features
+  	* Added TLSClientConfig for better control over tls
+		* Added AddCookie func to set "Cookie" field in request (pull request by @austinov) - Issue #7
+		* Added CookieJar (pull request by @kemadz)
 
 v0.2.1 (2014-07-06)
-  Features
-  * Implemented timeout test
-  Bugs/Fixes
-  * Improved timeout feature by control over both dial + read/write timeout compared to previously controlling only dial connection timeout.
+
+	Features
+  	* Implemented timeout test
+
+	Bugs/Fixes
+  	* Improved timeout feature by control over both dial + read/write timeout compared to previously controlling only dial connection timeout.
 
 v0.2.0 (2014-06-13) - Send is now supporting Struct type as a parameter
 
