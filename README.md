@@ -80,7 +80,7 @@ resp, body, errs := request.Get("http://example.com").
   End()
 ```
 
-__DELETE__, __HEAD__, __POST__, __PUT__ are now supported and can be used the same way as __GET__:
+__DELETE__, __HEAD__, __POST__, __PUT__, __PATCH__ are now supported and can be used the same way as __GET__:
 
 ```go
 request := gorequest.New()
@@ -166,6 +166,9 @@ resp, body, errs:= request.Get("http://example.com").End()
 ```
 
 Timeout func defines both dial + read/write timeout to the specified time parameter.
+
+## Noted
+As the underlying gorequest is based on http.Client in most usecases, gorequest.New() should be called once and reuse gorequest as much as possible.
 
 ## Contributing to GoRequest:
 
