@@ -13,7 +13,176 @@ import (
 	"github.com/elazarl/goproxy"
 )
 
+// testing for Get method
+func TestGet(t *testing.T) {
+	const case1_empty = "/"
+	const case2_set_header = "/set_header"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is GET before going to check other features
+		if r.Method != GET {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
+		}
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+		switch r.URL.Path {
+		default:
+			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case1_empty:
+			t.Logf("case %v ", case1_empty)
+		case case2_set_header:
+			t.Logf("case %v ", case2_set_header)
+			if r.Header.Get("API-Key") != "fookey" {
+				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+			}
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Get(ts.URL + case1_empty).
+		End()
+
+	New().Get(ts.URL+case2_set_header).
+		Set("API-Key", "fookey").
+		End()
+}
+
+// testing for POST method
+func TestPost(t *testing.T) {
+	const case1_empty = "/"
+	const case2_set_header = "/set_header"
+	const case3_send_json = "/send_json"
+	const case4_send_string = "/send_string"
+	const case5_integration_send_json_string = "/integration_send_json_string"
+	const case6_set_query = "/set_query"
+	const case7_integration_send_json_struct = "/integration_send_json_struct"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is PATCH before going to check other features
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+		switch r.URL.Path {
+		default:
+			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case1_empty:
+			t.Logf("case %v ", case1_empty)
+		case case2_set_header:
+			t.Logf("case %v ", case2_set_header)
+			if r.Header.Get("API-Key") != "fookey" {
+				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+			}
+		case case3_send_json:
+			t.Logf("case %v ", case3_send_json)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != `{"query1":"test","query2":"test"}` {
+				t.Error(`Expected Body with {"query1":"test","query2":"test"}`, "| but got", string(body))
+			}
+		case case4_send_string:
+			t.Logf("case %v ", case4_send_string)
+			if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+				t.Error("Expected Header Content-Type -> application/x-www-form-urlencoded", "| but got", r.Header.Get("Content-Type"))
+			}
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != "query1=test&query2=test" {
+				t.Error("Expected Body with \"query1=test&query2=test\"", "| but got", string(body))
+			}
+		case case5_integration_send_json_string:
+			t.Logf("case %v ", case5_integration_send_json_string)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != "query1=test&query2=test" {
+				t.Error("Expected Body with \"query1=test&query2=test\"", "| but got", string(body))
+			}
+		case case6_set_query:
+			t.Logf("case %v ", case6_set_query)
+			v := r.URL.Query()
+			if v["query1"][0] != "test" {
+				t.Error("Expected query1:test", "| but got", v["query1"][0])
+			}
+			if v["query2"][0] != "test" {
+				t.Error("Expected query2:test", "| but got", v["query2"][0])
+			}
+		case case7_integration_send_json_struct:
+			t.Logf("case %v ", case7_integration_send_json_struct)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			comparedBody := []byte(`{"Lower":{"Color":"green","Size":1.7},"Upper":{"Color":"red","Size":0},"a":"a","name":"Cindy"}`)
+			if !bytes.Equal(body, comparedBody) {
+				t.Errorf(`Expected correct json but got ` + string(body))
+			}
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Post(ts.URL + case1_empty).
+		End()
+
+	New().Post(ts.URL+case2_set_header).
+		Set("API-Key", "fookey").
+		End()
+
+	New().Post(ts.URL + case3_send_json).
+		Send(`{"query1":"test"}`).
+		Send(`{"query2":"test"}`).
+		End()
+
+	New().Post(ts.URL + case4_send_string).
+		Send("query1=test").
+		Send("query2=test").
+		End()
+
+	New().Post(ts.URL + case5_integration_send_json_string).
+		Send("query1=test").
+		Send(`{"query2":"test"}`).
+		End()
+
+	/* TODO: More testing post for application/x-www-form-urlencoded
+	   post.query(json), post.query(string), post.send(json), post.send(string), post.query(both).send(both)
+	*/
+	New().Post(ts.URL + case6_set_query).
+		Query("query1=test").
+		Query("query2=test").
+		End()
+	// TODO:
+	// 1. test normal struct
+	// 2. test 2nd layer nested struct
+	// 3. test struct pointer
+	// 4. test lowercase won't be export to json
+	// 5. test field tag change to json field name
+	type Upper struct {
+		Color string
+		Size  int
+		note  string
+	}
+	type Lower struct {
+		Color string
+		Size  float64
+		note  string
+	}
+	type Style struct {
+		Upper Upper
+		Lower Lower
+		Name  string `json:"name"`
+	}
+	myStyle := Style{Upper: Upper{Color: "red"}, Name: "Cindy", Lower: Lower{Color: "green", Size: 1.7}}
+	New().Post(ts.URL + case7_integration_send_json_struct).
+		Send(`{"a":"a"}`).
+		Send(myStyle).
+		End()
+}
+
+// testing for Patch method
 func TestPatch(t *testing.T) {
+	const case1_empty = "/"
+	const case2_set_header = "/set_header"
+	const case3_send_json = "/send_json"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is PATCH before going to check other features
 		if r.Method != PATCH {
@@ -24,151 +193,35 @@ func TestPatch(t *testing.T) {
 		}
 		switch r.URL.Path {
 		default:
-		case "/send_json":
+			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case1_empty:
+			t.Logf("case %v ", case1_empty)
+		case case2_set_header:
+			t.Logf("case %v ", case2_set_header)
+			if r.Header.Get("API-Key") != "fookey" {
+				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+			}
+		case case3_send_json:
+			t.Logf("case %v ", case3_send_json)
+			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != `{"query1":"test","query2":"test"}` {
 				t.Error(`Expected Body with {"query1":"test","query2":"test"}`, "| but got", string(body))
 			}
-		case "/set_header":
-			if r.Header.Get("API-Key") != "fookey" {
-				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
-			}
 		}
 	}))
 
 	defer ts.Close()
 
-	New().Patch(ts.URL).
+	New().Patch(ts.URL + case1_empty).
 		End()
-	New().Patch(ts.URL + "/send_json").
+
+	New().Patch(ts.URL+case2_set_header).
+		Set("API-Key", "fookey").
+		End()
+
+	New().Patch(ts.URL + case3_send_json).
 		Send(`{"query1":"test"}`).
-		Send(`{"query2":"test"}`).
-		End()
-	New().Patch(ts.URL+"/set_header").
-		Set("API-Key", "fookey").
-		End()
-}
-
-func TestGetFormat(t *testing.T) {
-	//defer afterTest(t)
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != GET {
-			t.Errorf("Expected method %q; got %q", GET, r.Method)
-		}
-		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
-		}
-	}))
-	defer ts.Close()
-
-	New().Get(ts.URL).
-		End()
-}
-
-func TestGetSetHeader(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != GET {
-			t.Errorf("Expected method %q; got %q", GET, r.Method)
-		}
-		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
-		}
-		if r.Header.Get("API-Key") != "fookey" {
-			t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
-		}
-	}))
-	defer ts.Close()
-
-	New().Get(ts.URL).
-		Set("API-Key", "fookey").
-		End()
-}
-
-func TestPostFormat(t *testing.T) {
-	//defer afterTest(t)
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != POST {
-			t.Errorf("Expected method %q; got %q", POST, r.Method)
-		}
-		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
-		}
-	}))
-	defer ts.Close()
-
-	New().Post(ts.URL).
-		End()
-}
-
-func TestPostSetHeader(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != POST {
-			t.Errorf("Expected method %q; got %q", POST, r.Method)
-		}
-		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
-		}
-		if r.Header.Get("API-Key") != "fookey" {
-			t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
-		}
-	}))
-	defer ts.Close()
-
-	New().Post(ts.URL).
-		Set("API-Key", "fookey").
-		End()
-}
-
-/* TODO: More testing post for application/x-www-form-urlencoded
-post.query(json), post.query(string), post.send(json), post.send(string), post.query(both).send(both)
-*/
-func TestPostFormSendString(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
-			t.Error("Expected Header Content-Type -> application/x-www-form-urlencoded", "| but got", r.Header.Get("Content-Type"))
-		}
-		body, _ := ioutil.ReadAll(r.Body)
-		if string(body) != "query1=test&query2=test" {
-			t.Error("Expected Body with \"query1=test&query2=test\"", "| but got", string(body))
-		}
-	}))
-	defer ts.Close()
-	New().Post(ts.URL).
-		Send("query1=test").
-		Send("query2=test").
-		End()
-}
-
-func TestPostFormSendJson(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
-		}
-		body, _ := ioutil.ReadAll(r.Body)
-		if string(body) != `{"query1":"test","query2":"test"}` {
-			t.Error(`Expected Body with {"query1":"test","query2":"test"}`, "| but got", string(body))
-		}
-	}))
-	defer ts.Close()
-	New().Post(ts.URL).
-		Send(`{"query1":"test"}`).
-		Send(`{"query2":"test"}`).
-		End()
-}
-
-func TestPostFormSendJsonSend_ShouldGive_FormBody(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
-		}
-		body, _ := ioutil.ReadAll(r.Body)
-		if string(body) != "query1=test&query2=test" {
-			t.Error("Expected Body with \"query1=test&query2=test\"", "| but got", string(body))
-		}
-	}))
-	defer ts.Close()
-	New().Post(ts.URL).
-		Send("query1=test").
 		Send(`{"query2":"test"}`).
 		End()
 }
@@ -243,44 +296,6 @@ func TestProxyFunc(t *testing.T) {
 	}
 }
 
-// 1. test normal struct
-// 2. test 2nd layer nested struct
-// 3. test struct pointer
-// 4. test lowercase won't be export to json
-// 5. test field tag change to json field name
-func TestSendStructFunc(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
-		body, _ := ioutil.ReadAll(r.Body)
-		comparedBody := []byte(`{"Lower":{"Color":"green","Size":1.7},"Upper":{"Color":"red","Size":0},"a":"a","name":"Cindy"}`)
-		if !bytes.Equal(body, comparedBody) {
-			t.Errorf(`Expected correct json but got ` + string(body))
-		}
-	}))
-	defer ts.Close()
-	type Upper struct {
-		Color string
-		Size  int
-		note  string
-	}
-	type Lower struct {
-		Color string
-		Size  float64
-		note  string
-	}
-
-	type Style struct {
-		Upper Upper
-		Lower Lower
-		Name  string `json:"name"`
-	}
-	myStyle := Style{Upper: Upper{Color: "red"}, Name: "Cindy", Lower: Lower{Color: "green", Size: 1.7}}
-	New().Post(ts.URL).
-		Send(`{"a":"a"}`).
-		Send(myStyle).
-		End()
-}
-
 func TestTimeoutFunc(t *testing.T) {
 	// 1st case, dial timeout
 	startTime := time.Now()
@@ -337,11 +352,6 @@ func TestCookies(t *testing.T) {
 	}
 }
 
-// TODO: complete integration test
-func TestIntegration(t *testing.T) {
-
-}
-
 func TestGetSetCookies(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != GET {
@@ -362,4 +372,24 @@ func TestGetSetCookies(t *testing.T) {
 	New().Get(ts.URL).
 		AddCookie(&http.Cookie{Name: "API-Cookie-Name", Value: "api-cookie-value"}).
 		End()
+}
+
+func TestErrorTypeWrongKey(t *testing.T) {
+	//defer afterTest(t)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Hello, checkTypeWrongKey")
+	}))
+	defer ts.Close()
+
+	_, _, err := New().
+		Get(ts.URL).
+		Type("wrongtype").
+		End()
+	if len(err) != 0 {
+		if err[0].Error() != "Type func: incorrect type \"wrongtype\"" {
+			t.Errorf("Wrong error message: " + err[0].Error())
+		}
+	} else {
+		t.Errorf("Should have error")
+	}
 }
