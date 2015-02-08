@@ -167,6 +167,9 @@ resp, body, errs:= request.Get("http://example.com").End()
 
 Timeout func defines both dial + read/write timeout to the specified time parameter.
 
+## Noted
+As the underlying gorequest is based on http.Client in most usecases, gorequest.New() should be called once and reuse gorequest as much as possible.
+
 ## Contributing to GoRequest:
 
 If you find any improvement or issue you want to fix, feel free to send me a pull request with testing.
