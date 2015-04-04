@@ -2,11 +2,13 @@ package gorequest
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -392,4 +394,22 @@ func TestErrorTypeWrongKey(t *testing.T) {
 	} else {
 		t.Errorf("Should have error")
 	}
+}
+
+func TestBasicAuth(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := strings.SplitN(r.Header["Authorization"][0], " ", 2)
+		if len(auth) != 2 || auth[0] != "Basic" {
+			t.Error("bad syntax")
+		}
+		payload, _ := base64.StdEncoding.DecodeString(auth[1])
+		pair := strings.SplitN(string(payload), ":", 2)
+		if pair[0] != "myusername" || pair[1] != "mypassword" {
+			t.Error("Wrong username/password")
+		}
+	}))
+	defer ts.Close()
+	New().Post(ts.URL).
+		SetBasicAuth("myusername", "mypassword").
+		End()
 }

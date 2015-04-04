@@ -45,6 +45,7 @@ type SuperAgent struct {
 	Transport  *http.Transport
 	Cookies    []*http.Cookie
 	Errors     []error
+	BasicAuth  *struct{ Username, Password string }
 }
 
 // Used to create a new SuperAgent object.
@@ -79,6 +80,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.TargetType = "json"
 	s.Cookies = make([]*http.Cookie, 0)
 	s.Errors = nil
+	s.BasicAuth = nil
 }
 
 func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
@@ -138,6 +140,18 @@ func (s *SuperAgent) Patch(targetUrl string) *SuperAgent {
 //      End()
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 	s.Header[param] = value
+	return s
+}
+
+// SetBasicAuth sets the basic authentication header
+// Example. To set the header for username "myuser" and password "mypass"
+//
+//    gorequest.New()
+//      Post("/gamelist").
+//      SetBasicAuth("myuser", "mypass").
+//      End()
+func (s *SuperAgent) SetBasicAuth(username string, password string) *SuperAgent {
+	s.BasicAuth = &struct{ Username, Password string }{username, password}
 	return s
 }
 
@@ -483,6 +497,11 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 		}
 	}
 	req.URL.RawQuery = q.Encode()
+
+	// Add basic auth
+	if s.BasicAuth != nil {
+		req.SetBasicAuth(s.BasicAuth.Username, s.BasicAuth.Password)
+	}
 
 	// Add cookies
 	for _, cookie := range s.Cookies {
