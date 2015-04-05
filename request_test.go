@@ -226,6 +226,18 @@ func TestPatch(t *testing.T) {
 		End()
 }
 
+func checkQuery(t *testing.T, q map[string][]string, key string, want string) {
+	v, ok := q[key]
+	if !ok {
+		t.Error(key, "Not Found")
+	} else if len(v) < 1 {
+		t.Error("No values for", key)
+	} else if v[0] != want {
+		t.Errorf("Expected %v:%v | but got %v", key, want, v[0])
+	}
+	return
+}
+
 // TODO: more check on url query (all testcases)
 func TestQueryFunc(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -233,17 +245,25 @@ func TestQueryFunc(t *testing.T) {
 			t.Errorf("Expected non-nil request Header")
 		}
 		v := r.URL.Query()
-		if v["query1"][0] != "test" {
-			t.Error("Expected query1:test", "| but got", v["query1"][0])
-		}
-		if v["query2"][0] != "test" {
-			t.Error("Expected query2:test", "| but got", v["query2"][0])
-		}
+		checkQuery(t, v, "query1", "test1")
+		checkQuery(t, v, "query2", "test2")
 	}))
 	defer ts.Close()
+
 	New().Post(ts.URL).
-		Query("query1=test").
-		Query("query2=test").
+		Query("query1=test1").
+		Query("query2=test2").
+		End()
+
+	qq := struct {
+		Query1 string
+		Query2 string
+	}{
+		Query1: "test1",
+		Query2: "test2",
+	}
+	New().Post(ts.URL).
+		Query(qq).
 		End()
 }
 
