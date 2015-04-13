@@ -216,7 +216,35 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 //        Query(`{ size: '50x50', weight:'20kg' }`).
 //        End()
 //
-func (s *SuperAgent) Query(content string) *SuperAgent {
+func (s *SuperAgent) Query(content interface{}) *SuperAgent {
+	switch v := reflect.ValueOf(content); v.Kind() {
+	case reflect.String:
+		s.queryString(v.String())
+	case reflect.Struct:
+		s.queryStruct(v.Interface())
+	default:
+	}
+	return s
+}
+
+func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
+	if marshalContent, err := json.Marshal(content); err != nil {
+		s.Errors = append(s.Errors, err)
+	} else {
+		var val map[string]interface{}
+		if err := json.Unmarshal(marshalContent, &val); err != nil {
+			s.Errors = append(s.Errors, err)
+		} else {
+			for k, v := range val {
+				k = strings.ToLower(k)
+				s.QueryData.Add(k, v.(string))
+			}
+		}
+	}
+	return s
+}
+
+func (s *SuperAgent) queryString(content string) *SuperAgent {
 	var val map[string]string
 	if err := json.Unmarshal([]byte(content), &val); err == nil {
 		for k, v := range val {

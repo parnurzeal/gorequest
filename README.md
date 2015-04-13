@@ -133,6 +133,8 @@ resp, body, errs := request.Post("http://version.com/update").
   End()
 ```
 
+Not only for Send() but Query() is also supported. Just give it a try! :)
+
 ## Callback
 
 Moreover, GoRequest also supports callback function. This gives you much more flexibility on using it. You can use it any way to match your own style!
