@@ -448,12 +448,12 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 
 // End is the most important function that you need to call when ending the chain. The request won't proceed without calling it.
 // End function returns Response which matchs the structure of Response type in Golang's http package (but without Body data). The body data itself returns as a string in a 2nd return value.
-// Lastly but worht noticing, error array (NOTE: not just single error value) is returned as a 3rd value and nil otherwise.
+// Lastly but worth noticing, error array (NOTE: not just single error value) is returned as a 3rd value and nil otherwise.
 //
 // For example:
 //
 //    resp, body, errs := gorequest.New().Get("http://www.google.com").End()
-//    if( errs != nil){
+//    if (errs != nil) {
 //      fmt.Println(errs)
 //    }
 //    fmt.Println(resp, body)
@@ -469,6 +469,21 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 //    gorequest.New().Get("http://www..google.com").End(printBody)
 //
 func (s *SuperAgent) End(callback ...func(response Response, body string, errs []error)) (Response, string, []error) {
+	var bytesCallback []func(response Response, body []byte, errs []error)
+	if len(callback) > 0 {
+		bytesCallback = []func(response Response, body []byte, errs []error){
+			func(response Response, body []byte, errs []error) {
+				callback[0](response, string(body), errs)
+			},
+		}
+	}
+	resp, body, errs := s.EndBytes(bytesCallback...)
+	bodyString := string(body)
+	return resp, bodyString, errs
+}
+
+// EndBytes should be used when you want the body as bytes. The callbacks work the same way as with `End`, except that a byte array is used instead of a string.
+func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, errs []error)) (Response, []byte, []error) {
 	var (
 		req  *http.Request
 		err  error
@@ -476,7 +491,7 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	)
 	// check whether there is an error. if yes, return all errors
 	if len(s.Errors) != 0 {
-		return nil, "", s.Errors
+		return nil, nil, s.Errors
 	}
 	// check if there is forced type
 	switch s.ForceType {
@@ -523,16 +538,15 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	resp, err = s.Client.Do(req)
 	if err != nil {
 		s.Errors = append(s.Errors, err)
-		return nil, "", s.Errors
+		return nil, nil, s.Errors
 	}
 	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
-	bodyString := string(body)
 	// deep copy response to give it to both return and callback func
 	respCallback := *resp
 	if len(callback) != 0 {
-		callback[0](&respCallback, bodyString, s.Errors)
+		callback[0](&respCallback, body, s.Errors)
 	}
-	return resp, bodyString, nil
+	return resp, body, nil
 }

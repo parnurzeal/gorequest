@@ -294,6 +294,53 @@ func TestRedirectPolicyFunc(t *testing.T) {
 	}
 }
 
+func TestEndBytes(t *testing.T) {
+	serverOutput := "hello world"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		w.Write([]byte(serverOutput))
+	}))
+	defer ts.Close()
+
+	// Callback.
+	{
+		resp, bodyBytes, errs := New().Get(ts.URL).EndBytes(func(resp Response, body []byte, errs []error) {
+			if len(errs) > 0 {
+				t.Fatalf("Unexpected errors: %s", errs)
+			}
+			if resp.StatusCode != 200 {
+				t.Fatalf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+			}
+			if string(body) != serverOutput {
+				t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(body))
+			}
+		})
+		if len(errs) > 0 {
+			t.Fatalf("Unexpected errors: %s", errs)
+		}
+		if resp.StatusCode != 200 {
+			t.Fatalf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+		}
+		if string(bodyBytes) != serverOutput {
+			t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes))
+		}
+	}
+
+	// No callback.
+	{
+		resp, bodyBytes, errs := New().Get(ts.URL).EndBytes()
+		if len(errs) > 0 {
+			t.Errorf("Unexpected errors: %s", errs)
+		}
+		if resp.StatusCode != 200 {
+			t.Errorf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+		}
+		if string(bodyBytes) != serverOutput {
+			t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes))
+		}
+	}
+}
+
 func TestProxyFunc(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "proxy passed")
