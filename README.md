@@ -154,9 +154,9 @@ In the case when you are behind proxy, GoRequest can handle it easily with Proxy
 
 ```go
 request := gorequest.New().Proxy("http://proxy:999")
-resp, body, errs:= request.Get("http://example-proxy.com").End()
+resp, body, errs := request.Get("http://example-proxy.com").End()
 // To reuse same client with no_proxy, use empty string:
-resp, body, errs= request.Proxy("").("http://example-no-proxy.com").End()
+resp, body, errs = request.Proxy("").("http://example-no-proxy.com").End()
 ```
 
 ## Basic Authentication
@@ -164,7 +164,11 @@ resp, body, errs= request.Proxy("").("http://example-no-proxy.com").End()
 To add a basic authentication header:
 
 ```go
-resp, body, errs := request.Get("http://example-proxy.com").SetBasicAuth("username", "password").End()
+request := gorequest.New().SetBasicAuth("username", "password")
+resp, body, errs := request.Get("http://example-proxy.com").End()
+// To unset it for any following request, just set both username and password to empty string:
+request.SetBasicAuth("","")
+resp, body, errs := request.Get("http://example-proxy-noauth.com").End()
 ```
 
 ## Timeout
