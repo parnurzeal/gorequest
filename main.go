@@ -398,7 +398,9 @@ func (s *SuperAgent) sendStruct(content interface{}) *SuperAgent {
 		s.Errors = append(s.Errors, err)
 	} else {
 		var val map[string]interface{}
-		if err := json.Unmarshal(marshalContent, &val); err != nil {
+		d := json.NewDecoder(bytes.NewBuffer(marshalContent))
+		d.UseNumber()
+		if err := d.Decode(&val); err != nil {
 			s.Errors = append(s.Errors, err)
 		} else {
 			for k, v := range val {
@@ -415,7 +417,9 @@ func (s *SuperAgent) sendStruct(content interface{}) *SuperAgent {
 func (s *SuperAgent) SendString(content string) *SuperAgent {
 	var val map[string]interface{}
 	// check if it is json format
-	if err := json.Unmarshal([]byte(content), &val); err == nil {
+	d := json.NewDecoder(strings.NewReader(content))
+	d.UseNumber()
+	if err := d.Decode(&val); err == nil {
 		for k, v := range val {
 			s.Data[k] = v
 		}
