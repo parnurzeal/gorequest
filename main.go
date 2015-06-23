@@ -459,6 +459,12 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 			for _, element := range val {
 				newUrlValues.Add(k, element)
 			}
+		// if a number, change to string
+		// json.Number used to protect against a wrong (for GoRequest) default conversion
+		// which always converts number to float64.
+		// This type is caused by using Decoder.UseNumber()
+		case json.Number:
+			newUrlValues.Add(k, string(val))
 		}
 	}
 	return newUrlValues
