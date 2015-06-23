@@ -398,7 +398,9 @@ func (s *SuperAgent) sendStruct(content interface{}) *SuperAgent {
 		s.Errors = append(s.Errors, err)
 	} else {
 		var val map[string]interface{}
-		if err := json.Unmarshal(marshalContent, &val); err != nil {
+		d := json.NewDecoder(bytes.NewBuffer(marshalContent))
+		d.UseNumber()
+		if err := d.Decode(&val); err != nil {
 			s.Errors = append(s.Errors, err)
 		} else {
 			for k, v := range val {
@@ -415,7 +417,9 @@ func (s *SuperAgent) sendStruct(content interface{}) *SuperAgent {
 func (s *SuperAgent) SendString(content string) *SuperAgent {
 	var val map[string]interface{}
 	// check if it is json format
-	if err := json.Unmarshal([]byte(content), &val); err == nil {
+	d := json.NewDecoder(strings.NewReader(content))
+	d.UseNumber()
+	if err := d.Decode(&val); err == nil {
 		for k, v := range val {
 			s.Data[k] = v
 		}
@@ -455,6 +459,12 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 			for _, element := range val {
 				newUrlValues.Add(k, element)
 			}
+		// if a number, change to string
+		// json.Number used to protect against a wrong (for GoRequest) default conversion
+		// which always converts number to float64.
+		// This type is caused by using Decoder.UseNumber()
+		case json.Number:
+			newUrlValues.Add(k, string(val))
 		}
 	}
 	return newUrlValues
