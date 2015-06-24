@@ -48,6 +48,21 @@ func TestGet(t *testing.T) {
 		End()
 }
 
+// testing that resp.Body is reusable
+func TestResetBody(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Just some text"))
+	}))
+
+	defer ts.Close()
+
+	resp, _, _ := New().Get(ts.URL).End()
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	if string(bodyBytes) != "Just some text" {
+		t.Error("Expected to be able to reuse the response body")
+	}
+}
+
 // testing for POST method
 func TestPost(t *testing.T) {
 	const case1_empty = "/"

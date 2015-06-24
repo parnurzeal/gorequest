@@ -528,6 +528,8 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
+	// Reset resp.Body so it can be use again
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	bodyString := string(body)
 	// deep copy response to give it to both return and callback func
 	respCallback := *resp
