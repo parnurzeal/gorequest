@@ -189,6 +189,10 @@ As the underlying gorequest is based on http.Client in most usecases, gorequest.
 
 If you find any improvement or issue you want to fix, feel free to send me a pull request with testing.
 
+Thanks to all contributers thus far:
+
+@kemadz, @austinov, @figlief, @dickeyxxx, @killix
+
 ## Credits
 
 * Renee French - the creator of Gopher mascot
