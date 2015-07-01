@@ -1,10 +1,18 @@
 Changelog
 =========
 
+v0.2.5 (2015-07-01)
+
+  Features
+    * Added Basic Auth support (pull request #24 by @dickeyxxx)
+
+  Bug/Fixes
+    # Fix #31 incorrect number conversion (PR #34 by @killix)
+
 v0.2.4 (2015-04-13)
 
 	Features
-		* Query() now supports Struct as same as Send() (pull request by @figlief)
+		* Query() now supports Struct as same as Send() (pull request #25 by @figlief)
 
 v0.2.3 (2015-02-08)
 
@@ -18,8 +26,8 @@ v0.2.2 (2015-01-03)
 
 	Features
   	* Added TLSClientConfig for better control over tls
-		* Added AddCookie func to set "Cookie" field in request (pull request by @austinov) - Issue #7
-		* Added CookieJar (pull request by @kemadz)
+		* Added AddCookie func to set "Cookie" field in request (pull request #17 by @austinov) - Issue #7
+		* Added CookieJar (pull request #15 by @kemadz)
 
 v0.2.1 (2014-07-06)
 

@@ -2,11 +2,13 @@ package gorequest
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -57,6 +59,9 @@ func TestPost(t *testing.T) {
 	const case5_integration_send_json_string = "/integration_send_json_string"
 	const case6_set_query = "/set_query"
 	const case7_integration_send_json_struct = "/integration_send_json_struct"
+	// Check that the number conversion should be converted as string not float64
+	const case8_send_json_with_long_id_number = "/send_json_with_long_id_number"
+	const case9_send_json_string_with_long_id_number_as_form_result = "/send_json_string_with_long_id_number_as_form_result"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is PATCH before going to check other features
 		if r.Method != POST {
@@ -115,6 +120,20 @@ func TestPost(t *testing.T) {
 			comparedBody := []byte(`{"Lower":{"Color":"green","Size":1.7},"Upper":{"Color":"red","Size":0},"a":"a","name":"Cindy"}`)
 			if !bytes.Equal(body, comparedBody) {
 				t.Errorf(`Expected correct json but got ` + string(body))
+			}
+		case case8_send_json_with_long_id_number:
+			t.Logf("case %v ", case8_send_json_with_long_id_number)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != `{"id":123456789,"name":"nemo"}` {
+				t.Error(`Expected Body with {"id":123456789,"name":"nemo"}`, "| but got", string(body))
+			}
+		case case9_send_json_string_with_long_id_number_as_form_result:
+			t.Logf("case %v ", case9_send_json_string_with_long_id_number_as_form_result)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != `id=123456789&name=nemo` {
+				t.Error(`Expected Body with "id=123456789&name=nemo"`, `| but got`, string(body))
 			}
 		}
 	}))
@@ -175,6 +194,15 @@ func TestPost(t *testing.T) {
 	New().Post(ts.URL + case7_integration_send_json_struct).
 		Send(`{"a":"a"}`).
 		Send(myStyle).
+		End()
+
+	New().Post(ts.URL + case8_send_json_with_long_id_number).
+		Send(`{"id":123456789, "name":"nemo"}`).
+		End()
+
+	New().Post(ts.URL + case9_send_json_string_with_long_id_number_as_form_result).
+		Type("form").
+		Send(`{"id":123456789, "name":"nemo"}`).
 		End()
 }
 
@@ -412,4 +440,22 @@ func TestErrorTypeWrongKey(t *testing.T) {
 	} else {
 		t.Errorf("Should have error")
 	}
+}
+
+func TestBasicAuth(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := strings.SplitN(r.Header["Authorization"][0], " ", 2)
+		if len(auth) != 2 || auth[0] != "Basic" {
+			t.Error("bad syntax")
+		}
+		payload, _ := base64.StdEncoding.DecodeString(auth[1])
+		pair := strings.SplitN(string(payload), ":", 2)
+		if pair[0] != "myusername" || pair[1] != "mypassword" {
+			t.Error("Wrong username/password")
+		}
+	}))
+	defer ts.Close()
+	New().Post(ts.URL).
+		SetBasicAuth("myusername", "mypassword").
+		End()
 }

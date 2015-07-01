@@ -18,6 +18,7 @@ Sending request would never been fun and easier than this. It comes with lots of
 * RedirectPolicy
 * Cookie - setting cookies for your request
 * CookieJar - automatic in-memory cookiejar
+* BasicAuth - setting basic authentication header
 * more to come..
 
 ## Installation
@@ -153,9 +154,21 @@ In the case when you are behind proxy, GoRequest can handle it easily with Proxy
 
 ```go
 request := gorequest.New().Proxy("http://proxy:999")
-resp, body, errs:= request.Get("http://example-proxy.com").End()
+resp, body, errs := request.Get("http://example-proxy.com").End()
 // To reuse same client with no_proxy, use empty string:
-resp, body, errs= request.Proxy("").("http://example-no-proxy.com").End()
+resp, body, errs = request.Proxy("").("http://example-no-proxy.com").End()
+```
+
+## Basic Authentication
+
+To add a basic authentication header:
+
+```go
+request := gorequest.New().SetBasicAuth("username", "password")
+resp, body, errs := request.Get("http://example-proxy.com").End()
+// To unset it for any following request, just set both username and password to empty string:
+request.SetBasicAuth("","")
+resp, body, errs := request.Get("http://example-proxy-noauth.com").End()
 ```
 
 ## Timeout
@@ -175,6 +188,10 @@ As the underlying gorequest is based on http.Client in most usecases, gorequest.
 ## Contributing to GoRequest:
 
 If you find any improvement or issue you want to fix, feel free to send me a pull request with testing.
+
+Thanks to all contributers thus far:
+
+@kemadz, @austinov, @figlief, @dickeyxxx, @killix
 
 ## Credits
 
