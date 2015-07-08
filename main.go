@@ -277,6 +277,11 @@ func (s *SuperAgent) queryString(content string) *SuperAgent {
 	return s
 }
 
+func (s *SuperAgent) Param(key string, value string) *SuperAgent {
+		s.QueryData.Add(key, value)
+		return s
+}
+
 func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 	s.Transport.Dial = func(network, addr string) (net.Conn, error) {
 		conn, err := net.DialTimeout(network, addr, timeout)
