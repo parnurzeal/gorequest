@@ -182,6 +182,16 @@ resp, body, errs:= request.Get("http://example.com").End()
 
 Timeout func defines both dial + read/write timeout to the specified time parameter.
 
+## EndBytes
+
+Thanks to @jaytaylor, we now have EndBytes to use when you want the body as bytes.
+
+The callbacks work the same way as with `End`, except that a byte array is used instead of a string.
+
+```go
+resp, bodyBytes, errs := gorequest.New().Get("http://example.com/").EndBytes()
+```
+
 ## Noted
 As the underlying gorequest is based on http.Client in most usecases, gorequest.New() should be called once and reuse gorequest as much as possible.
 
@@ -191,7 +201,7 @@ If you find any improvement or issue you want to fix, feel free to send me a pul
 
 Thanks to all contributers thus far:
 
-@kemadz, @austinov, @figlief, @dickeyxxx, @killix
+@kemadz, @austinov, @figlief, @dickeyxxx, @killix, @jaytaylor
 
 ## Credits
 
