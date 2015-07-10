@@ -1,13 +1,18 @@
 Changelog
 =========
 
+v0.2.6 (2015-07-10)
+
+  Features
+    * Added EndBytes (PR #30 by @jaytaylor)
+
 v0.2.5 (2015-07-01)
 
   Features
     * Added Basic Auth support (pull request #24 by @dickeyxxx)
 
   Bug/Fixes
-    # Fix #31 incorrect number conversion (PR #34 by @killix)
+    * Fix #31 incorrect number conversion (PR #34 by @killix)
 
 v0.2.4 (2015-04-13)
 
