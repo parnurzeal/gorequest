@@ -50,6 +50,28 @@ func TestGet(t *testing.T) {
 		End()
 }
 
+// testing for Param method
+func TestParam(t *testing.T) {
+	paramCode := "123456"
+	paramFields := "f1;f2;f3"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
+			if r.Form.Get("code") != paramCode {
+				t.Errorf("Expected 'code' == %s; got %v", paramCode, r.Form.Get("code"))
+			}
+
+			if r.Form.Get("fields") != paramFields {
+				t.Errorf("Expected 'fields' == %s; got %v", paramFields , r.Form.Get("fields"))
+			}
+	}))
+
+	defer ts.Close()
+
+	New().Get(ts.URL).
+	  Param("code", paramCode).
+		Param("fields", paramFields)
+}
+
 // testing for POST method
 func TestPost(t *testing.T) {
 	const case1_empty = "/"
