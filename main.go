@@ -552,11 +552,8 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	req.URL.RawQuery = q.Encode()
 
 	// Add basic auth
-	// Unset if struct is empty
 	if s.BasicAuth != struct{ Username, Password string }{} {
 		req.SetBasicAuth(s.BasicAuth.Username, s.BasicAuth.Password)
-	} else {
-		req.Header.Del("Authorization")
 	}
 
 	// Add cookies

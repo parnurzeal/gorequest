@@ -166,9 +166,6 @@ To add a basic authentication header:
 ```go
 request := gorequest.New().SetBasicAuth("username", "password")
 resp, body, errs := request.Get("http://example-proxy.com").End()
-// To unset it for any following request, just set both username and password to empty string:
-request.SetBasicAuth("","")
-resp, body, errs := request.Get("http://example-proxy-noauth.com").End()
 ```
 
 ## Timeout
@@ -201,7 +198,9 @@ If you find any improvement or issue you want to fix, feel free to send me a pul
 
 Thanks to all contributers thus far:
 
-@kemadz, @austinov, @figlief, @dickeyxxx, @killix, @jaytaylor
+@kemadz, @austinov, @figlief, @dickeyxxx, @killix, @jaytaylor, @na-ga
+
+Also, co-maintainer is needed here. If anyone is interested, please email me (parnurzeal at gmail.com)
 
 ## Credits
 

@@ -1,6 +1,11 @@
 Changelog
 =========
 
+v0.2.7 (2015-07-11)
+
+	Bug/Fixes
+		* Incorrectly reset "Authentication" header (Hot fix by @na-ga PR #38 & Issue #39)
+
 v0.2.6 (2015-07-10)
 
   Features
