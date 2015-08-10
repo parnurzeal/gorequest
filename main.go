@@ -79,13 +79,11 @@ func New() *SuperAgent {
 // Enable the debug mode which logs request/response detail
 func (s *SuperAgent) SetDebug(enable bool) *SuperAgent {
 	s.Debug = enable
-
 	return s
 }
 
 func (s *SuperAgent) SetLogger(logger *log.Logger) *SuperAgent {
 	s.logger = logger
-
 	return s
 }
 
