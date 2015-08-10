@@ -1,6 +1,12 @@
 Changelog
 =========
 
+v0.2.8 (2015-08-10)
+
+  Bug/Fixes
+    * Added SetDebug and SetLogger for debug mode (PR #28 by @dafang)
+    * Ensure the response Body is reusable (PR #37 by alaingilbert)
+
 v0.2.7 (2015-07-11)
 
 	Bug/Fixes
