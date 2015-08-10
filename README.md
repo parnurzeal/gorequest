@@ -189,6 +189,12 @@ The callbacks work the same way as with `End`, except that a byte array is used 
 resp, bodyBytes, errs := gorequest.New().Get("http://example.com/").EndBytes()
 ```
 
+## Debug
+
+For deugging, GoRequest leverages `httputil` to dump details of every request/response. (Thanks to @dafang)
+
+You can just use `SetDebug` to enable/disable debug mode and `SetLogger` to set your own choice of logger.
+
 ## Noted
 As the underlying gorequest is based on http.Client in most usecases, gorequest.New() should be called once and reuse gorequest as much as possible.
 
@@ -198,7 +204,7 @@ If you find any improvement or issue you want to fix, feel free to send me a pul
 
 Thanks to all contributers thus far:
 
-@kemadz, @austinov, @figlief, @dickeyxxx, @killix, @jaytaylor, @na-ga
+@kemadz, @austinov, @figlief, @dickeyxxx, @killix, @jaytaylor, @na-ga, @dafang, and @alaingilbert
 
 Also, co-maintainer is needed here. If anyone is interested, please email me (parnurzeal at gmail.com)
 

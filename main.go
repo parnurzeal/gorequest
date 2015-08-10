@@ -7,10 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httputil"
 	"net/url"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -46,6 +49,8 @@ type SuperAgent struct {
 	Cookies    []*http.Cookie
 	Errors     []error
 	BasicAuth  struct{ Username, Password string }
+	Debug      bool
+	logger     *log.Logger
 }
 
 // Used to create a new SuperAgent object.
@@ -65,7 +70,20 @@ func New() *SuperAgent {
 		Cookies:    make([]*http.Cookie, 0),
 		Errors:     nil,
 		BasicAuth:  struct{ Username, Password string }{},
+		Debug:      false,
+		logger:     log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 	}
+	return s
+}
+
+// Enable the debug mode which logs request/response detail
+func (s *SuperAgent) SetDebug(enable bool) *SuperAgent {
+	s.Debug = enable
+	return s
+}
+
+func (s *SuperAgent) SetLogger(logger *log.Logger) *SuperAgent {
+	s.logger = logger
 	return s
 }
 
@@ -293,9 +311,9 @@ func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 // Set TLSClientConfig for underling Transport.
 // One example is you can use it to disable security check (https):
 //
-// 			gorequest.New().TLSClientConfig(&tls.Config{ InsecureSkipVerify: true}).
-// 				Get("https://disable-security-check.com").
-// 				End()
+//      gorequest.New().TLSClientConfig(&tls.Config{ InsecureSkipVerify: true}).
+//        Get("https://disable-security-check.com").
+//        End()
 //
 func (s *SuperAgent) TLSClientConfig(config *tls.Config) *SuperAgent {
 	s.Transport.TLSClientConfig = config
@@ -563,8 +581,29 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 
 	// Set Transport
 	s.Client.Transport = s.Transport
+
+	// Log details of this request
+	if s.Debug {
+		dump, err := httputil.DumpRequest(req, true)
+		s.logger.SetPrefix("[http] ")
+		if err != nil {
+			s.logger.Printf("Error: %s", err.Error())
+		}
+		s.logger.Printf("HTTP Request: %s", string(dump))
+	}
+
 	// Send request
 	resp, err = s.Client.Do(req)
+
+	// Log details of this response
+	if s.Debug {
+		dump, err := httputil.DumpResponse(resp, true)
+		if nil != err {
+			s.logger.Println("Error: ", err.Error())
+		}
+		s.logger.Printf("HTTP Response: %s", string(dump))
+	}
+
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 		return nil, nil, s.Errors
@@ -572,6 +611,8 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
+	// Reset resp.Body so it can be use again
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	// deep copy response to give it to both return and callback func
 	respCallback := *resp
 	if len(callback) != 0 {
