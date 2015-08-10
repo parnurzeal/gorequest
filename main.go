@@ -613,6 +613,8 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
+	// Reset resp.Body so it can be use again
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	// deep copy response to give it to both return and callback func
 	respCallback := *resp
 	if len(callback) != 0 {
