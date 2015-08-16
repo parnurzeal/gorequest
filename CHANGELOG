@@ -1,11 +1,13 @@
 Changelog
 =========
 
-v0.2.9 (TBD)
+v0.2.9 (2015-08-16)
 
 	Bug/Fixes
 		* ParseQuery accepts ; as a synonym for &. thus Gorequest Query won't
-		accept ; as in a query string. We add additional Param to solve this  (PR #43 by 6david9)
+		accept ; as in a query string. We add additional Param to solve this  (PR
+		#43 by @6david9)
+		* AddCookies for bulk adding cookies (PR #46 by @pencil001)
 
 v0.2.8 (2015-08-10)
 
