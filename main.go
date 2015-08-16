@@ -295,9 +295,12 @@ func (s *SuperAgent) queryString(content string) *SuperAgent {
 	return s
 }
 
+// As Go conventions accepts ; as a synonym for &. (https://github.com/golang/go/issues/2210)
+// Thus, Query won't accept ; in a querystring if we provide something like fields=f1;f2;f3
+// This Param is then created as an alternative method to solve this.
 func (s *SuperAgent) Param(key string, value string) *SuperAgent {
-		s.QueryData.Add(key, value)
-		return s
+	s.QueryData.Add(key, value)
+	return s
 }
 
 func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {

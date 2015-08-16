@@ -1,6 +1,12 @@
 Changelog
 =========
 
+v0.2.9 (TBD)
+
+	Bug/Fixes
+		* ParseQuery accepts ; as a synonym for &. thus Gorequest Query won't
+		accept ; as in a query string. We add additional Param to solve this  (PR #43 by 6david9)
+
 v0.2.8 (2015-08-10)
 
   Bug/Fixes
