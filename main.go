@@ -179,6 +179,12 @@ func (s *SuperAgent) AddCookie(c *http.Cookie) *SuperAgent {
 	return s
 }
 
+// AddCookies is a convenient method to add multiple cookies
+func (s *SuperAgent) AddCookies(cookies []*http.Cookie) *SuperAgent {
+	s.Cookies = append(s.Cookies, cookies...)
+	return s
+}
+
 var Types = map[string]string{
 	"html":       "text/html",
 	"json":       "application/json",
@@ -292,6 +298,14 @@ func (s *SuperAgent) queryString(content string) *SuperAgent {
 		}
 		// TODO: need to check correct format of 'field=val&field=val&...'
 	}
+	return s
+}
+
+// As Go conventions accepts ; as a synonym for &. (https://github.com/golang/go/issues/2210)
+// Thus, Query won't accept ; in a querystring if we provide something like fields=f1;f2;f3
+// This Param is then created as an alternative method to solve this.
+func (s *SuperAgent) Param(key string, value string) *SuperAgent {
+	s.QueryData.Add(key, value)
 	return s
 }
 

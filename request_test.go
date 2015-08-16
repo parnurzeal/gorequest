@@ -65,6 +65,28 @@ func TestResetBody(t *testing.T) {
 	}
 }
 
+// testing for Param method
+func TestParam(t *testing.T) {
+	paramCode := "123456"
+	paramFields := "f1;f2;f3"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Form.Get("code") != paramCode {
+			t.Errorf("Expected 'code' == %s; got %v", paramCode, r.Form.Get("code"))
+		}
+
+		if r.Form.Get("fields") != paramFields {
+			t.Errorf("Expected 'fields' == %s; got %v", paramFields, r.Form.Get("fields"))
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Get(ts.URL).
+		Param("code", paramCode).
+		Param("fields", paramFields)
+}
+
 // testing for POST method
 func TestPost(t *testing.T) {
 	const case1_empty = "/"
@@ -462,7 +484,7 @@ func TestCookies(t *testing.T) {
 	}
 }
 
-func TestGetSetCookies(t *testing.T) {
+func TestGetSetCookie(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != GET {
 			t.Errorf("Expected method %q; got %q", GET, r.Method)
@@ -482,6 +504,38 @@ func TestGetSetCookies(t *testing.T) {
 	New().Get(ts.URL).
 		AddCookie(&http.Cookie{Name: "API-Cookie-Name", Value: "api-cookie-value"}).
 		End()
+}
+
+func TestGetSetCookies(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != GET {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
+		}
+		c, err := r.Cookie("API-Cookie-Name1")
+		if err != nil {
+			t.Error(err)
+		}
+		if c == nil {
+			t.Errorf("Expected non-nil request Cookie 'API-Cookie-Name1'")
+		} else if c.Value != "api-cookie-value1" {
+			t.Errorf("Expected 'API-Cookie-Name1' == %q; got %q", "api-cookie-value1", c.Value)
+		}
+		c, err = r.Cookie("API-Cookie-Name2")
+		if err != nil {
+			t.Error(err)
+		}
+		if c == nil {
+			t.Errorf("Expected non-nil request Cookie 'API-Cookie-Name2'")
+		} else if c.Value != "api-cookie-value2" {
+			t.Errorf("Expected 'API-Cookie-Name2' == %q; got %q", "api-cookie-value2", c.Value)
+		}
+	}))
+	defer ts.Close()
+
+	New().Get(ts.URL).AddCookies([]*http.Cookie{
+		&http.Cookie{Name: "API-Cookie-Name1", Value: "api-cookie-value1"},
+		&http.Cookie{Name: "API-Cookie-Name2", Value: "api-cookie-value2"},
+	}).End()
 }
 
 func TestErrorTypeWrongKey(t *testing.T) {
