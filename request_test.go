@@ -437,7 +437,7 @@ func TestTimeoutFunc(t *testing.T) {
 		t.Errorf("Expected dial timeout error but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
-		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
 	}
 	// 2st case, read/write timeout (Can dial to url but want to timeout because too long operation on the server)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -452,7 +452,7 @@ func TestTimeoutFunc(t *testing.T) {
 		t.Errorf("Expected dial+read/write timeout | but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
-		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
 	}
 	// 3rd case, testing reuse of same request
 	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -466,7 +466,7 @@ func TestTimeoutFunc(t *testing.T) {
 		t.Errorf("Expected dial+read/write timeout | but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
-		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
 	}
 
 }
