@@ -561,14 +561,26 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 			contentJson, _ := json.Marshal(s.Data)
 			contentReader := bytes.NewReader(contentJson)
 			req, err = http.NewRequest(s.Method, s.Url, contentReader)
+			if err != nil {
+				s.Errors = append(s.Errors, err)
+				return nil, nil, s.Errors
+			}
 			req.Header.Set("Content-Type", "application/json")
 		} else if s.TargetType == "form" {
 			formData := changeMapToURLValues(s.Data)
 			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(formData.Encode()))
+			if err != nil {
+				s.Errors = append(s.Errors, err)
+				return nil, nil, s.Errors
+			}
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 	case GET, HEAD, DELETE:
 		req, err = http.NewRequest(s.Method, s.Url, nil)
+		if err != nil {
+			s.Errors = append(s.Errors, err)
+			return nil, nil, s.Errors
+		}
 	}
 
 	for k, v := range s.Header {
@@ -601,28 +613,29 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 		dump, err := httputil.DumpRequest(req, true)
 		s.logger.SetPrefix("[http] ")
 		if err != nil {
-			s.logger.Printf("Error: %s", err.Error())
+			s.logger.Println("Error:", err)
+		} else {
+			s.logger.Printf("HTTP Request: %s", string(dump))
 		}
-		s.logger.Printf("HTTP Request: %s", string(dump))
 	}
 
 	// Send request
 	resp, err = s.Client.Do(req)
-
-	// Log details of this response
-	if s.Debug {
-		dump, err := httputil.DumpResponse(resp, true)
-		if nil != err {
-			s.logger.Println("Error: ", err.Error())
-		}
-		s.logger.Printf("HTTP Response: %s", string(dump))
-	}
-
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 		return nil, nil, s.Errors
 	}
 	defer resp.Body.Close()
+
+	// Log details of this response
+	if s.Debug {
+		dump, err := httputil.DumpResponse(resp, true)
+		if nil != err {
+			s.logger.Println("Error:", err)
+		} else {
+			s.logger.Printf("HTTP Response: %s", string(dump))
+		}
+	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
 	// Reset resp.Body so it can be use again
