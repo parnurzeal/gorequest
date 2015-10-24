@@ -1,6 +1,16 @@
 Changelog
 =========
 
+v0.2.10 (2015-10-24)
+
+	Bug/Fixes
+		* Fix incorrect text output in tests (PR #52 by @QuentinPerez)
+		* Fix Panic and runtime error properly (PR #53 by @QuentinPerez)
+		* Add support for "text/plain" and "application/xml" (PR #51 by
+		@smallnest)
+		* Content-Type header is also equivalent with Type function to identify
+		supported Gorequest's Target Type
+
 v0.2.9 (2015-08-16)
 
 	Bug/Fixes
