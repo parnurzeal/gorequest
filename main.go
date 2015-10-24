@@ -568,6 +568,14 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	switch s.ForceType {
 	case "json", "form", "xml", "text":
 		s.TargetType = s.ForceType
+		// If forcetype is not set, check whether user set Content-Type header.
+		// If yes, also bounce to the correct supported TargetType automatically.
+	default:
+		for k, v := range Types {
+			if s.Header["Content-Type"] == v {
+				s.TargetType = k
+			}
+		}
 	}
 
 	switch s.Method {
