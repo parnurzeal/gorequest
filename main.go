@@ -44,6 +44,7 @@ type SuperAgent struct {
 	Data       map[string]interface{}
 	FormData   url.Values
 	QueryData  url.Values
+	RawString  string
 	Client     *http.Client
 	Transport  *http.Transport
 	Cookies    []*http.Cookie
@@ -63,6 +64,7 @@ func New() *SuperAgent {
 		TargetType: "json",
 		Data:       make(map[string]interface{}),
 		Header:     make(map[string]string),
+		RawString:  "",
 		FormData:   url.Values{},
 		QueryData:  url.Values{},
 		Client:     &http.Client{Jar: jar},
@@ -95,6 +97,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.Data = make(map[string]interface{})
 	s.FormData = url.Values{}
 	s.QueryData = url.Values{}
+	s.RawString = ""
 	s.ForceType = ""
 	s.TargetType = "json"
 	s.Cookies = make([]*http.Cookie, 0)
@@ -189,6 +192,7 @@ var Types = map[string]string{
 	"html":       "text/html",
 	"json":       "application/json",
 	"xml":        "application/xml",
+	"text":       "text/plain",
 	"urlencoded": "application/x-www-form-urlencoded",
 	"form":       "application/x-www-form-urlencoded",
 	"form-data":  "application/x-www-form-urlencoded",
@@ -210,6 +214,7 @@ var Types = map[string]string{
 //    "text/html" uses "html"
 //    "application/json" uses "json"
 //    "application/xml" uses "xml"
+//    "text/plain" uses "text"
 //    "application/x-www-form-urlencoded" uses "urlencoded", "form" or "form-data"
 //
 func (s *SuperAgent) Type(typeStr string) *SuperAgent {
@@ -410,6 +415,14 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 //        Send(`{"Safari":"5.1.10"}`).
 //        End()
 //
+// If you have set Type to text or Content-Type to text/plain, content will be sent as raw string in body instead of form
+//
+//      gorequest.New().
+//        Post("/greet").
+//        Type("text").
+//        Send("hello world").
+//        End()
+//
 func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	// TODO: add normal text mode or other mode to Send func
 	switch v := reflect.ValueOf(content); v.Kind() {
@@ -478,6 +491,8 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 	} else {
 		// need to add text mode or other format body request to this func
 	}
+	// Dump all contents to RawString in case in the end user doesn't want json or form.
+	s.RawString += content
 	return s
 }
 
@@ -551,8 +566,16 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	}
 	// check if there is forced type
 	switch s.ForceType {
-	case "json", "form":
+	case "json", "form", "xml", "text":
 		s.TargetType = s.ForceType
+		// If forcetype is not set, check whether user set Content-Type header.
+		// If yes, also bounce to the correct supported TargetType automatically.
+	default:
+		for k, v := range Types {
+			if s.Header["Content-Type"] == v {
+				s.TargetType = k
+			}
+		}
 	}
 
 	switch s.Method {
@@ -574,6 +597,14 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 				return nil, nil, s.Errors
 			}
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		} else if s.TargetType == "text" {
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
+			req.Header.Set("Content-Type", "text/plain")
+		} else if s.TargetType == "xml" {
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
+			req.Header.Set("Content-Type", "application/xml")
+		} else {
+			// TODO: if nothing match, let's return warning here
 		}
 	case GET, HEAD, DELETE:
 		req, err = http.NewRequest(s.Method, s.Url, nil)
