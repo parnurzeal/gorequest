@@ -44,6 +44,7 @@ type SuperAgent struct {
 	Data       map[string]interface{}
 	FormData   url.Values
 	QueryData  url.Values
+	RawString  string
 	Client     *http.Client
 	Transport  *http.Transport
 	Cookies    []*http.Cookie
@@ -63,6 +64,7 @@ func New() *SuperAgent {
 		TargetType: "json",
 		Data:       make(map[string]interface{}),
 		Header:     make(map[string]string),
+		RawString:  "",
 		FormData:   url.Values{},
 		QueryData:  url.Values{},
 		Client:     &http.Client{Jar: jar},
@@ -95,6 +97,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.Data = make(map[string]interface{})
 	s.FormData = url.Values{}
 	s.QueryData = url.Values{}
+	s.RawString = ""
 	s.ForceType = ""
 	s.TargetType = "json"
 	s.Cookies = make([]*http.Cookie, 0)
@@ -189,6 +192,8 @@ var Types = map[string]string{
 	"html":       "text/html",
 	"json":       "application/json",
 	"xml":        "application/xml",
+	"text":        "text/plain",
+	"rawstr":        "rawstr",
 	"urlencoded": "application/x-www-form-urlencoded",
 	"form":       "application/x-www-form-urlencoded",
 	"form-data":  "application/x-www-form-urlencoded",
@@ -210,7 +215,10 @@ var Types = map[string]string{
 //    "text/html" uses "html"
 //    "application/json" uses "json"
 //    "application/xml" uses "xml"
+//    "text/plain" uses "text"
 //    "application/x-www-form-urlencoded" uses "urlencoded", "form" or "form-data"
+//
+// if you set typeStr to "rawstr", GoRequest doesn't set TargetType and you need set Content-Type manually.
 //
 func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 	if _, ok := Types[typeStr]; ok {
@@ -410,11 +418,23 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 //        Send(`{"Safari":"5.1.10"}`).
 //        End()
 //
+// If you have set Type to text or Content-Type to text/plain, content will be sent as raw string in body instead of form
+//
+//      gorequest.New().
+//        Post("/greet").
+//        Type("text").
+//        Send("hello world").
+//        End()
+//
 func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	// TODO: add normal text mode or other mode to Send func
 	switch v := reflect.ValueOf(content); v.Kind() {
 	case reflect.String:
-		s.SendString(v.String())
+		if s.ForceType == "rawstr" || s.ForceType == "text" || s.Header["Content-Type"] == "text/plain" || s.ForceType == "xml" || s.Header["Content-Type"] == "application/xml"  {
+			s.SendRawString(v.String())
+		} else {
+			s.SendString(v.String())
+		}
 	case reflect.Struct:
 		s.sendStruct(v.Interface())
 	default:
@@ -477,6 +497,19 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 		s.TargetType = "form"
 	} else {
 		// need to add text mode or other format body request to this func
+	}
+	return s
+}
+
+// SendString returns SuperAgent's itself for any next chain and takes content string as a parameter.
+// Its duty is to transform String into s.Data (map[string]interface{}) which later changes into appropriate format such as json, form, text, etc. in the End func.
+// Send implicitly uses SendString and you should use Send instead of this.
+func (s *SuperAgent) SendRawString(content string) *SuperAgent {
+	s.RawString = content
+
+	//set default Content Type if it has not been set yet
+	if (s.TargetType == "" && s.Header["Content-Type"] == "") {
+		s.TargetType = "text/plain"
 	}
 	return s
 }
@@ -551,8 +584,17 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	}
 	// check if there is forced type
 	switch s.ForceType {
-	case "json", "form":
+	case "json", "form", "xml", "text", "rawstr":
 		s.TargetType = s.ForceType
+	}
+
+	//resolve conflicts because json is the default type and maybe users only set Content-Type header
+	if s.TargetType == "json" {
+		if s.Header["Content-Type"] == "text/plain" {
+			s.TargetType = "text"
+		} else if s.Header["Content-Type"] == "application/xml" {
+			s.TargetType = "xml"
+		}
 	}
 
 	switch s.Method {
@@ -574,6 +616,14 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 				return nil, nil, s.Errors
 			}
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		} else if s.TargetType == "text" {
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
+			req.Header.Set("Content-Type", "text/plain")
+		} else if s.TargetType == "xml" {
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
+			req.Header.Set("Content-Type", "application/xml")
+		} else if s.TargetType == "rawstr" {
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
 		}
 	case GET, HEAD, DELETE:
 		req, err = http.NewRequest(s.Method, s.Url, nil)
