@@ -435,7 +435,7 @@ func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	case reflect.String:
 		s.SendString(v.String())
 	case reflect.Struct:
-		s.sendStruct(v.Interface())
+		s.SendStruct(v.Interface())
 	case reflect.Slice:
 		// change to slice
 		slice := make([]interface{}, v.Len())
@@ -457,9 +457,9 @@ func (s *SuperAgent) SendSlice(content []interface{}) *SuperAgent {
 	return s
 }
 
-// sendStruct (similar to SendString) returns SuperAgent's itself for any next chain and takes content interface{} as a parameter.
+// SendStruct (similar to SendString) returns SuperAgent's itself for any next chain and takes content interface{} as a parameter.
 // Its duty is to transfrom interface{} (implicitly always a struct) into s.Data (map[string]interface{}) which later changes into appropriate format such as json, form, text, etc. in the End() func.
-func (s *SuperAgent) sendStruct(content interface{}) *SuperAgent {
+func (s *SuperAgent) SendStruct(content interface{}) *SuperAgent {
 	if marshalContent, err := json.Marshal(content); err != nil {
 		s.Errors = append(s.Errors, err)
 	} else {
