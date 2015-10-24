@@ -1,6 +1,12 @@
 Changelog
 =========
 
+v0.2.11 (2015-10-24)
+
+	Bug/Fixes
+		* Add support to Slice data structure (Bug #40, #42)
+		* Refactor sendStruct to be public function SendStruct
+
 v0.2.10 (2015-10-24)
 
 	Bug/Fixes
