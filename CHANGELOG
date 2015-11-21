@@ -1,9 +1,17 @@
 Changelog
 =========
 
+v0.2.13 (2015-11-21)
+
+	Features
+		* Add DisableTransportSwap to stop gorequest from modifying Transport settings.
+			Note that this will effect many functions that modify gorequest's
+			tranport. (So, use with caution.) (Bug #47, PR #59 by @piotrmiskiewicz)
+
+
 v0.2.12 (2015-11-21)
 
-	Feature
+	Features
 		* Add SetCurlCommand for printing comparable CURL command of the request
 		(PR #60 by @QuentinPerez)
 
