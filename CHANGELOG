@@ -1,6 +1,12 @@
 Changelog
 =========
 
+v0.2.12 (2015-11-21)
+
+	Feature
+		* Add SetCurlCommand for printing comparable CURL command of the request
+		(PR #60 by @QuentinPerez)
+
 v0.2.11 (2015-10-24)
 
 	Bug/Fixes
