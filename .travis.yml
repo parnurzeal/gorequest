@@ -5,6 +5,7 @@ go:
   - 1.2
 install:
   - go get github.com/elazarl/goproxy
+  - go get github.com/moul/http2curl
   - go get golang.org/x/net/publicsuffix
 notifications:
   email:
