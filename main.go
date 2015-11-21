@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/moul/http2curl"
+
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -53,6 +55,7 @@ type SuperAgent struct {
 	Errors            []error
 	BasicAuth         struct{ Username, Password string }
 	Debug             bool
+	CurlCommand       bool
 	logger            *log.Logger
 }
 
@@ -77,6 +80,7 @@ func New() *SuperAgent {
 		Errors:            nil,
 		BasicAuth:         struct{ Username, Password string }{},
 		Debug:             false,
+		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 	}
 	return s
@@ -85,6 +89,12 @@ func New() *SuperAgent {
 // Enable the debug mode which logs request/response detail
 func (s *SuperAgent) SetDebug(enable bool) *SuperAgent {
 	s.Debug = enable
+	return s
+}
+
+// Enable the curlcommand mode which display a CURL command line
+func (s *SuperAgent) SetCurlCommand(enable bool) *SuperAgent {
+	s.CurlCommand = enable
 	return s
 }
 
@@ -700,6 +710,17 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 			s.logger.Println("Error:", err)
 		} else {
 			s.logger.Printf("HTTP Request: %s", string(dump))
+		}
+	}
+
+	// Display CURL command line
+	if s.CurlCommand {
+		curl, err := http2curl.GetCurlCommand(req)
+		s.logger.SetPrefix("[curl] ")
+		if err != nil {
+			s.logger.Println("Error:", err)
+		} else {
+			s.logger.Printf("CURL command line: %s", curl)
 		}
 	}
 
