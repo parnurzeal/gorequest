@@ -59,6 +59,8 @@ type SuperAgent struct {
 	logger            *log.Logger
 }
 
+var DisableTransportSwap = false
+
 // Used to create a new SuperAgent object.
 func New() *SuperAgent {
 	cookiejarOptions := cookiejar.Options{
@@ -700,7 +702,9 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	}
 
 	// Set Transport
-	s.Client.Transport = s.Transport
+	if !DisableTransportSwap {
+		s.Client.Transport = s.Transport
+	}
 
 	// Log details of this request
 	if s.Debug {
