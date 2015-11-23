@@ -195,7 +195,7 @@ For debugging, GoRequest leverages `httputil` to dump details of every request/r
 
 You can just use `SetDebug` to enable/disable debug mode and `SetLogger` to set your own choice of logger.
 
-Thanks to @QuentinPere, we can see even how gorequest is compared to CURL by using `SetCurlCommand`.
+Thanks to @QuentinPerez, we can see even how gorequest is compared to CURL by using `SetCurlCommand`.
 
 ## Noted
 As the underlying gorequest is based on http.Client in most use cases, gorequest.New() should be called once and reuse gorequest as much as possible.
