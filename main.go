@@ -222,7 +222,7 @@ var Types = map[string]string{
 //    gorequest.New().
 //      Post("/recipe").
 //      Type("form").
-//      Send(`{ name: "egg benedict", category: "brunch" }`).
+//      Send(`{ "name": "egg benedict", "category": "brunch" }`).
 //      End()
 //
 // This will POST the body "name=egg benedict&category=brunch" to url /recipe
