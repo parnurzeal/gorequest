@@ -50,6 +50,24 @@ func TestGet(t *testing.T) {
 		End()
 }
 
+// testing for Options method
+func TestOptions(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is OPTIONS before going to check other features
+		if r.Method != OPTIONS {
+			t.Errorf("Expected method %q; got %q", OPTIONS, r.Method)
+		}
+		t.Log("test Options")
+		w.Header().Set("Allow", "HEAD, GET")
+		w.WriteHeader(204)
+	}))
+
+	defer ts.Close()
+
+	New().Options(ts.URL).
+		End()
+}
+
 // testing that resp.Body is reusable
 func TestResetBody(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

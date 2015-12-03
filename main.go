@@ -28,12 +28,13 @@ type Response *http.Response
 
 // HTTP methods we support
 const (
-	POST   = "POST"
-	GET    = "GET"
-	HEAD   = "HEAD"
-	PUT    = "PUT"
-	DELETE = "DELETE"
-	PATCH  = "PATCH"
+	POST    = "POST"
+	GET     = "GET"
+	HEAD    = "HEAD"
+	PUT     = "PUT"
+	DELETE  = "DELETE"
+	PATCH   = "PATCH"
+	OPTIONS = "OPTIONS"
 )
 
 // A SuperAgent is a object storing all request data for client.
@@ -165,6 +166,14 @@ func (s *SuperAgent) Delete(targetUrl string) *SuperAgent {
 func (s *SuperAgent) Patch(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = PATCH
+	s.Url = targetUrl
+	s.Errors = nil
+	return s
+}
+
+func (s *SuperAgent) Options(targetUrl string) *SuperAgent {
+	s.ClearSuperAgent()
+	s.Method = OPTIONS
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
