@@ -15,6 +15,29 @@ import (
 	"github.com/elazarl/goproxy"
 )
 
+// Test for Make request
+func TestMakeRequest(t *testing.T) {
+	var cases = []struct {
+		m string
+		s *SuperAgent
+	}{
+		{POST, New().Post("/")},
+		{GET, New().Get("/")},
+		{HEAD, New().Head("/")},
+		{PUT, New().Put("/")},
+		{PATCH, New().Patch("/")},
+		{DELETE, New().Delete("/")},
+		{OPTIONS, New().Options("/")},
+	}
+
+	for _, c := range cases {
+		_, err := c.s.MakeRequest()
+		if err != nil {
+			t.Errorf("Expected non-nil error for method %q; got %q", c.m, err.Error())
+		}
+	}
+}
+
 // testing for Get method
 func TestGet(t *testing.T) {
 	const case1_empty = "/"
