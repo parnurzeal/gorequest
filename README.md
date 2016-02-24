@@ -9,7 +9,7 @@ GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.
 
 Sending request would never been fun and easier than this. It comes with lots of feature:
 
-* Get/Post/Put/Head/Delete/Patch
+* Get/Post/Put/Head/Delete/Patch/Options
 * Set - simple header setting
 * JSON - made it simple with JSON string as a parameter
 * Proxy - sending request via proxy
@@ -18,6 +18,7 @@ Sending request would never been fun and easier than this. It comes with lots of
 * RedirectPolicy
 * Cookie - setting cookies for your request
 * CookieJar - automatic in-memory cookiejar
+* BasicAuth - setting basic authentication header
 * more to come..
 
 ## Installation
@@ -153,9 +154,18 @@ In the case when you are behind proxy, GoRequest can handle it easily with Proxy
 
 ```go
 request := gorequest.New().Proxy("http://proxy:999")
-resp, body, errs:= request.Get("http://example-proxy.com").End()
+resp, body, errs := request.Get("http://example-proxy.com").End()
 // To reuse same client with no_proxy, use empty string:
-resp, body, errs= request.Proxy("").("http://example-no-proxy.com").End()
+resp, body, errs = request.Proxy("").("http://example-no-proxy.com").End()
+```
+
+## Basic Authentication
+
+To add a basic authentication header:
+
+```go
+request := gorequest.New().SetBasicAuth("username", "password")
+resp, body, errs := request.Get("http://example-proxy.com").End()
 ```
 
 ## Timeout
@@ -169,12 +179,36 @@ resp, body, errs:= request.Get("http://example.com").End()
 
 Timeout func defines both dial + read/write timeout to the specified time parameter.
 
+## EndBytes
+
+Thanks to @jaytaylor, we now have EndBytes to use when you want the body as bytes.
+
+The callbacks work the same way as with `End`, except that a byte array is used instead of a string.
+
+```go
+resp, bodyBytes, errs := gorequest.New().Get("http://example.com/").EndBytes()
+```
+
+## Debug
+
+For debugging, GoRequest leverages `httputil` to dump details of every request/response. (Thanks to @dafang)
+
+You can just use `SetDebug` to enable/disable debug mode and `SetLogger` to set your own choice of logger.
+
+Thanks to @QuentinPerez, we can see even how gorequest is compared to CURL by using `SetCurlCommand`.
+
 ## Noted
-As the underlying gorequest is based on http.Client in most usecases, gorequest.New() should be called once and reuse gorequest as much as possible.
+As the underlying gorequest is based on http.Client in most use cases, gorequest.New() should be called once and reuse gorequest as much as possible.
 
 ## Contributing to GoRequest:
 
 If you find any improvement or issue you want to fix, feel free to send me a pull request with testing.
+
+Thanks to all contributors thus far:
+
+@kemadz, @austinov, @figlief, @dickeyxxx, @killix, @jaytaylor, @na-ga, @dafang, @alaingilbert, @6david9, @pencil001, @QuentinPerez, @smallnest, @piotrmiskiewicz and @coderhaoxin.
+
+Also, co-maintainer is needed here. If anyone is interested, please email me (parnurzeal at gmail.com)
 
 ## Credits
 
@@ -184,5 +218,3 @@ If you find any improvement or issue you want to fix, feel free to send me a pul
 ## License
 
 GoRequest is MIT License.
-
-

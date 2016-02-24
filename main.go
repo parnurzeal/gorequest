@@ -7,13 +7,18 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httputil"
 	"net/url"
+	"os"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/moul/http2curl"
 
 	"golang.org/x/net/publicsuffix"
 )
@@ -23,29 +28,39 @@ type Response *http.Response
 
 // HTTP methods we support
 const (
-	POST   = "POST"
-	GET    = "GET"
-	HEAD   = "HEAD"
-	PUT    = "PUT"
-	DELETE = "DELETE"
-	PATCH  = "PATCH"
+	POST    = "POST"
+	GET     = "GET"
+	HEAD    = "HEAD"
+	PUT     = "PUT"
+	DELETE  = "DELETE"
+	PATCH   = "PATCH"
+	OPTIONS = "OPTIONS"
 )
 
 // A SuperAgent is a object storing all request data for client.
 type SuperAgent struct {
-	Url        string
-	Method     string
-	Header     map[string]string
-	TargetType string
-	ForceType  string
-	Data       map[string]interface{}
-	FormData   url.Values
-	QueryData  url.Values
-	Client     *http.Client
-	Transport  *http.Transport
-	Cookies    []*http.Cookie
-	Errors     []error
+	Url               string
+	Method            string
+	Header            map[string]string
+	TargetType        string
+	ForceType         string
+	Data              map[string]interface{}
+	SliceData         []interface{}
+	FormData          url.Values
+	QueryData         url.Values
+	BounceToRawString bool
+	RawString         string
+	Client            *http.Client
+	Transport         *http.Transport
+	Cookies           []*http.Cookie
+	Errors            []error
+	BasicAuth         struct{ Username, Password string }
+	Debug             bool
+	CurlCommand       bool
+	logger            *log.Logger
 }
+
+var DisableTransportSwap = false
 
 // Used to create a new SuperAgent object.
 func New() *SuperAgent {
@@ -54,16 +69,40 @@ func New() *SuperAgent {
 	}
 	jar, _ := cookiejar.New(&cookiejarOptions)
 	s := &SuperAgent{
-		TargetType: "json",
-		Data:       make(map[string]interface{}),
-		Header:     make(map[string]string),
-		FormData:   url.Values{},
-		QueryData:  url.Values{},
-		Client:     &http.Client{Jar: jar},
-		Transport:  &http.Transport{},
-		Cookies:    make([]*http.Cookie, 0),
-		Errors:     nil,
+		TargetType:        "json",
+		Data:              make(map[string]interface{}),
+		Header:            make(map[string]string),
+		RawString:         "",
+		SliceData:         []interface{}{},
+		FormData:          url.Values{},
+		QueryData:         url.Values{},
+		BounceToRawString: false,
+		Client:            &http.Client{Jar: jar},
+		Transport:         &http.Transport{},
+		Cookies:           make([]*http.Cookie, 0),
+		Errors:            nil,
+		BasicAuth:         struct{ Username, Password string }{},
+		Debug:             false,
+		CurlCommand:       false,
+		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 	}
+	return s
+}
+
+// Enable the debug mode which logs request/response detail
+func (s *SuperAgent) SetDebug(enable bool) *SuperAgent {
+	s.Debug = enable
+	return s
+}
+
+// Enable the curlcommand mode which display a CURL command line
+func (s *SuperAgent) SetCurlCommand(enable bool) *SuperAgent {
+	s.CurlCommand = enable
+	return s
+}
+
+func (s *SuperAgent) SetLogger(logger *log.Logger) *SuperAgent {
+	s.logger = logger
 	return s
 }
 
@@ -73,8 +112,11 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.Method = ""
 	s.Header = make(map[string]string)
 	s.Data = make(map[string]interface{})
+	s.SliceData = []interface{}{}
 	s.FormData = url.Values{}
 	s.QueryData = url.Values{}
+	s.BounceToRawString = false
+	s.RawString = ""
 	s.ForceType = ""
 	s.TargetType = "json"
 	s.Cookies = make([]*http.Cookie, 0)
@@ -129,6 +171,14 @@ func (s *SuperAgent) Patch(targetUrl string) *SuperAgent {
 	return s
 }
 
+func (s *SuperAgent) Options(targetUrl string) *SuperAgent {
+	s.ClearSuperAgent()
+	s.Method = OPTIONS
+	s.Url = targetUrl
+	s.Errors = nil
+	return s
+}
+
 // Set is used for setting header fields.
 // Example. To set `Accept` as `application/json`
 //
@@ -141,9 +191,27 @@ func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 	return s
 }
 
+// SetBasicAuth sets the basic authentication header
+// Example. To set the header for username "myuser" and password "mypass"
+//
+//    gorequest.New()
+//      Post("/gamelist").
+//      SetBasicAuth("myuser", "mypass").
+//      End()
+func (s *SuperAgent) SetBasicAuth(username string, password string) *SuperAgent {
+	s.BasicAuth = struct{ Username, Password string }{username, password}
+	return s
+}
+
 // AddCookie adds a cookie to the request. The behavior is the same as AddCookie on Request from net/http
 func (s *SuperAgent) AddCookie(c *http.Cookie) *SuperAgent {
 	s.Cookies = append(s.Cookies, c)
+	return s
+}
+
+// AddCookies is a convenient method to add multiple cookies
+func (s *SuperAgent) AddCookies(cookies []*http.Cookie) *SuperAgent {
+	s.Cookies = append(s.Cookies, cookies...)
 	return s
 }
 
@@ -151,6 +219,7 @@ var Types = map[string]string{
 	"html":       "text/html",
 	"json":       "application/json",
 	"xml":        "application/xml",
+	"text":       "text/plain",
 	"urlencoded": "application/x-www-form-urlencoded",
 	"form":       "application/x-www-form-urlencoded",
 	"form-data":  "application/x-www-form-urlencoded",
@@ -162,7 +231,7 @@ var Types = map[string]string{
 //    gorequest.New().
 //      Post("/recipe").
 //      Type("form").
-//      Send(`{ name: "egg benedict", category: "brunch" }`).
+//      Send(`{ "name": "egg benedict", "category": "brunch" }`).
 //      End()
 //
 // This will POST the body "name=egg benedict&category=brunch" to url /recipe
@@ -172,6 +241,7 @@ var Types = map[string]string{
 //    "text/html" uses "html"
 //    "application/json" uses "json"
 //    "application/xml" uses "xml"
+//    "text/plain" uses "text"
 //    "application/x-www-form-urlencoded" uses "urlencoded", "form" or "form-data"
 //
 func (s *SuperAgent) Type(typeStr string) *SuperAgent {
@@ -263,6 +333,14 @@ func (s *SuperAgent) queryString(content string) *SuperAgent {
 	return s
 }
 
+// As Go conventions accepts ; as a synonym for &. (https://github.com/golang/go/issues/2210)
+// Thus, Query won't accept ; in a querystring if we provide something like fields=f1;f2;f3
+// This Param is then created as an alternative method to solve this.
+func (s *SuperAgent) Param(key string, value string) *SuperAgent {
+	s.QueryData.Add(key, value)
+	return s
+}
+
 func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 	s.Transport.Dial = func(network, addr string) (net.Conn, error) {
 		conn, err := net.DialTimeout(network, addr, timeout)
@@ -279,9 +357,9 @@ func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 // Set TLSClientConfig for underling Transport.
 // One example is you can use it to disable security check (https):
 //
-// 			gorequest.New().TLSClientConfig(&tls.Config{ InsecureSkipVerify: true}).
-// 				Get("https://disable-security-check.com").
-// 				End()
+//      gorequest.New().TLSClientConfig(&tls.Config{ InsecureSkipVerify: true}).
+//        Get("https://disable-security-check.com").
+//        End()
 //
 func (s *SuperAgent) TLSClientConfig(config *tls.Config) *SuperAgent {
 	s.Transport.TLSClientConfig = config
@@ -364,27 +442,52 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 //        Send(`{"Safari":"5.1.10"}`).
 //        End()
 //
+// If you have set Type to text or Content-Type to text/plain, content will be sent as raw string in body instead of form
+//
+//      gorequest.New().
+//        Post("/greet").
+//        Type("text").
+//        Send("hello world").
+//        End()
+//
 func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	// TODO: add normal text mode or other mode to Send func
 	switch v := reflect.ValueOf(content); v.Kind() {
 	case reflect.String:
 		s.SendString(v.String())
 	case reflect.Struct:
-		s.sendStruct(v.Interface())
+		s.SendStruct(v.Interface())
+	case reflect.Slice:
+		// change to slice
+		slice := make([]interface{}, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			slice[i] = v.Index(i).Interface()
+		}
+		s.SendSlice(slice)
 	default:
 		// TODO: leave default for handling other types in the future such as number, byte, etc...
+		// TODO: Add support for slice and array
 	}
 	return s
 }
 
-// sendStruct (similar to SendString) returns SuperAgent's itself for any next chain and takes content interface{} as a parameter.
+// SendSlice (similar to SendString) returns SuperAgent's itself for any next chain and takes content []interface{} as a parameter.
+// Its duty is to append slice of interface{} into s.SliceData ([]interface{}) which later changes into json array in the End() func.
+func (s *SuperAgent) SendSlice(content []interface{}) *SuperAgent {
+	s.SliceData = append(s.SliceData, content...)
+	return s
+}
+
+// SendStruct (similar to SendString) returns SuperAgent's itself for any next chain and takes content interface{} as a parameter.
 // Its duty is to transfrom interface{} (implicitly always a struct) into s.Data (map[string]interface{}) which later changes into appropriate format such as json, form, text, etc. in the End() func.
-func (s *SuperAgent) sendStruct(content interface{}) *SuperAgent {
+func (s *SuperAgent) SendStruct(content interface{}) *SuperAgent {
 	if marshalContent, err := json.Marshal(content); err != nil {
 		s.Errors = append(s.Errors, err)
 	} else {
 		var val map[string]interface{}
-		if err := json.Unmarshal(marshalContent, &val); err != nil {
+		d := json.NewDecoder(bytes.NewBuffer(marshalContent))
+		d.UseNumber()
+		if err := d.Decode(&val); err != nil {
 			s.Errors = append(s.Errors, err)
 		} else {
 			for k, v := range val {
@@ -399,35 +502,49 @@ func (s *SuperAgent) sendStruct(content interface{}) *SuperAgent {
 // Its duty is to transform String into s.Data (map[string]interface{}) which later changes into appropriate format such as json, form, text, etc. in the End func.
 // Send implicitly uses SendString and you should use Send instead of this.
 func (s *SuperAgent) SendString(content string) *SuperAgent {
-	var val map[string]interface{}
-	// check if it is json format
-	if err := json.Unmarshal([]byte(content), &val); err == nil {
-		for k, v := range val {
-			s.Data[k] = v
-		}
-	} else if formVal, err := url.ParseQuery(content); err == nil {
-		for k, _ := range formVal {
-			// make it array if already have key
-			if val, ok := s.Data[k]; ok {
-				var strArray []string
-				strArray = append(strArray, formVal.Get(k))
-				// check if previous data is one string or array
-				switch oldValue := val.(type) {
-				case []string:
-					strArray = append(strArray, oldValue...)
-				case string:
-					strArray = append(strArray, oldValue)
+	if !s.BounceToRawString {
+		var val interface{}
+		d := json.NewDecoder(strings.NewReader(content))
+		d.UseNumber()
+		if err := d.Decode(&val); err == nil {
+			switch v := reflect.ValueOf(val); v.Kind() {
+			case reflect.Map:
+				for k, v := range val.(map[string]interface{}) {
+					s.Data[k] = v
 				}
-				s.Data[k] = strArray
-			} else {
-				// make it just string if does not already have same key
-				s.Data[k] = formVal.Get(k)
+			// add to SliceData
+			case reflect.Slice:
+				s.SendSlice(val.([]interface{}))
+			// bounce to rawstring if it is arrayjson, or others
+			default:
+				s.BounceToRawString = true
 			}
+		} else if formVal, err := url.ParseQuery(content); err == nil {
+			for k, _ := range formVal {
+				// make it array if already have key
+				if val, ok := s.Data[k]; ok {
+					var strArray []string
+					strArray = append(strArray, formVal.Get(k))
+					// check if previous data is one string or array
+					switch oldValue := val.(type) {
+					case []string:
+						strArray = append(strArray, oldValue...)
+					case string:
+						strArray = append(strArray, oldValue)
+					}
+					s.Data[k] = strArray
+				} else {
+					// make it just string if does not already have same key
+					s.Data[k] = formVal.Get(k)
+				}
+			}
+			s.TargetType = "form"
+		} else {
+			s.BounceToRawString = true
 		}
-		s.TargetType = "form"
-	} else {
-		// need to add text mode or other format body request to this func
 	}
+	// Dump all contents to RawString in case in the end user doesn't want json or form.
+	s.RawString += content
 	return s
 }
 
@@ -441,6 +558,12 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 			for _, element := range val {
 				newUrlValues.Add(k, element)
 			}
+		// if a number, change to string
+		// json.Number used to protect against a wrong (for GoRequest) default conversion
+		// which always converts number to float64.
+		// This type is caused by using Decoder.UseNumber()
+		case json.Number:
+			newUrlValues.Add(k, string(val))
 		}
 	}
 	return newUrlValues
@@ -495,24 +618,142 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	}
 	// check if there is forced type
 	switch s.ForceType {
-	case "json", "form":
+	case "json", "form", "xml", "text":
 		s.TargetType = s.ForceType
+		// If forcetype is not set, check whether user set Content-Type header.
+		// If yes, also bounce to the correct supported TargetType automatically.
+	default:
+		for k, v := range Types {
+			if s.Header["Content-Type"] == v {
+				s.TargetType = k
+			}
+		}
 	}
+
+	// if slice and map get mixed, let's bounce to rawstring
+	if len(s.Data) != 0 && len(s.SliceData) != 0 {
+		s.BounceToRawString = true
+	}
+
+	// Make Request
+	req, err = s.MakeRequest()
+	if err != nil {
+		s.Errors = append(s.Errors, err)
+		return nil, nil, s.Errors
+	}
+
+	// Set Transport
+	if !DisableTransportSwap {
+		s.Client.Transport = s.Transport
+	}
+
+	// Log details of this request
+	if s.Debug {
+		dump, err := httputil.DumpRequest(req, true)
+		s.logger.SetPrefix("[http] ")
+		if err != nil {
+			s.logger.Println("Error:", err)
+		} else {
+			s.logger.Printf("HTTP Request: %s", string(dump))
+		}
+	}
+
+	// Display CURL command line
+	if s.CurlCommand {
+		curl, err := http2curl.GetCurlCommand(req)
+		s.logger.SetPrefix("[curl] ")
+		if err != nil {
+			s.logger.Println("Error:", err)
+		} else {
+			s.logger.Printf("CURL command line: %s", curl)
+		}
+	}
+
+	// Send request
+	resp, err = s.Client.Do(req)
+	if err != nil {
+		s.Errors = append(s.Errors, err)
+		return nil, nil, s.Errors
+	}
+	defer resp.Body.Close()
+
+	// Log details of this response
+	if s.Debug {
+		dump, err := httputil.DumpResponse(resp, true)
+		if nil != err {
+			s.logger.Println("Error:", err)
+		} else {
+			s.logger.Printf("HTTP Response: %s", string(dump))
+		}
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	// Reset resp.Body so it can be use again
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+	// deep copy response to give it to both return and callback func
+	respCallback := *resp
+	if len(callback) != 0 {
+		callback[0](&respCallback, body, s.Errors)
+	}
+	return resp, body, nil
+}
+
+func (s *SuperAgent) MakeRequest() (*http.Request, error) {
+	var (
+		req *http.Request
+		err error
+	)
 
 	switch s.Method {
 	case POST, PUT, PATCH:
 		if s.TargetType == "json" {
-			contentJson, _ := json.Marshal(s.Data)
+			// If-case to give support to json array. we check if
+			// 1) Map only: send it as json map from s.Data
+			// 2) Array or Mix of map & array or others: send it as rawstring from s.RawString
+			var contentJson []byte
+			if s.BounceToRawString {
+				contentJson = []byte(s.RawString)
+			} else if len(s.Data) != 0 {
+				contentJson, _ = json.Marshal(s.Data)
+			} else if len(s.SliceData) != 0 {
+				contentJson, _ = json.Marshal(s.SliceData)
+			}
 			contentReader := bytes.NewReader(contentJson)
 			req, err = http.NewRequest(s.Method, s.Url, contentReader)
+			if err != nil {
+				return nil, err
+			}
 			req.Header.Set("Content-Type", "application/json")
 		} else if s.TargetType == "form" {
-			formData := changeMapToURLValues(s.Data)
-			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(formData.Encode()))
+			var contentForm []byte
+			if s.BounceToRawString || len(s.SliceData) != 0 {
+				contentForm = []byte(s.RawString)
+			} else {
+				formData := changeMapToURLValues(s.Data)
+				contentForm = []byte(formData.Encode())
+			}
+			contentReader := bytes.NewReader(contentForm)
+			req, err = http.NewRequest(s.Method, s.Url, contentReader)
+			if err != nil {
+				return nil, err
+			}
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		} else if s.TargetType == "text" {
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
+			req.Header.Set("Content-Type", "text/plain")
+		} else if s.TargetType == "xml" {
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
+			req.Header.Set("Content-Type", "application/xml")
+		} else {
+			// TODO: if nothing match, let's return warning here
 		}
-	case GET, HEAD, DELETE:
+	case GET, HEAD, DELETE, OPTIONS:
 		req, err = http.NewRequest(s.Method, s.Url, nil)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, errors.New("No method specified")
 	}
 
 	for k, v := range s.Header {
@@ -527,26 +768,15 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	}
 	req.URL.RawQuery = q.Encode()
 
+	// Add basic auth
+	if s.BasicAuth != struct{ Username, Password string }{} {
+		req.SetBasicAuth(s.BasicAuth.Username, s.BasicAuth.Password)
+	}
+
 	// Add cookies
 	for _, cookie := range s.Cookies {
 		req.AddCookie(cookie)
 	}
 
-	// Set Transport
-	s.Client.Transport = s.Transport
-	// Send request
-	resp, err = s.Client.Do(req)
-	if err != nil {
-		s.Errors = append(s.Errors, err)
-		return nil, nil, s.Errors
-	}
-	defer resp.Body.Close()
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	// deep copy response to give it to both return and callback func
-	respCallback := *resp
-	if len(callback) != 0 {
-		callback[0](&respCallback, body, s.Errors)
-	}
-	return resp, body, nil
+	return req, nil
 }

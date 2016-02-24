@@ -2,16 +2,41 @@ package gorequest
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/elazarl/goproxy"
 )
+
+// Test for Make request
+func TestMakeRequest(t *testing.T) {
+	var cases = []struct {
+		m string
+		s *SuperAgent
+	}{
+		{POST, New().Post("/")},
+		{GET, New().Get("/")},
+		{HEAD, New().Head("/")},
+		{PUT, New().Put("/")},
+		{PATCH, New().Patch("/")},
+		{DELETE, New().Delete("/")},
+		{OPTIONS, New().Options("/")},
+	}
+
+	for _, c := range cases {
+		_, err := c.s.MakeRequest()
+		if err != nil {
+			t.Errorf("Expected non-nil error for method %q; got %q", c.m, err.Error())
+		}
+	}
+}
 
 // testing for Get method
 func TestGet(t *testing.T) {
@@ -48,6 +73,61 @@ func TestGet(t *testing.T) {
 		End()
 }
 
+// testing for Options method
+func TestOptions(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is OPTIONS before going to check other features
+		if r.Method != OPTIONS {
+			t.Errorf("Expected method %q; got %q", OPTIONS, r.Method)
+		}
+		t.Log("test Options")
+		w.Header().Set("Allow", "HEAD, GET")
+		w.WriteHeader(204)
+	}))
+
+	defer ts.Close()
+
+	New().Options(ts.URL).
+		End()
+}
+
+// testing that resp.Body is reusable
+func TestResetBody(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Just some text"))
+	}))
+
+	defer ts.Close()
+
+	resp, _, _ := New().Get(ts.URL).End()
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	if string(bodyBytes) != "Just some text" {
+		t.Error("Expected to be able to reuse the response body")
+	}
+}
+
+// testing for Param method
+func TestParam(t *testing.T) {
+	paramCode := "123456"
+	paramFields := "f1;f2;f3"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Form.Get("code") != paramCode {
+			t.Errorf("Expected 'code' == %s; got %v", paramCode, r.Form.Get("code"))
+		}
+
+		if r.Form.Get("fields") != paramFields {
+			t.Errorf("Expected 'fields' == %s; got %v", paramFields, r.Form.Get("fields"))
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Get(ts.URL).
+		Param("code", paramCode).
+		Param("fields", paramFields)
+}
+
 // testing for POST method
 func TestPost(t *testing.T) {
 	const case1_empty = "/"
@@ -57,6 +137,9 @@ func TestPost(t *testing.T) {
 	const case5_integration_send_json_string = "/integration_send_json_string"
 	const case6_set_query = "/set_query"
 	const case7_integration_send_json_struct = "/integration_send_json_struct"
+	// Check that the number conversion should be converted as string not float64
+	const case8_send_json_with_long_id_number = "/send_json_with_long_id_number"
+	const case9_send_json_string_with_long_id_number_as_form_result = "/send_json_string_with_long_id_number_as_form_result"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is PATCH before going to check other features
 		if r.Method != POST {
@@ -115,6 +198,20 @@ func TestPost(t *testing.T) {
 			comparedBody := []byte(`{"Lower":{"Color":"green","Size":1.7},"Upper":{"Color":"red","Size":0},"a":"a","name":"Cindy"}`)
 			if !bytes.Equal(body, comparedBody) {
 				t.Errorf(`Expected correct json but got ` + string(body))
+			}
+		case case8_send_json_with_long_id_number:
+			t.Logf("case %v ", case8_send_json_with_long_id_number)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != `{"id":123456789,"name":"nemo"}` {
+				t.Error(`Expected Body with {"id":123456789,"name":"nemo"}`, "| but got", string(body))
+			}
+		case case9_send_json_string_with_long_id_number_as_form_result:
+			t.Logf("case %v ", case9_send_json_string_with_long_id_number_as_form_result)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != `id=123456789&name=nemo` {
+				t.Error(`Expected Body with "id=123456789&name=nemo"`, `| but got`, string(body))
 			}
 		}
 	}))
@@ -175,6 +272,15 @@ func TestPost(t *testing.T) {
 	New().Post(ts.URL + case7_integration_send_json_struct).
 		Send(`{"a":"a"}`).
 		Send(myStyle).
+		End()
+
+	New().Post(ts.URL + case8_send_json_with_long_id_number).
+		Send(`{"id":123456789, "name":"nemo"}`).
+		End()
+
+	New().Post(ts.URL + case9_send_json_string_with_long_id_number_as_form_result).
+		Type("form").
+		Send(`{"id":123456789, "name":"nemo"}`).
 		End()
 }
 
@@ -372,7 +478,7 @@ func TestTimeoutFunc(t *testing.T) {
 		t.Errorf("Expected dial timeout error but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
-		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
 	}
 	// 2st case, read/write timeout (Can dial to url but want to timeout because too long operation on the server)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -387,7 +493,7 @@ func TestTimeoutFunc(t *testing.T) {
 		t.Errorf("Expected dial+read/write timeout | but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
-		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
 	}
 	// 3rd case, testing reuse of same request
 	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -401,7 +507,7 @@ func TestTimeoutFunc(t *testing.T) {
 		t.Errorf("Expected dial+read/write timeout | but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
-		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got ", elapsedTime)
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
 	}
 
 }
@@ -419,7 +525,7 @@ func TestCookies(t *testing.T) {
 	}
 }
 
-func TestGetSetCookies(t *testing.T) {
+func TestGetSetCookie(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != GET {
 			t.Errorf("Expected method %q; got %q", GET, r.Method)
@@ -441,6 +547,38 @@ func TestGetSetCookies(t *testing.T) {
 		End()
 }
 
+func TestGetSetCookies(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != GET {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
+		}
+		c, err := r.Cookie("API-Cookie-Name1")
+		if err != nil {
+			t.Error(err)
+		}
+		if c == nil {
+			t.Errorf("Expected non-nil request Cookie 'API-Cookie-Name1'")
+		} else if c.Value != "api-cookie-value1" {
+			t.Errorf("Expected 'API-Cookie-Name1' == %q; got %q", "api-cookie-value1", c.Value)
+		}
+		c, err = r.Cookie("API-Cookie-Name2")
+		if err != nil {
+			t.Error(err)
+		}
+		if c == nil {
+			t.Errorf("Expected non-nil request Cookie 'API-Cookie-Name2'")
+		} else if c.Value != "api-cookie-value2" {
+			t.Errorf("Expected 'API-Cookie-Name2' == %q; got %q", "api-cookie-value2", c.Value)
+		}
+	}))
+	defer ts.Close()
+
+	New().Get(ts.URL).AddCookies([]*http.Cookie{
+		&http.Cookie{Name: "API-Cookie-Name1", Value: "api-cookie-value1"},
+		&http.Cookie{Name: "API-Cookie-Name2", Value: "api-cookie-value2"},
+	}).End()
+}
+
 func TestErrorTypeWrongKey(t *testing.T) {
 	//defer afterTest(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -459,4 +597,93 @@ func TestErrorTypeWrongKey(t *testing.T) {
 	} else {
 		t.Errorf("Should have error")
 	}
+}
+
+func TestBasicAuth(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := strings.SplitN(r.Header["Authorization"][0], " ", 2)
+		if len(auth) != 2 || auth[0] != "Basic" {
+			t.Error("bad syntax")
+		}
+		payload, _ := base64.StdEncoding.DecodeString(auth[1])
+		pair := strings.SplitN(string(payload), ":", 2)
+		if pair[0] != "myusername" || pair[1] != "mypassword" {
+			t.Error("Wrong username/password")
+		}
+	}))
+	defer ts.Close()
+	New().Post(ts.URL).
+		SetBasicAuth("myusername", "mypassword").
+		End()
+}
+
+func TestXml(t *testing.T) {
+	xml := `<note><to>Tove</to><from>Jani</from><heading>Reminder</heading><body>Don't forget me this weekend!</body></note>`
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is PATCH before going to check other features
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+
+		if r.Header.Get("Content-Type") != "application/xml" {
+			t.Error("Expected Header Content-Type -> application/xml", "| but got", r.Header.Get("Content-Type"))
+		}
+
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != xml {
+			t.Error(`Expected XML `, xml, "| but got", string(body))
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Post(ts.URL).
+		Type("xml").
+		Send(xml).
+		End()
+
+	New().Post(ts.URL).
+		Set("Content-Type", "application/xml").
+		Send(xml).
+		End()
+}
+
+func TestPlainText(t *testing.T) {
+	text := `hello world \r\n I am GoRequest`
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is PATCH before going to check other features
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Errorf("Expected non-nil request Header")
+		}
+		if r.Header.Get("Content-Type") != "text/plain" {
+			t.Error("Expected Header Content-Type -> text/plain", "| but got", r.Header.Get("Content-Type"))
+		}
+
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != text {
+			t.Error(`Expected text `, text, "| but got", string(body))
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Post(ts.URL).
+		Type("text").
+		Send(text).
+		End()
+
+	New().Post(ts.URL).
+		Set("Content-Type", "text/plain").
+		Send(text).
+		End()
 }
