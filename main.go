@@ -123,6 +123,32 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.Errors = nil
 }
 
+// Just a wrapper to initialize SuperAgent instance by method string
+func (s *SuperAgent) CustomMethod(method, targetUrl string) *SuperAgent {
+	switch method {
+	case POST:
+		return s.Post(targetUrl)
+	case GET:
+		return s.Get(targetUrl)
+	case HEAD:
+		return s.Head(targetUrl)
+	case PUT:
+		return s.Put(targetUrl)
+	case DELETE:
+		return s.Delete(targetUrl)
+	case PATCH:
+		return s.Patch(targetUrl)
+	case OPTIONS:
+		return s.Options(targetUrl)
+	default:
+		s.ClearSuperAgent()
+		s.Method = method
+		s.Url = targetUrl
+		s.Errors = nil
+		return s
+	}
+}
+
 func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = GET
