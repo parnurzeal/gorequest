@@ -17,6 +17,7 @@ import (
 
 // Test for Make request
 func TestMakeRequest(t *testing.T) {
+	var err error
 	var cases = []struct {
 		m string
 		s *SuperAgent
@@ -32,10 +33,16 @@ func TestMakeRequest(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		_, err := c.s.MakeRequest()
+		_, err = c.s.MakeRequest()
 		if err != nil {
-			t.Errorf("Expected non-nil error for method %q; got %q", c.m, err.Error())
+			t.Errorf("Expected nil error for method %q; got %q", c.m, err.Error())
 		}
+	}
+
+	// empty method should fail
+	_, err = New().CustomMethod("", "/").MakeRequest()
+	if err == nil {
+		t.Errorf("Expected non-nil error for empty method; got %q", err.Error())
 	}
 }
 

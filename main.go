@@ -773,6 +773,8 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		} else {
 			// TODO: if nothing match, let's return warning here
 		}
+	case "":
+		return nil, errors.New("No method specified")
 	default:
 		req, err = http.NewRequest(s.Method, s.Url, nil)
 		if err != nil {
