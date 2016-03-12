@@ -89,6 +89,7 @@ resp, body, errs := request.Post("http://example.com").End()
 // PUT -> request.Put("http://example.com").End()
 // DELETE -> request.Delete("http://example.com").End()
 // HEAD -> request.Head("http://example.com").End()
+// ANYTHING -> request.CustomMethod("TRACE", "http://example.com").End()
 ```
 
 ### JSON
@@ -206,7 +207,7 @@ If you find any improvement or issue you want to fix, feel free to send me a pul
 
 Thanks to all contributors thus far:
 
-@kemadz, @austinov, @figlief, @dickeyxxx, @killix, @jaytaylor, @na-ga, @dafang, @alaingilbert, @6david9, @pencil001, @QuentinPerez, @smallnest, @piotrmiskiewicz and @coderhaoxin.
+@kemadz, @austinov, @figlief, @dickeyxxx, @killix, @jaytaylor, @na-ga, @dafang, @alaingilbert, @6david9, @pencil001, @QuentinPerez, @smallnest, @piotrmiskiewicz, @coderhaoxin, and @WaveCutz
 
 Also, co-maintainer is needed here. If anyone is interested, please email me (parnurzeal at gmail.com)
 
