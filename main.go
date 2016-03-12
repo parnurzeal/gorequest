@@ -28,12 +28,13 @@ type Response *http.Response
 
 // HTTP methods we support
 const (
-	POST   = "POST"
-	GET    = "GET"
-	HEAD   = "HEAD"
-	PUT    = "PUT"
-	DELETE = "DELETE"
-	PATCH  = "PATCH"
+	POST    = "POST"
+	GET     = "GET"
+	HEAD    = "HEAD"
+	PUT     = "PUT"
+	DELETE  = "DELETE"
+	PATCH   = "PATCH"
+	OPTIONS = "OPTIONS"
 )
 
 // A SuperAgent is a object storing all request data for client.
@@ -122,6 +123,32 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.Errors = nil
 }
 
+// Just a wrapper to initialize SuperAgent instance by method string
+func (s *SuperAgent) CustomMethod(method, targetUrl string) *SuperAgent {
+	switch method {
+	case POST:
+		return s.Post(targetUrl)
+	case GET:
+		return s.Get(targetUrl)
+	case HEAD:
+		return s.Head(targetUrl)
+	case PUT:
+		return s.Put(targetUrl)
+	case DELETE:
+		return s.Delete(targetUrl)
+	case PATCH:
+		return s.Patch(targetUrl)
+	case OPTIONS:
+		return s.Options(targetUrl)
+	default:
+		s.ClearSuperAgent()
+		s.Method = method
+		s.Url = targetUrl
+		s.Errors = nil
+		return s
+	}
+}
+
 func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = GET
@@ -165,6 +192,14 @@ func (s *SuperAgent) Delete(targetUrl string) *SuperAgent {
 func (s *SuperAgent) Patch(targetUrl string) *SuperAgent {
 	s.ClearSuperAgent()
 	s.Method = PATCH
+	s.Url = targetUrl
+	s.Errors = nil
+	return s
+}
+
+func (s *SuperAgent) Options(targetUrl string) *SuperAgent {
+	s.ClearSuperAgent()
+	s.Method = OPTIONS
 	s.Url = targetUrl
 	s.Errors = nil
 	return s
@@ -222,7 +257,7 @@ var Types = map[string]string{
 //    gorequest.New().
 //      Post("/recipe").
 //      Type("form").
-//      Send(`{ name: "egg benedict", category: "brunch" }`).
+//      Send(`{ "name": "egg benedict", "category": "brunch" }`).
 //      End()
 //
 // This will POST the body "name=egg benedict&category=brunch" to url /recipe
@@ -626,79 +661,11 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 		s.BounceToRawString = true
 	}
 
-	switch s.Method {
-	case POST, PUT, PATCH:
-		if s.TargetType == "json" {
-			// If-case to give support to json array. we check if
-			// 1) Map only: send it as json map from s.Data
-			// 2) Array or Mix of map & array or others: send it as rawstring from s.RawString
-			var contentJson []byte
-			if s.BounceToRawString {
-				contentJson = []byte(s.RawString)
-			} else if len(s.Data) != 0 {
-				contentJson, _ = json.Marshal(s.Data)
-			} else if len(s.SliceData) != 0 {
-				contentJson, _ = json.Marshal(s.SliceData)
-			}
-			contentReader := bytes.NewReader(contentJson)
-			req, err = http.NewRequest(s.Method, s.Url, contentReader)
-			if err != nil {
-				s.Errors = append(s.Errors, err)
-				return nil, nil, s.Errors
-			}
-			req.Header.Set("Content-Type", "application/json")
-		} else if s.TargetType == "form" {
-			var contentForm []byte
-			if s.BounceToRawString || len(s.SliceData) != 0 {
-				contentForm = []byte(s.RawString)
-			} else {
-				formData := changeMapToURLValues(s.Data)
-				contentForm = []byte(formData.Encode())
-			}
-			contentReader := bytes.NewReader(contentForm)
-			req, err = http.NewRequest(s.Method, s.Url, contentReader)
-			if err != nil {
-				s.Errors = append(s.Errors, err)
-				return nil, nil, s.Errors
-			}
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		} else if s.TargetType == "text" {
-			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
-			req.Header.Set("Content-Type", "text/plain")
-		} else if s.TargetType == "xml" {
-			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
-			req.Header.Set("Content-Type", "application/xml")
-		} else {
-			// TODO: if nothing match, let's return warning here
-		}
-	case GET, HEAD, DELETE:
-		req, err = http.NewRequest(s.Method, s.Url, nil)
-		if err != nil {
-			s.Errors = append(s.Errors, err)
-			return nil, nil, s.Errors
-		}
-	}
-
-	for k, v := range s.Header {
-		req.Header.Set(k, v)
-	}
-	// Add all querystring from Query func
-	q := req.URL.Query()
-	for k, v := range s.QueryData {
-		for _, vv := range v {
-			q.Add(k, vv)
-		}
-	}
-	req.URL.RawQuery = q.Encode()
-
-	// Add basic auth
-	if s.BasicAuth != struct{ Username, Password string }{} {
-		req.SetBasicAuth(s.BasicAuth.Username, s.BasicAuth.Password)
-	}
-
-	// Add cookies
-	for _, cookie := range s.Cookies {
-		req.AddCookie(cookie)
+	// Make Request
+	req, err = s.MakeRequest()
+	if err != nil {
+		s.Errors = append(s.Errors, err)
+		return nil, nil, s.Errors
 	}
 
 	// Set Transport
@@ -755,4 +722,87 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 		callback[0](&respCallback, body, s.Errors)
 	}
 	return resp, body, nil
+}
+
+func (s *SuperAgent) MakeRequest() (*http.Request, error) {
+	var (
+		req *http.Request
+		err error
+	)
+
+	switch s.Method {
+	case POST, PUT, PATCH:
+		if s.TargetType == "json" {
+			// If-case to give support to json array. we check if
+			// 1) Map only: send it as json map from s.Data
+			// 2) Array or Mix of map & array or others: send it as rawstring from s.RawString
+			var contentJson []byte
+			if s.BounceToRawString {
+				contentJson = []byte(s.RawString)
+			} else if len(s.Data) != 0 {
+				contentJson, _ = json.Marshal(s.Data)
+			} else if len(s.SliceData) != 0 {
+				contentJson, _ = json.Marshal(s.SliceData)
+			}
+			contentReader := bytes.NewReader(contentJson)
+			req, err = http.NewRequest(s.Method, s.Url, contentReader)
+			if err != nil {
+				return nil, err
+			}
+			req.Header.Set("Content-Type", "application/json")
+		} else if s.TargetType == "form" {
+			var contentForm []byte
+			if s.BounceToRawString || len(s.SliceData) != 0 {
+				contentForm = []byte(s.RawString)
+			} else {
+				formData := changeMapToURLValues(s.Data)
+				contentForm = []byte(formData.Encode())
+			}
+			contentReader := bytes.NewReader(contentForm)
+			req, err = http.NewRequest(s.Method, s.Url, contentReader)
+			if err != nil {
+				return nil, err
+			}
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		} else if s.TargetType == "text" {
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
+			req.Header.Set("Content-Type", "text/plain")
+		} else if s.TargetType == "xml" {
+			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
+			req.Header.Set("Content-Type", "application/xml")
+		} else {
+			// TODO: if nothing match, let's return warning here
+		}
+	case "":
+		return nil, errors.New("No method specified")
+	default:
+		req, err = http.NewRequest(s.Method, s.Url, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for k, v := range s.Header {
+		req.Header.Set(k, v)
+	}
+	// Add all querystring from Query func
+	q := req.URL.Query()
+	for k, v := range s.QueryData {
+		for _, vv := range v {
+			q.Add(k, vv)
+		}
+	}
+	req.URL.RawQuery = q.Encode()
+
+	// Add basic auth
+	if s.BasicAuth != struct{ Username, Password string }{} {
+		req.SetBasicAuth(s.BasicAuth.Username, s.BasicAuth.Password)
+	}
+
+	// Add cookies
+	for _, cookie := range s.Cookies {
+		req.AddCookie(cookie)
+	}
+
+	return req, nil
 }

@@ -15,6 +15,37 @@ import (
 	"github.com/elazarl/goproxy"
 )
 
+// Test for Make request
+func TestMakeRequest(t *testing.T) {
+	var err error
+	var cases = []struct {
+		m string
+		s *SuperAgent
+	}{
+		{POST, New().Post("/")},
+		{GET, New().Get("/")},
+		{HEAD, New().Head("/")},
+		{PUT, New().Put("/")},
+		{PATCH, New().Patch("/")},
+		{DELETE, New().Delete("/")},
+		{OPTIONS, New().Options("/")},
+		{"TRACE", New().CustomMethod("TRACE", "/")}, // valid HTTP 1.1 method, see W3C RFC 2616
+	}
+
+	for _, c := range cases {
+		_, err = c.s.MakeRequest()
+		if err != nil {
+			t.Errorf("Expected nil error for method %q; got %q", c.m, err.Error())
+		}
+	}
+
+	// empty method should fail
+	_, err = New().CustomMethod("", "/").MakeRequest()
+	if err == nil {
+		t.Errorf("Expected non-nil error for empty method; got %q", err.Error())
+	}
+}
+
 // testing for Get method
 func TestGet(t *testing.T) {
 	const case1_empty = "/"
@@ -47,6 +78,24 @@ func TestGet(t *testing.T) {
 
 	New().Get(ts.URL+case2_set_header).
 		Set("API-Key", "fookey").
+		End()
+}
+
+// testing for Options method
+func TestOptions(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is OPTIONS before going to check other features
+		if r.Method != OPTIONS {
+			t.Errorf("Expected method %q; got %q", OPTIONS, r.Method)
+		}
+		t.Log("test Options")
+		w.Header().Set("Allow", "HEAD, GET")
+		w.WriteHeader(204)
+	}))
+
+	defer ts.Close()
+
+	New().Options(ts.URL).
 		End()
 }
 
