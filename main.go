@@ -806,3 +806,17 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 
 	return req, nil
 }
+
+// AsCurlCommand returns a string representing the runnable `curl' command
+// version of the request.
+func (s *SuperAgent) AsCurlCommand() (string, error) {
+	req, err := s.MakeRequest()
+	if err != nil {
+		return "", err
+	}
+	cmd, err := http2curl.GetCurlCommand(req)
+	if err != nil {
+		return "", err
+	}
+	return cmd.String(), nil
+}

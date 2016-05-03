@@ -695,3 +695,22 @@ func TestPlainText(t *testing.T) {
 		Send(text).
 		End()
 }
+
+func TestAsCurlCommand(t *testing.T) {
+	var (
+		endpoint = "http://github.com/parnurzeal/gorequest"
+		jsonData = `{"here": "is", "some": {"json": ["data"]}}`
+	)
+
+	request := New().Timeout(10*time.Second).Put(endpoint).Set("Content-Type", "application/json").Send(jsonData)
+
+	curlComand, err := request.AsCurlCommand()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := fmt.Sprintf(`curl -X PUT -d %q -H "Content-Type: application/json" %v`, strings.Replace(jsonData, " ", "", -1), endpoint)
+	if curlComand != expected {
+		t.Fatalf("\nExpected curlCommand=%v\n   but actual result=%v", expected, curlComand)
+	}
+}
