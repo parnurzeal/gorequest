@@ -86,6 +86,8 @@ func New() *SuperAgent {
 		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 	}
+	// desable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
+	s.Transport.DisableKeepAlives = true
 	return s
 }
 
