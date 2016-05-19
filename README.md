@@ -157,7 +157,7 @@ In the case when you are behind proxy, GoRequest can handle it easily with Proxy
 request := gorequest.New().Proxy("http://proxy:999")
 resp, body, errs := request.Get("http://example-proxy.com").End()
 // To reuse same client with no_proxy, use empty string:
-resp, body, errs = request.Proxy("").("http://example-no-proxy.com").End()
+resp, body, errs = request.Proxy("").Get("http://example-no-proxy.com").End()
 ```
 
 ## Basic Authentication
