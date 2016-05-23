@@ -786,6 +786,10 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 
 	for k, v := range s.Header {
 		req.Header.Set(k, v)
+		// Setting the host header is a special case, see this issue: https://github.com/golang/go/issues/7682
+		if strings.EqualFold(k, "host") {
+			req.Host = v;
+		}
 	}
 	// Add all querystring from Query func
 	q := req.URL.Query()
