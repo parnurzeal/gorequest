@@ -86,6 +86,8 @@ func New() *SuperAgent {
 		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 	}
+	// desable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
+	s.Transport.DisableKeepAlives = true
 	return s
 }
 
@@ -784,6 +786,10 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 
 	for k, v := range s.Header {
 		req.Header.Set(k, v)
+		// Setting the host header is a special case, see this issue: https://github.com/golang/go/issues/7682
+		if strings.EqualFold(k, "host") {
+			req.Host = v;
+		}
 	}
 	// Add all querystring from Query func
 	q := req.URL.Query()

@@ -709,7 +709,7 @@ func TestAsCurlCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := fmt.Sprintf(`curl -X PUT -d %q -H "Content-Type: application/json" %v`, strings.Replace(jsonData, " ", "", -1), endpoint)
+	expected := fmt.Sprintf(`curl -X PUT -d %q -H "Content-Type: application/json" '%v'`, strings.Replace(jsonData, " ", "", -1), endpoint)
 	if curlComand != expected {
 		t.Fatalf("\nExpected curlCommand=%v\n   but actual result=%v", expected, curlComand)
 	}
