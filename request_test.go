@@ -3,16 +3,24 @@ package gorequest
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/elazarl/goproxy"
+)
+
+type (
+	heyYou struct {
+		Hey string `json:"hey"`
+	}
 )
 
 // Test for Make request
@@ -397,9 +405,9 @@ func TestRedirectPolicyFunc(t *testing.T) {
 	New().
 		Get(ts.URL).
 		RedirectPolicy(func(req Request, via []Request) error {
-		redirectFuncGetCalled = true
-		return nil
-	}).End()
+			redirectFuncGetCalled = true
+			return nil
+		}).End()
 	if !redirectSuccess {
 		t.Errorf("Expected reaching another redirect url not original one")
 	}
@@ -451,6 +459,57 @@ func TestEndBytes(t *testing.T) {
 		}
 		if string(bodyBytes) != serverOutput {
 			t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes))
+		}
+	}
+}
+
+func TestEndStruct(t *testing.T) {
+	var resStruct heyYou
+	expStruct := heyYou{Hey: "you"}
+	serverOutput, err := json.Marshal(expStruct)
+	if err != nil {
+		t.Errorf("Unexpected errors: %s", err)
+	}
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		w.Write(serverOutput)
+	}))
+	defer ts.Close()
+
+	// Callback.
+	{
+		resp, errs := New().Get(ts.URL).EndStruct(func(resp Response, v interface{}, errs []error) {
+			if len(errs) > 0 {
+				t.Fatalf("Unexpected errors: %s", errs)
+			}
+			if resp.StatusCode != 200 {
+				t.Fatalf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+			}
+			if !reflect.DeepEqual(expStruct, resStruct) {
+				resBytes, _ := json.Marshal(resStruct)
+				t.Errorf("Expected body=%s, actual bodyBytes=%s", serverOutput, string(resBytes))
+			}
+		})
+		if len(errs) > 0 {
+			t.Fatalf("Unexpected errors: %s", errs)
+		}
+		if resp.StatusCode != 200 {
+			t.Fatalf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+		}
+	}
+
+	// No callback.
+	{
+		resp, errs := New().Get(ts.URL).EndStruct(&resStruct)
+		if len(errs) > 0 {
+			t.Errorf("Unexpected errors: %s", errs)
+		}
+		if resp.StatusCode != 200 {
+			t.Errorf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+		}
+		if reflect.DeepEqual(expStruct, resStruct) {
+			resBytes, _ := json.Marshal(resStruct)
+			t.Errorf("Expected body=%s, actual bodyBytes=%s", serverOutput, string(resBytes))
 		}
 	}
 }

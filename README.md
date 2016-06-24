@@ -190,6 +190,24 @@ The callbacks work the same way as with `End`, except that a byte array is used 
 resp, bodyBytes, errs := gorequest.New().Get("http://example.com/").EndBytes()
 ```
 
+## EndStruct
+
+We now have EndStruct to use when you want the body as struct.
+
+The callbacks work the same way as with `End`, except that a struct is used instead of a string.
+
+Supposing the URL **http://example.com/** returns the body `{"hey":"you"}`
+
+```go
+heyYou struct {
+  Hey string `json:"hey"`
+}
+
+var heyYou heyYou
+
+resp, errs := gorequest.New().Get("http://example.com/").EndStruct(&heyYou)
+```
+
 ## Debug
 
 For debugging, GoRequest leverages `httputil` to dump details of every request/response. (Thanks to @dafang)
