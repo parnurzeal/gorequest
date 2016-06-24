@@ -655,7 +655,7 @@ func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response
 	err := json.Unmarshal(body, &v)
 	if err != nil {
 		s.Errors = append(s.Errors, err)
-		return nil, body, s.Errors
+		return resp, body, s.Errors
 	}
 	respCallback := *resp
 	if len(callback) != 0 {
