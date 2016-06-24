@@ -478,7 +478,7 @@ func TestEndStruct(t *testing.T) {
 
 	// Callback.
 	{
-		resp, errs := New().Get(ts.URL).EndStruct(func(resp Response, v interface{}, errs []error) {
+		resp, bodyBytes, errs := New().Get(ts.URL).EndStruct(func(resp Response, v interface{}, body []byte, errs []error) {
 			if len(errs) > 0 {
 				t.Fatalf("Unexpected errors: %s", errs)
 			}
@@ -489,6 +489,9 @@ func TestEndStruct(t *testing.T) {
 				resBytes, _ := json.Marshal(resStruct)
 				t.Errorf("Expected body=%s, actual bodyBytes=%s", serverOutput, string(resBytes))
 			}
+			if !reflect.DeepEqual(body, serverOutput) {
+				t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(body))
+			}
 		})
 		if len(errs) > 0 {
 			t.Fatalf("Unexpected errors: %s", errs)
@@ -496,20 +499,26 @@ func TestEndStruct(t *testing.T) {
 		if resp.StatusCode != 200 {
 			t.Fatalf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
 		}
+		if !reflect.DeepEqual(bodyBytes, serverOutput) {
+			t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes))
+		}
 	}
 
 	// No callback.
 	{
-		resp, errs := New().Get(ts.URL).EndStruct(&resStruct)
+		resp, bodyBytes, errs := New().Get(ts.URL).EndStruct(&resStruct)
 		if len(errs) > 0 {
 			t.Errorf("Unexpected errors: %s", errs)
 		}
 		if resp.StatusCode != 200 {
 			t.Errorf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
 		}
-		if reflect.DeepEqual(expStruct, resStruct) {
+		if !reflect.DeepEqual(expStruct, resStruct) {
 			resBytes, _ := json.Marshal(resStruct)
 			t.Errorf("Expected body=%s, actual bodyBytes=%s", serverOutput, string(resBytes))
+		}
+		if !reflect.DeepEqual(bodyBytes, serverOutput) {
+			t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes))
 		}
 	}
 }

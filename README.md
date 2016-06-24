@@ -205,7 +205,7 @@ heyYou struct {
 
 var heyYou heyYou
 
-resp, errs := gorequest.New().Get("http://example.com/").EndStruct(&heyYou)
+resp, _, errs := gorequest.New().Get("http://example.com/").EndStruct(&heyYou)
 ```
 
 ## Debug
