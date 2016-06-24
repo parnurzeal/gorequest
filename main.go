@@ -635,6 +635,36 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 
 // EndBytes should be used when you want the body as bytes. The callbacks work the same way as with `End`, except that a byte array is used instead of a string.
 func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, errs []error)) (Response, []byte, []error) {
+	resp, body, errs := s.getResponseBytes()
+	if errs != nil {
+		return nil, nil, errs
+	}
+	respCallback := *resp
+	if len(callback) != 0 {
+		callback[0](&respCallback, body, s.Errors)
+	}
+	return resp, body, nil
+}
+
+// EndStruct should be used when you want the body as a struct. The callbacks work the same way as with `End`, except that a struct is used instead of a string.
+func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response, v interface{}, errs []error)) (Response, []error) {
+	resp, body, errs := s.EndBytes()
+	if errs != nil {
+		return nil, errs
+	}
+	err := json.Unmarshal(body, &v)
+	if err != nil {
+		s.Errors = append(s.Errors, err)
+		return nil, s.Errors
+	}
+	respCallback := *resp
+	if len(callback) != 0 {
+		callback[0](&respCallback, v, s.Errors)
+	}
+	return resp, nil
+}
+
+func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	var (
 		req  *http.Request
 		err  error
@@ -718,11 +748,7 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	body, _ := ioutil.ReadAll(resp.Body)
 	// Reset resp.Body so it can be use again
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-	// deep copy response to give it to both return and callback func
-	respCallback := *resp
-	if len(callback) != 0 {
-		callback[0](&respCallback, body, s.Errors)
-	}
+
 	return resp, body, nil
 }
 
@@ -788,7 +814,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		req.Header.Set(k, v)
 		// Setting the host header is a special case, see this issue: https://github.com/golang/go/issues/7682
 		if strings.EqualFold(k, "host") {
-			req.Host = v;
+			req.Host = v
 		}
 	}
 	// Add all querystring from Query func
