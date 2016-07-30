@@ -787,7 +787,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 				return nil, err
 			}
 			req.Header.Set("Content-Type", "application/json")
-		} else if s.TargetType == "form" {
+		} else if s.TargetType == "form" || s.TargetType == "form-data" || s.TargetType == "urlencoded" {
 			var contentForm []byte
 			if s.BounceToRawString || len(s.SliceData) != 0 {
 				contentForm = []byte(s.RawString)
@@ -808,7 +808,8 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
 			req.Header.Set("Content-Type", "application/xml")
 		} else {
-			// TODO: if nothing match, let's return warning here
+			// let's return an error instead of an nil pointer exception here
+			return nil, errors.New("TargetType '" + s.TargetType + "' could not be determined")
 		}
 	case "":
 		return nil, errors.New("No method specified")
