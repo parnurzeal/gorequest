@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -588,19 +589,16 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 func changeMapToURLValues(data map[string]interface{}) url.Values {
 	var newUrlValues = url.Values{}
 	for k, v := range data {
-		switch val := v.(type) {
-		case string:
-			newUrlValues.Add(k, val)
-		case []string:
-			for _, element := range val {
-				newUrlValues.Add(k, element)
+		switch val := reflect.ValueOf(v); val.Kind() {
+		case reflect.Slice:
+			for i := 0; i < val.Len(); i++ {
+				newUrlValues.Add(k, fmt.Sprintf("%v", val.Index(i)))
 			}
-		// if a number, change to string
-		// json.Number used to protect against a wrong (for GoRequest) default conversion
-		// which always converts number to float64.
-		// This type is caused by using Decoder.UseNumber()
-		case json.Number:
-			newUrlValues.Add(k, string(val))
+		default:
+			// handles strings, booleans, ints, floats, ...
+			newUrlValues.Add(k, fmt.Sprintf("%v", val))
+
+			// TODO add Ptr, Arrays, ...
 		}
 	}
 	return newUrlValues

@@ -23,6 +23,58 @@ type (
 	}
 )
 
+// Test for changeMapToURLValues
+func TestChangeMapToURLValues(t *testing.T) {
+
+	data := map[string]interface{}{
+		"s":  "a string",
+		"i":  42,
+		"bt": true,
+		"bf": false,
+		"f":  12.345,
+		"sa": []string{"s1", "s2"},
+		"ia": []int{47, 73},
+		"ba": []bool{true, false},
+	}
+
+	urlValues := changeMapToURLValues(data)
+
+	if s := urlValues.Get("s"); s != data["s"] {
+		t.Errorf("Expected string %q, got %q", data["s"], s)
+	}
+
+	if s := urlValues.Get("i"); s != fmt.Sprintf("%v", data["i"]) {
+		t.Errorf("Expected int %v, got %q", data["i"], s)
+	}
+
+	if s := urlValues.Get("bt"); s != fmt.Sprintf("%v", data["bt"]) {
+		t.Errorf("Expected boolean %v, got %q", data["bt"], s)
+	}
+
+	if s := urlValues.Get("bf"); s != fmt.Sprintf("%v", data["bf"]) {
+		t.Errorf("Expected boolean %v, got %q", data["bf"], s)
+	}
+
+	if s := urlValues.Get("f"); s != fmt.Sprintf("%v", data["f"]) {
+		t.Errorf("Expected float %v, got %q", data["f"], s)
+	}
+
+	// array cases
+	// "To access multiple values, use the map directly."
+
+	if l := len(urlValues["sa"]); l != 2   {
+		t.Errorf("Expected length %v, got %v", 2, l)
+	}
+
+	if l := len(urlValues["ia"]); l != 2   {
+		t.Errorf("Expected length %v, got %v", 2, l)
+	}
+
+	if l := len(urlValues["ba"]); l != 2   {
+		t.Errorf("Expected length %v, got %v", 2, l)
+	}
+}
+
 // Test for Make request
 func TestMakeRequest(t *testing.T) {
 	var err error
