@@ -35,6 +35,7 @@ func TestChangeMapToURLValues(t *testing.T) {
 		"f":  12.345,
 		"sa": []string{"s1", "s2"},
 		"ia": []int{47, 73},
+		"fa": []float64{1.23, 4.56},
 		"ba": []bool{true, false},
 	}
 
@@ -76,8 +77,8 @@ func TestChangeMapToURLValues(t *testing.T) {
 	// array cases
 	// "To access multiple values, use the map directly."
 
-	if l := len(urlValues["sa"]); l != 2 {
-		t.Errorf("Expected length %v, got %v", 2, l)
+	if size := len(urlValues["sa"]); size != 2 {
+		t.Fatalf("Expected length %v, got %v", 2, size)
 	}
 	if urlValues["sa"][0] != "s1" {
 		t.Errorf("Expected string %v, got %v", "s1", urlValues["sa"][0])
@@ -86,8 +87,8 @@ func TestChangeMapToURLValues(t *testing.T) {
 		t.Errorf("Expected string %v, got %v", "s2", urlValues["sa"][1])
 	}
 
-	if l := len(urlValues["ia"]); l != 2 {
-		t.Errorf("Expected length %v, got %v", 2, l)
+	if size := len(urlValues["ia"]); size != 2 {
+		t.Fatalf("Expected length %v, got %v", 2, size)
 	}
 	if urlValues["ia"][0] != "47" {
 		t.Errorf("Expected string %v, got %v", "47", urlValues["ia"][0])
@@ -96,14 +97,24 @@ func TestChangeMapToURLValues(t *testing.T) {
 		t.Errorf("Expected string %v, got %v", "73", urlValues["ia"][1])
 	}
 
-	if l := len(urlValues["ba"]); l != 2 {
-		t.Errorf("Expected length %v, got %v", 2, l)
+	if size := len(urlValues["ba"]); size != 2 {
+		t.Fatalf("Expected length %v, got %v", 2, size)
 	}
 	if urlValues["ba"][0] != "true" {
 		t.Errorf("Expected string %v, got %v", "true", urlValues["ba"][0])
 	}
 	if urlValues["ba"][1] != "false" {
 		t.Errorf("Expected string %v, got %v", "false", urlValues["ba"][1])
+	}
+
+	if size := len(urlValues["fa"]); size != 2 {
+		t.Fatalf("Expected length %v, got %v", 2, size)
+	}
+	if urlValues["fa"][0] != "1.23" {
+		t.Errorf("Expected string %v, got %v", "true", urlValues["fa"][0])
+	}
+	if urlValues["fa"][1] != "4.56" {
+		t.Errorf("Expected string %v, got %v", "false", urlValues["fa"][1])
 	}
 }
 
