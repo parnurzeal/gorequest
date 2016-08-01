@@ -492,16 +492,9 @@ func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 			slice[i] = v.Index(i).Interface()
 		}
 		s.SendSlice(slice)
+	case reflect.Ptr:
+		s.Send(v.Elem().Interface())
 	default:
-		if v.Kind() == reflect.Ptr {
-			switch v.Elem().Kind() {
-			case reflect.Struct:
-				s.SendStruct(v.Interface())
-				// TODO: Add here more cases for pointers to slices, numbers, etc...
-			}
-			return s
-		}
-
 		// TODO: leave default for handling other types in the future such as number, byte, etc...
 		// TODO: Add support for slice and array
 	}
