@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -22,6 +23,100 @@ type (
 		Hey string `json:"hey"`
 	}
 )
+
+// Test for changeMapToURLValues
+func TestChangeMapToURLValues(t *testing.T) {
+
+	data := map[string]interface{}{
+		"s":  "a string",
+		"i":  42,
+		"bt": true,
+		"bf": false,
+		"f":  12.345,
+		"sa": []string{"s1", "s2"},
+		"ia": []int{47, 73},
+		"fa": []float64{1.23, 4.56},
+		"ba": []bool{true, false},
+	}
+
+	urlValues := changeMapToURLValues(data)
+
+	var (
+		s  string
+		sd string
+	)
+
+	if s := urlValues.Get("s"); s != data["s"] {
+		t.Errorf("Expected string %v, got %v", data["s"], s)
+	}
+
+	s = urlValues.Get("i")
+	sd = strconv.Itoa(data["i"].(int))
+	if s != sd {
+		t.Errorf("Expected int %v, got %v", sd, s)
+	}
+
+	s = urlValues.Get("bt")
+	sd = strconv.FormatBool(data["bt"].(bool))
+	if s != sd {
+		t.Errorf("Expected boolean %v, got %v", sd, s)
+	}
+
+	s = urlValues.Get("bf")
+	sd = strconv.FormatBool(data["bf"].(bool))
+	if s != sd {
+		t.Errorf("Expected boolean %v, got %v", sd, s)
+	}
+
+	s = urlValues.Get("f")
+	sd = strconv.FormatFloat(data["f"].(float64), 'f', -1, 64)
+	if s != sd {
+		t.Errorf("Expected float %v, got %v", data["f"], s)
+	}
+
+	// array cases
+	// "To access multiple values, use the map directly."
+
+	if size := len(urlValues["sa"]); size != 2 {
+		t.Fatalf("Expected length %v, got %v", 2, size)
+	}
+	if urlValues["sa"][0] != "s1" {
+		t.Errorf("Expected string %v, got %v", "s1", urlValues["sa"][0])
+	}
+	if urlValues["sa"][1] != "s2" {
+		t.Errorf("Expected string %v, got %v", "s2", urlValues["sa"][1])
+	}
+
+	if size := len(urlValues["ia"]); size != 2 {
+		t.Fatalf("Expected length %v, got %v", 2, size)
+	}
+	if urlValues["ia"][0] != "47" {
+		t.Errorf("Expected string %v, got %v", "47", urlValues["ia"][0])
+	}
+	if urlValues["ia"][1] != "73" {
+		t.Errorf("Expected string %v, got %v", "73", urlValues["ia"][1])
+	}
+
+	if size := len(urlValues["ba"]); size != 2 {
+		t.Fatalf("Expected length %v, got %v", 2, size)
+	}
+	if urlValues["ba"][0] != "true" {
+		t.Errorf("Expected string %v, got %v", "true", urlValues["ba"][0])
+	}
+	if urlValues["ba"][1] != "false" {
+		t.Errorf("Expected string %v, got %v", "false", urlValues["ba"][1])
+	}
+
+	if size := len(urlValues["fa"]); size != 2 {
+		t.Fatalf("Expected length %v, got %v", 2, size)
+	}
+	if urlValues["fa"][0] != "1.23" {
+		t.Errorf("Expected string %v, got %v", "true", urlValues["fa"][0])
+	}
+	if urlValues["fa"][1] != "4.56" {
+		t.Errorf("Expected string %v, got %v", "false", urlValues["fa"][1])
+	}
+}
 
 // Test for Make request
 func TestMakeRequest(t *testing.T) {
