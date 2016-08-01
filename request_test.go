@@ -46,31 +46,31 @@ func TestChangeMapToURLValues(t *testing.T) {
 	)
 
 	if s := urlValues.Get("s"); s != data["s"] {
-		t.Errorf("Expected string %q, got %q", data["s"], s)
+		t.Errorf("Expected string %v, got %v", data["s"], s)
 	}
 
 	s = urlValues.Get("i")
 	sd = strconv.Itoa(data["i"].(int))
 	if s != sd {
-		t.Errorf("Expected int %v, got %q", sd, s)
+		t.Errorf("Expected int %v, got %v", sd, s)
 	}
 
 	s = urlValues.Get("bt")
 	sd = strconv.FormatBool(data["bt"].(bool))
 	if s != sd {
-		t.Errorf("Expected boolean %v, got %q", sd, s)
+		t.Errorf("Expected boolean %v, got %v", sd, s)
 	}
 
 	s = urlValues.Get("bf")
 	sd = strconv.FormatBool(data["bf"].(bool))
 	if s != sd {
-		t.Errorf("Expected boolean %v, got %q", sd, s)
+		t.Errorf("Expected boolean %v, got %v", sd, s)
 	}
 
 	s = urlValues.Get("f")
 	sd = strconv.FormatFloat(data["f"].(float64), 'f', -1, 64)
 	if s != sd {
-		t.Errorf("Expected float %v, got %q", data["f"], s)
+		t.Errorf("Expected float %v, got %v", data["f"], s)
 	}
 
 	// array cases
