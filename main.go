@@ -494,9 +494,9 @@ func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	case reflect.Struct:
 		s.SendStruct(v.Interface())
 	case reflect.Slice:
-		s.SendSlice(makeSliceFromReflectValue(v))
+		s.SendSlice(makeSliceOfReflectValue(v))
 	case reflect.Array:
-		s.SendSlice(makeSliceFromReflectValue(v))
+		s.SendSlice(makeSliceOfReflectValue(v))
 	case reflect.Ptr:
 		s.Send(v.Elem().Interface())
 	default:
