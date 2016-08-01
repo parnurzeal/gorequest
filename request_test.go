@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -39,39 +40,70 @@ func TestChangeMapToURLValues(t *testing.T) {
 
 	urlValues := changeMapToURLValues(data)
 
+	var (
+		s  string
+		sd string
+	)
+
 	if s := urlValues.Get("s"); s != data["s"] {
 		t.Errorf("Expected string %q, got %q", data["s"], s)
 	}
 
-	if s := urlValues.Get("i"); s != fmt.Sprintf("%v", data["i"]) {
-		t.Errorf("Expected int %v, got %q", data["i"], s)
+	s = urlValues.Get("i")
+	sd = strconv.Itoa(data["i"].(int))
+	if s != sd {
+		t.Errorf("Expected int %v, got %q", sd, s)
 	}
 
-	if s := urlValues.Get("bt"); s != fmt.Sprintf("%v", data["bt"]) {
-		t.Errorf("Expected boolean %v, got %q", data["bt"], s)
+	s = urlValues.Get("bt")
+	sd = strconv.FormatBool(data["bt"].(bool))
+	if s != sd {
+		t.Errorf("Expected boolean %v, got %q", sd, s)
 	}
 
-	if s := urlValues.Get("bf"); s != fmt.Sprintf("%v", data["bf"]) {
-		t.Errorf("Expected boolean %v, got %q", data["bf"], s)
+	s = urlValues.Get("bf")
+	sd = strconv.FormatBool(data["bf"].(bool))
+	if s != sd {
+		t.Errorf("Expected boolean %v, got %q", sd, s)
 	}
 
-	if s := urlValues.Get("f"); s != fmt.Sprintf("%v", data["f"]) {
+	s = urlValues.Get("f")
+	sd = strconv.FormatFloat(data["f"].(float64), 'f', -1, 64)
+	if s != sd {
 		t.Errorf("Expected float %v, got %q", data["f"], s)
 	}
 
 	// array cases
 	// "To access multiple values, use the map directly."
 
-	if l := len(urlValues["sa"]); l != 2   {
+	if l := len(urlValues["sa"]); l != 2 {
 		t.Errorf("Expected length %v, got %v", 2, l)
 	}
-
-	if l := len(urlValues["ia"]); l != 2   {
-		t.Errorf("Expected length %v, got %v", 2, l)
+	if urlValues["sa"][0] != "s1" {
+		t.Errorf("Expected string %v, got %v", "s1", urlValues["sa"][0])
+	}
+	if urlValues["sa"][1] != "s2" {
+		t.Errorf("Expected string %v, got %v", "s2", urlValues["sa"][1])
 	}
 
-	if l := len(urlValues["ba"]); l != 2   {
+	if l := len(urlValues["ia"]); l != 2 {
 		t.Errorf("Expected length %v, got %v", 2, l)
+	}
+	if urlValues["ia"][0] != "47" {
+		t.Errorf("Expected string %v, got %v", "47", urlValues["ia"][0])
+	}
+	if urlValues["ia"][1] != "73" {
+		t.Errorf("Expected string %v, got %v", "73", urlValues["ia"][1])
+	}
+
+	if l := len(urlValues["ba"]); l != 2 {
+		t.Errorf("Expected length %v, got %v", 2, l)
+	}
+	if urlValues["ba"][0] != "true" {
+		t.Errorf("Expected string %v, got %v", "true", urlValues["ba"][0])
+	}
+	if urlValues["ba"][1] != "false" {
+		t.Errorf("Expected string %v, got %v", "false", urlValues["ba"][1])
 	}
 }
 
