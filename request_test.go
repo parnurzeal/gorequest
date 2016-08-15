@@ -251,6 +251,17 @@ func TestPost(t *testing.T) {
 	// Check that the number conversion should be converted as string not float64
 	const case8_send_json_with_long_id_number = "/send_json_with_long_id_number"
 	const case9_send_json_string_with_long_id_number_as_form_result = "/send_json_string_with_long_id_number_as_form_result"
+	const case10_send_struct_pointer = "/send_struct_pointer"
+	const case11_send_string_pointer = "/send_string_pointer"
+	const case12_send_slice_string = "/send_slice_string"
+	const case13_send_slice_string_pointer = "/send_slice_string_pointer"
+	const case14_send_int_pointer = "/send_int_pointer"
+	const case15_send_float_pointer = "/send_float_pointer"
+	const case16_send_bool_pointer = "/send_bool_pointer"
+	const case17_send_string_array = "/send_string_array"
+	const case18_send_string_array_pointer = "/send_string_array_pointer"
+	const case19_send_struct = "/send_struct"
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is PATCH before going to check other features
 		if r.Method != POST {
@@ -276,8 +287,8 @@ func TestPost(t *testing.T) {
 			if string(body) != `{"query1":"test","query2":"test"}` {
 				t.Error(`Expected Body with {"query1":"test","query2":"test"}`, "| but got", string(body))
 			}
-		case case4_send_string:
-			t.Logf("case %v ", case4_send_string)
+		case case4_send_string, case11_send_string_pointer:
+			t.Logf("case %v ", r.URL.Path)
 			if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
 				t.Error("Expected Header Content-Type -> application/x-www-form-urlencoded", "| but got", r.Header.Get("Content-Type"))
 			}
@@ -324,6 +335,43 @@ func TestPost(t *testing.T) {
 			if string(body) != `id=123456789&name=nemo` {
 				t.Error(`Expected Body with "id=123456789&name=nemo"`, `| but got`, string(body))
 			}
+		case case19_send_struct, case10_send_struct_pointer:
+			t.Logf("case %v ", r.URL.Path)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			comparedBody := []byte(`{"Bfalse":false,"BoolArray":[true,false],"Btrue":true,"Float":12.345,"FloatArray":[1.23,4.56,7.89],"Int":42,"IntArray":[1,2],"String":"a string","StringArray":["string1","string2"]}`)
+			if !bytes.Equal(body, comparedBody) {
+				t.Errorf(`Expected correct json but got ` + string(body))
+			}
+		case case12_send_slice_string, case13_send_slice_string_pointer, case17_send_string_array, case18_send_string_array_pointer:
+			t.Logf("case %v ", r.URL.Path)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			comparedBody := []byte(`["string1","string2"]`)
+			if !bytes.Equal(body, comparedBody) {
+				t.Errorf(`Expected correct json but got ` + string(body))
+			}
+		case case14_send_int_pointer:
+			t.Logf("case %v ", case14_send_int_pointer)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != "42" {
+				t.Error("Expected Body with \"42\"", "| but got", string(body))
+			}
+		case case15_send_float_pointer:
+			t.Logf("case %v ", case15_send_float_pointer)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != "12.345" {
+				t.Error("Expected Body with \"12.345\"", "| but got", string(body))
+			}
+		case case16_send_bool_pointer:
+			t.Logf("case %v ", case16_send_bool_pointer)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != "true" {
+				t.Error("Expected Body with \"true\"", "| but got", string(body))
+			}
 		}
 	}))
 
@@ -359,11 +407,9 @@ func TestPost(t *testing.T) {
 		Query("query2=test").
 		End()
 	// TODO:
-	// 1. test normal struct
-	// 2. test 2nd layer nested struct
-	// 3. test struct pointer
-	// 4. test lowercase won't be export to json
-	// 5. test field tag change to json field name
+	// 1. test 2nd layer nested struct
+	// 2. test lowercase won't be export to json
+	// 3. test field tag change to json field name
 	type Upper struct {
 		Color string
 		Size  int
@@ -392,6 +438,79 @@ func TestPost(t *testing.T) {
 	New().Post(ts.URL + case9_send_json_string_with_long_id_number_as_form_result).
 		Type("form").
 		Send(`{"id":123456789, "name":"nemo"}`).
+		End()
+
+	type TestStruct struct {
+		String      string
+		Int         int
+		Btrue       bool
+		Bfalse      bool
+		Float       float64
+		StringArray []string
+		IntArray    []int
+		BoolArray   []bool
+		FloatArray  []float64
+	}
+
+	payload := TestStruct{
+		String:      "a string",
+		Int:         42,
+		Btrue:       true,
+		Bfalse:      false,
+		Float:       12.345,
+		StringArray: []string{"string1", "string2"},
+		IntArray:    []int{1, 2},
+		BoolArray:   []bool{true, false},
+		FloatArray:  []float64{1.23, 4.56, 7.89},
+	}
+
+	New().Post(ts.URL + case10_send_struct_pointer).
+		Send(&payload).
+		End()
+
+	New().Post(ts.URL + case19_send_struct).
+	  Send(payload).
+	  End()
+
+	s1 := "query1=test"
+	s2 := "query2=test"
+	New().Post(ts.URL + case11_send_string_pointer).
+		Send(&s1).
+		Send(&s2).
+		End()
+
+	New().Post(ts.URL + case12_send_slice_string).
+		Send([]string{"string1", "string2"}).
+		End()
+
+	New().Post(ts.URL + case13_send_slice_string_pointer).
+		Send(&[]string{"string1", "string2"}).
+		End()
+
+	i := 42
+	New().Post(ts.URL + case14_send_int_pointer).
+		Send(&i).
+		End()
+
+	f := 12.345
+	New().Post(ts.URL + case15_send_float_pointer).
+		Send(&f).
+		End()
+
+	b := true
+	New().Post(ts.URL + case16_send_bool_pointer).
+		Send(&b).
+		End()
+
+	var a [2]string
+	a[0] = "string1"
+	a[1] = "string2"
+	New().Post(ts.URL + case17_send_string_array).
+		Send(a).
+		End()
+
+	New().Post(ts.URL + case18_send_string_array_pointer).
+		Send(&a).
 		End()
 }
 
