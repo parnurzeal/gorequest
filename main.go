@@ -483,8 +483,10 @@ func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	switch v := reflect.ValueOf(content); v.Kind() {
 	case reflect.String:
 		s.SendString(v.String())
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64: // includes rune
 		s.SendString(strconv.FormatInt(v.Int(), 10))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64: // includes byte
+		s.SendString(strconv.FormatUint(v.Uint(), 10))
 	case reflect.Float64:
 		s.SendString(strconv.FormatFloat(v.Float(), 'f', -1, 64))
 	case reflect.Float32:
@@ -500,7 +502,8 @@ func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	case reflect.Ptr:
 		s.Send(v.Elem().Interface())
 	default:
-		// TODO: leave default for handling other types in the future such as byte, etc...
+		// TODO: leave default for handling other types in the future, such as complex numbers, (nested) maps, etc
+		return s
 	}
 	return s
 }

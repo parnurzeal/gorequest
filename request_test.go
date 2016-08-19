@@ -159,7 +159,7 @@ func TestGet(t *testing.T) {
 			t.Errorf("Expected method %q; got %q", GET, r.Method)
 		}
 		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
+			t.Error("Expected non-nil request Header")
 		}
 		switch r.URL.Path {
 		default:
@@ -261,6 +261,10 @@ func TestPost(t *testing.T) {
 	const case17_send_string_array = "/send_string_array"
 	const case18_send_string_array_pointer = "/send_string_array_pointer"
 	const case19_send_struct = "/send_struct"
+	const case20_send_byte_char = "/send_byte_char"
+	const case21_send_byte_char_pointer = "/send_byte_char_pointer"
+	const case22_send_byte_int = "/send_byte_int"
+	const case22_send_byte_int_pointer = "/send_byte_int_pointer"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is PATCH before going to check other features
@@ -268,7 +272,7 @@ func TestPost(t *testing.T) {
 			t.Errorf("Expected method %q; got %q", POST, r.Method)
 		}
 		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
+			t.Error("Expected non-nil request Header")
 		}
 		switch r.URL.Path {
 		default:
@@ -372,6 +376,13 @@ func TestPost(t *testing.T) {
 			if string(body) != "true" {
 				t.Error("Expected Body with \"true\"", "| but got", string(body))
 			}
+		case case20_send_byte_char, case21_send_byte_char_pointer, case22_send_byte_int, case22_send_byte_int_pointer:
+			t.Logf("case %v ", case16_send_bool_pointer)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != "71" {
+				t.Error("Expected Body with \"71\"", "| but got", string(body))
+			}
 		}
 	}))
 
@@ -469,8 +480,8 @@ func TestPost(t *testing.T) {
 		End()
 
 	New().Post(ts.URL + case19_send_struct).
-	  Send(payload).
-	  End()
+		Send(payload).
+		End()
 
 	s1 := "query1=test"
 	s2 := "query2=test"
@@ -512,6 +523,24 @@ func TestPost(t *testing.T) {
 	New().Post(ts.URL + case18_send_string_array_pointer).
 		Send(&a).
 		End()
+
+	aByte := byte('G') // = 71 dec
+	New().Post(ts.URL + case20_send_byte_char).
+		Send(aByte).
+		End()
+
+	New().Post(ts.URL + case21_send_byte_char_pointer).
+		Send(&aByte).
+		End()
+
+	iByte := byte(71) // = 'G'
+	New().Post(ts.URL + case22_send_byte_int).
+		Send(iByte).
+		End()
+
+	New().Post(ts.URL + case22_send_byte_int_pointer).
+		Send(&iByte).
+		End()
 }
 
 // testing for Patch method
@@ -525,7 +554,7 @@ func TestPatch(t *testing.T) {
 			t.Errorf("Expected method %q; got %q", PATCH, r.Method)
 		}
 		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
+			t.Error("Expected non-nil request Header")
 		}
 		switch r.URL.Path {
 		default:
@@ -578,7 +607,7 @@ func checkQuery(t *testing.T, q map[string][]string, key string, want string) {
 func TestQueryFunc(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
+			t.Error("Expected non-nil request Header")
 		}
 		v := r.URL.Query()
 		checkQuery(t, v, "query1", "test1")
@@ -623,10 +652,10 @@ func TestRedirectPolicyFunc(t *testing.T) {
 			return nil
 		}).End()
 	if !redirectSuccess {
-		t.Errorf("Expected reaching another redirect url not original one")
+		t.Error("Expected reaching another redirect url not original one")
 	}
 	if !redirectFuncGetCalled {
-		t.Errorf("Expected redirect policy func to get called")
+		t.Error("Expected redirect policy func to get called")
 	}
 }
 
@@ -752,10 +781,10 @@ func TestProxyFunc(t *testing.T) {
 	// sending request via Proxy
 	resp, body, _ := New().Proxy(ts2.URL).Get(ts.URL).End()
 	if resp.StatusCode != 200 {
-		t.Errorf("Expected 200 Status code")
+		t.Error("Expected 200 Status code")
 	}
 	if body != "proxy passed" {
-		t.Errorf("Expected 'proxy passed' body string")
+		t.Error("Expected 'proxy passed' body string")
 	}
 }
 
@@ -765,14 +794,14 @@ func TestTimeoutFunc(t *testing.T) {
 	_, _, errs := New().Timeout(1000 * time.Millisecond).Get("http://www.google.com:81").End()
 	elapsedTime := time.Since(startTime)
 	if errs == nil {
-		t.Errorf("Expected dial timeout error but get nothing")
+		t.Error("Expected dial timeout error but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
 		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
 	}
 	// 2st case, read/write timeout (Can dial to url but want to timeout because too long operation on the server)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(1 * time.Second)
+		time.Sleep(1100 * time.Millisecond) // slightly longer than expected
 		w.WriteHeader(200)
 	}))
 	request := New().Timeout(1000 * time.Millisecond)
@@ -780,21 +809,21 @@ func TestTimeoutFunc(t *testing.T) {
 	_, _, errs = request.Get(ts.URL).End()
 	elapsedTime = time.Since(startTime)
 	if errs == nil {
-		t.Errorf("Expected dial+read/write timeout | but get nothing")
+		t.Error("Expected dial+read/write timeout | but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
 		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
 	}
 	// 3rd case, testing reuse of same request
 	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(1 * time.Second)
+		time.Sleep(1100 * time.Millisecond) // slightly longer than expected
 		w.WriteHeader(200)
 	}))
 	startTime = time.Now()
 	_, _, errs = request.Get(ts.URL).End()
 	elapsedTime = time.Since(startTime)
 	if errs == nil {
-		t.Errorf("Expected dial+read/write timeout | but get nothing")
+		t.Error("Expected dial+read/write timeout | but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
 		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
@@ -806,12 +835,12 @@ func TestCookies(t *testing.T) {
 	request := New().Timeout(60 * time.Second)
 	_, _, errs := request.Get("https://github.com").End()
 	if errs != nil {
-		t.Errorf("Cookies test request did not complete")
+		t.Error("Cookies test request did not complete")
 		return
 	}
 	domain, _ := url.Parse("https://github.com")
 	if len(request.Client.Jar.Cookies(domain)) == 0 {
-		t.Errorf("Expected cookies | but get nothing")
+		t.Error("Expected cookies | but get nothing")
 	}
 }
 
@@ -825,7 +854,7 @@ func TestGetSetCookie(t *testing.T) {
 			t.Error(err)
 		}
 		if c == nil {
-			t.Errorf("Expected non-nil request Cookie 'API-Cookie-Name'")
+			t.Error("Expected non-nil request Cookie 'API-Cookie-Name'")
 		} else if c.Value != "api-cookie-value" {
 			t.Errorf("Expected 'API-Cookie-Name' == %q; got %q", "api-cookie-value", c.Value)
 		}
@@ -847,7 +876,7 @@ func TestGetSetCookies(t *testing.T) {
 			t.Error(err)
 		}
 		if c == nil {
-			t.Errorf("Expected non-nil request Cookie 'API-Cookie-Name1'")
+			t.Error("Expected non-nil request Cookie 'API-Cookie-Name1'")
 		} else if c.Value != "api-cookie-value1" {
 			t.Errorf("Expected 'API-Cookie-Name1' == %q; got %q", "api-cookie-value1", c.Value)
 		}
@@ -856,7 +885,7 @@ func TestGetSetCookies(t *testing.T) {
 			t.Error(err)
 		}
 		if c == nil {
-			t.Errorf("Expected non-nil request Cookie 'API-Cookie-Name2'")
+			t.Error("Expected non-nil request Cookie 'API-Cookie-Name2'")
 		} else if c.Value != "api-cookie-value2" {
 			t.Errorf("Expected 'API-Cookie-Name2' == %q; got %q", "api-cookie-value2", c.Value)
 		}
@@ -885,7 +914,7 @@ func TestErrorTypeWrongKey(t *testing.T) {
 			t.Errorf("Wrong error message: " + err[0].Error())
 		}
 	} else {
-		t.Errorf("Should have error")
+		t.Error("Should have error")
 	}
 }
 
@@ -916,7 +945,7 @@ func TestXml(t *testing.T) {
 			t.Errorf("Expected method %q; got %q", POST, r.Method)
 		}
 		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
+			t.Error("Expected non-nil request Header")
 		}
 
 		if r.Header.Get("Content-Type") != "application/xml" {
@@ -952,7 +981,7 @@ func TestPlainText(t *testing.T) {
 			t.Errorf("Expected method %q; got %q", POST, r.Method)
 		}
 		if r.Header == nil {
-			t.Errorf("Expected non-nil request Header")
+			t.Error("Expected non-nil request Header")
 		}
 		if r.Header.Get("Content-Type") != "text/plain" {
 			t.Error("Expected Header Content-Type -> text/plain", "| but got", r.Header.Get("Content-Type"))
