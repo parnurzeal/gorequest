@@ -483,29 +483,44 @@ func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	switch v := reflect.ValueOf(content); v.Kind() {
 	case reflect.String:
 		s.SendString(v.String())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64: // includes rune
+		s.SendString(strconv.FormatInt(v.Int(), 10))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64: // includes byte
+		s.SendString(strconv.FormatUint(v.Uint(), 10))
+	case reflect.Float64:
+		s.SendString(strconv.FormatFloat(v.Float(), 'f', -1, 64))
+	case reflect.Float32:
+		s.SendString(strconv.FormatFloat(v.Float(), 'f', -1, 32))
+	case reflect.Bool:
+		s.SendString(strconv.FormatBool(v.Bool()))
 	case reflect.Struct:
 		s.SendStruct(v.Interface())
 	case reflect.Slice:
-		// change to slice
-		slice := make([]interface{}, v.Len())
-		for i := 0; i < v.Len(); i++ {
-			slice[i] = v.Index(i).Interface()
-		}
-		s.SendSlice(slice)
+		s.SendSlice(makeSliceOfReflectValue(v))
+	case reflect.Array:
+		s.SendSlice(makeSliceOfReflectValue(v))
+	case reflect.Ptr:
+		s.Send(v.Elem().Interface())
 	default:
-		if v.Kind() == reflect.Ptr {
-			switch v.Elem().Kind() {
-			case reflect.Struct:
-				s.SendStruct(v.Interface())
-				// TODO: Add here more cases for pointers to slices, numbers, etc...
-			}
-			return s
-		}
-
-		// TODO: leave default for handling other types in the future such as number, byte, etc...
-		// TODO: Add support for slice and array
+		// TODO: leave default for handling other types in the future, such as complex numbers, (nested) maps, etc
+		return s
 	}
 	return s
+}
+
+func makeSliceOfReflectValue(v reflect.Value) (slice []interface{}) {
+
+	kind := v.Kind()
+	if kind != reflect.Slice && kind != reflect.Array {
+		return slice
+	}
+
+	slice = make([]interface{}, v.Len())
+	for i := 0; i < v.Len(); i++ {
+		slice[i] = v.Index(i).Interface()
+	}
+
+	return slice
 }
 
 // SendSlice (similar to SendString) returns SuperAgent's itself for any next chain and takes content []interface{} as a parameter.
