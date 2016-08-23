@@ -268,7 +268,7 @@ func TestPost(t *testing.T) {
 	const case23_send_duplicate_query_params = "/send_duplicate_query_params"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// check method is PATCH before going to check other features
+		// check method is POST before going to check other features
 		if r.Method != POST {
 			t.Errorf("Expected method %q; got %q", POST, r.Method)
 		}
@@ -627,17 +627,39 @@ func checkQuery(t *testing.T, q map[string][]string, key string, want string) {
 
 // TODO: more check on url query (all testcases)
 func TestQueryFunc(t *testing.T) {
+	const case1_send_string = "/send_string"
+	const case2_send_struct = "/send_struct"
+	const case3_send_string_with_duplicates = "/send_string_with_duplicates"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 		v := r.URL.Query()
-		checkQuery(t, v, "query1", "test1")
-		checkQuery(t, v, "query2", "test2")
+
+		switch r.URL.Path {
+		default:
+			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case1_send_string, case2_send_struct:
+			checkQuery(t, v, "query1", "test1")
+			checkQuery(t, v, "query2", "test2")
+		case case3_send_string_with_duplicates:
+			checkQuery(t, v, "query1", "test1")
+			checkQuery(t, v, "query2", "test2")
+
+			if len(v["param"]) != 4 {
+				t.Errorf("Expected Body with 4 params | but got %q", len(v["param"]))
+			}
+			if v["param"][0] != "1" || v["param"][1] != "2" || v["param"][2] != "3" || v["param"][3] != "4" {
+				t.Error("Expected Body with 4 params and values", "| but got", r.URL.RawQuery)
+			}
+		}
 	}))
 	defer ts.Close()
 
-	New().Post(ts.URL).
+	New().Post(ts.URL + case1_send_string).
 		Query("query1=test1").
 		Query("query2=test2").
 		End()
@@ -649,9 +671,17 @@ func TestQueryFunc(t *testing.T) {
 		Query1: "test1",
 		Query2: "test2",
 	}
-	New().Post(ts.URL).
+	New().Post(ts.URL + case2_send_struct).
 		Query(qq).
 		End()
+
+	New().Post(ts.URL + case3_send_string_with_duplicates).
+	  Query("query1=test1").
+	  Query("query2=test2").
+	  Query("param=1").
+	  Query("param=2").
+	  Query("param=3&param=4").
+	  End()
 }
 
 // TODO: more tests on redirect

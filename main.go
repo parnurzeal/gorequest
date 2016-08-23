@@ -349,9 +349,11 @@ func (s *SuperAgent) queryString(content string) *SuperAgent {
 			s.QueryData.Add(k, v)
 		}
 	} else {
-		if queryVal, err := url.ParseQuery(content); err == nil {
-			for k, _ := range queryVal {
-				s.QueryData.Add(k, queryVal.Get(k))
+		if queryData, err := url.ParseQuery(content); err == nil {
+			for k, queryValues := range queryData {
+				for _, queryValue := range queryValues {
+					s.QueryData.Add(k, string(queryValue))
+				}
 			}
 		} else {
 			s.Errors = append(s.Errors, err)
