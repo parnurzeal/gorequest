@@ -349,9 +349,11 @@ func (s *SuperAgent) queryString(content string) *SuperAgent {
 			s.QueryData.Add(k, v)
 		}
 	} else {
-		if queryVal, err := url.ParseQuery(content); err == nil {
-			for k, _ := range queryVal {
-				s.QueryData.Add(k, queryVal.Get(k))
+		if queryData, err := url.ParseQuery(content); err == nil {
+			for k, queryValues := range queryData {
+				for _, queryValue := range queryValues {
+					s.QueryData.Add(k, string(queryValue))
+				}
 			}
 		} else {
 			s.Errors = append(s.Errors, err)
@@ -571,23 +573,25 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 			default:
 				s.BounceToRawString = true
 			}
-		} else if formVal, err := url.ParseQuery(content); err == nil {
-			for k, _ := range formVal {
-				// make it array if already have key
-				if val, ok := s.Data[k]; ok {
-					var strArray []string
-					strArray = append(strArray, formVal.Get(k))
-					// check if previous data is one string or array
-					switch oldValue := val.(type) {
-					case []string:
-						strArray = append(strArray, oldValue...)
-					case string:
-						strArray = append(strArray, oldValue)
+		} else if formData, err := url.ParseQuery(content); err == nil {
+			for k, formValues := range formData {
+				for _, formValue := range formValues {
+					// make it array if already have key
+					if val, ok := s.Data[k]; ok {
+						var strArray []string
+						strArray = append(strArray, string(formValue))
+						// check if previous data is one string or array
+						switch oldValue := val.(type) {
+						case []string:
+							strArray = append(strArray, oldValue...)
+						case string:
+							strArray = append(strArray, oldValue)
+						}
+						s.Data[k] = strArray
+					} else {
+						// make it just string if does not already have same key
+						s.Data[k] = formValue
 					}
-					s.Data[k] = strArray
-				} else {
-					// make it just string if does not already have same key
-					s.Data[k] = formVal.Get(k)
 				}
 			}
 			s.TargetType = "form"

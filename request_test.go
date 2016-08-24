@@ -265,9 +265,10 @@ func TestPost(t *testing.T) {
 	const case21_send_byte_char_pointer = "/send_byte_char_pointer"
 	const case22_send_byte_int = "/send_byte_int"
 	const case22_send_byte_int_pointer = "/send_byte_int_pointer"
+	const case23_send_duplicate_query_params = "/send_duplicate_query_params"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// check method is PATCH before going to check other features
+		// check method is POST before going to check other features
 		if r.Method != POST {
 			t.Errorf("Expected method %q; got %q", POST, r.Method)
 		}
@@ -377,11 +378,26 @@ func TestPost(t *testing.T) {
 				t.Error("Expected Body with \"true\"", "| but got", string(body))
 			}
 		case case20_send_byte_char, case21_send_byte_char_pointer, case22_send_byte_int, case22_send_byte_int_pointer:
-			t.Logf("case %v ", case16_send_bool_pointer)
+			t.Logf("case %v ", r.URL.Path)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "71" {
 				t.Error("Expected Body with \"71\"", "| but got", string(body))
+			}
+		case case23_send_duplicate_query_params:
+			t.Logf("case %v ", case23_send_duplicate_query_params)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			sbody := string(body)
+			if sbody != "param=4&param=3&param=2&param=1"   {
+				t.Error("Expected Body \"param=4&param=3&param=2&param=1\"", "| but got", sbody)
+			}
+			values, _ := url.ParseQuery(sbody)
+			if len(values["param"]) != 4 {
+				t.Error("Expected Body with 4 params", "| but got", sbody)
+			}
+			if values["param"][0] != "4" || values["param"][1] != "3" || values["param"][2] != "2" || values["param"][3] != "1" {
+				t.Error("Expected Body with 4 params and values", "| but got", sbody)
 			}
 		}
 	}))
@@ -541,6 +557,12 @@ func TestPost(t *testing.T) {
 	New().Post(ts.URL + case22_send_byte_int_pointer).
 		Send(&iByte).
 		End()
+
+	New().Post(ts.URL + case23_send_duplicate_query_params).
+		Send("param=1").
+		Send("param=2").
+		Send("param=3&param=4").
+		End()
 }
 
 // testing for Patch method
@@ -605,17 +627,39 @@ func checkQuery(t *testing.T, q map[string][]string, key string, want string) {
 
 // TODO: more check on url query (all testcases)
 func TestQueryFunc(t *testing.T) {
+	const case1_send_string = "/send_string"
+	const case2_send_struct = "/send_struct"
+	const case3_send_string_with_duplicates = "/send_string_with_duplicates"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 		v := r.URL.Query()
-		checkQuery(t, v, "query1", "test1")
-		checkQuery(t, v, "query2", "test2")
+
+		switch r.URL.Path {
+		default:
+			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case1_send_string, case2_send_struct:
+			checkQuery(t, v, "query1", "test1")
+			checkQuery(t, v, "query2", "test2")
+		case case3_send_string_with_duplicates:
+			checkQuery(t, v, "query1", "test1")
+			checkQuery(t, v, "query2", "test2")
+
+			if len(v["param"]) != 4 {
+				t.Errorf("Expected Body with 4 params | but got %q", len(v["param"]))
+			}
+			if v["param"][0] != "1" || v["param"][1] != "2" || v["param"][2] != "3" || v["param"][3] != "4" {
+				t.Error("Expected Body with 4 params and values", "| but got", r.URL.RawQuery)
+			}
+		}
 	}))
 	defer ts.Close()
 
-	New().Post(ts.URL).
+	New().Post(ts.URL + case1_send_string).
 		Query("query1=test1").
 		Query("query2=test2").
 		End()
@@ -627,9 +671,17 @@ func TestQueryFunc(t *testing.T) {
 		Query1: "test1",
 		Query2: "test2",
 	}
-	New().Post(ts.URL).
+	New().Post(ts.URL + case2_send_struct).
 		Query(qq).
 		End()
+
+	New().Post(ts.URL + case3_send_string_with_duplicates).
+	  Query("query1=test1").
+	  Query("query2=test2").
+	  Query("param=1").
+	  Query("param=2").
+	  Query("param=3&param=4").
+	  End()
 }
 
 // TODO: more tests on redirect
