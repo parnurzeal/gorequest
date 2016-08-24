@@ -19,6 +19,14 @@ import (
 	"strings"
 	"time"
 
+	"mime/multipart"
+
+	"net/textproto"
+
+	"fmt"
+
+	"path/filepath"
+
 	"github.com/moul/http2curl"
 	"golang.org/x/net/publicsuffix"
 )
@@ -48,6 +56,7 @@ type SuperAgent struct {
 	SliceData         []interface{}
 	FormData          url.Values
 	QueryData         url.Values
+	FileData          map[string][]byte
 	BounceToRawString bool
 	RawString         string
 	Client            *http.Client
@@ -76,6 +85,7 @@ func New() *SuperAgent {
 		SliceData:         []interface{}{},
 		FormData:          url.Values{},
 		QueryData:         url.Values{},
+		FileData:          make(map[string][]byte),
 		BounceToRawString: false,
 		Client:            &http.Client{Jar: jar},
 		Transport:         &http.Transport{},
@@ -117,6 +127,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.SliceData = []interface{}{}
 	s.FormData = url.Values{}
 	s.QueryData = url.Values{}
+	s.FileData = make(map[string][]byte)
 	s.BounceToRawString = false
 	s.RawString = ""
 	s.ForceType = ""
@@ -251,6 +262,7 @@ var Types = map[string]string{
 	"urlencoded": "application/x-www-form-urlencoded",
 	"form":       "application/x-www-form-urlencoded",
 	"form-data":  "application/x-www-form-urlencoded",
+	"multipart":  "multipart/form-data",
 }
 
 // Type is a convenience function to specify the data type to send.
@@ -604,6 +616,54 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 	return s
 }
 
+func (s *SuperAgent) SendFile(content interface{}, args ...string) *SuperAgent {
+
+	var err error
+
+	filename := "filename"
+	if len(args) > 0 {
+		filename = args[0]
+	}
+
+	switch v := reflect.ValueOf(content); v.Kind() {
+	case reflect.String:
+		file, _ := filepath.Abs(v.String())
+		filename = filepath.Base(file)
+		s.FileData[filename], err = ioutil.ReadFile(v.String())
+		if err != nil {
+			s.Errors = append(s.Errors, err)
+			return s
+		}
+	case reflect.Slice:
+		slice := makeSliceOfReflectValue(v)
+		s.FileData[filename] = make([]byte, len(slice))
+		for i := range slice {
+			s.FileData[filename][i] = slice[i].(byte)
+		}
+	case reflect.Ptr:
+		s.SendFile(v.Elem().Interface())
+	default:
+		// TODO add File datatype
+		//if v.Type() == reflect.TypeOf(os.File{}) {
+		//	fmt.Println("osFile!")
+		//
+		//	fmt.Printf("file %v\r\n", v.Kind())
+		//
+		//	f := os.File{}
+		//
+		//	//FileData[filename], err = ioutil.ReadFile(v.String())
+		//
+		//	return err
+		//}
+
+		s.Errors = append(s.Errors, errors.New("SendFile currently only supports either a string (path/to/file) or a slice of bytes (file content itself)!"))
+		return s
+
+	}
+
+	return s
+}
+
 func changeMapToURLValues(data map[string]interface{}) url.Values {
 	var newUrlValues = url.Values{}
 	for k, v := range data {
@@ -753,7 +813,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 	// check if there is forced type
 	switch s.ForceType {
-	case "json", "form", "xml", "text":
+	case "json", "form", "xml", "text", "multipart":
 		s.TargetType = s.ForceType
 		// If forcetype is not set, check whether user set Content-Type header.
 		// If yes, also bounce to the correct supported TargetType automatically.
@@ -875,6 +935,61 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		} else if s.TargetType == "xml" {
 			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
 			req.Header.Set("Content-Type", "application/xml")
+		} else if s.TargetType == "multipart" {
+
+			var buf bytes.Buffer
+			mw := multipart.NewWriter(&buf)
+
+			// TODO else-if to separate if to send different stuff in one request
+
+			if s.BounceToRawString {
+				fieldName, ok := s.Header["data_fieldname"]
+				if !ok {
+					fieldName = "data"
+				}
+				fw, _ := mw.CreateFormField(fieldName)
+				fw.Write([]byte(s.RawString))
+			} else if len(s.Data) != 0 {
+				formData := changeMapToURLValues(s.Data)
+				for key, values := range formData {
+					for _, value := range values {
+						fw, _ := mw.CreateFormField(key)
+						fw.Write([]byte(value))
+					}
+				}
+			} else if len(s.SliceData) != 0 {
+				fieldName, ok := s.Header["json_fieldname"]
+				if !ok {
+					fieldName = "data"
+				}
+				// copied from CreateFormField() in mime/multipart/writer.go
+				h := make(textproto.MIMEHeader)
+				fieldName = strings.Replace(strings.Replace(fieldName, "\\", "\\\\", -1), `"`, "\\\"", -1)
+				h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"`, fieldName))
+				h.Set("Content-Type", "application/json")
+				fw, _ := mw.CreatePart(h)
+				contentJson, err := json.Marshal(s.SliceData)
+				if err != nil {
+					return nil, err
+				}
+				fw.Write(contentJson)
+			}
+
+			// add the files
+			if len(s.FileData) != 0 {
+				i := 0
+				for filename, file := range s.FileData {
+					fw, _ := mw.CreateFormFile(fmt.Sprintf("file%d", i), filename)
+					fw.Write(file)
+					i++
+				}
+			}
+
+			// close before call to FormDataContentType ! otherwise its not valid multipart
+			mw.Close()
+
+			req, err = http.NewRequest(s.Method, s.Url, &buf)
+			req.Header.Set("Content-Type", mw.FormDataContentType())
 		} else {
 			// let's return an error instead of an nil pointer exception here
 			return nil, errors.New("TargetType '" + s.TargetType + "' could not be determined")
