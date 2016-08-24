@@ -621,7 +621,7 @@ func (s *SuperAgent) SendFile(content interface{}, args ...string) *SuperAgent {
 	var err error
 
 	filename := "filename"
-	if len(args) > 0 {
+	if len(args) > 0 && len(args[0]) > 0 {
 		filename = args[0]
 	}
 
@@ -657,8 +657,6 @@ func (s *SuperAgent) SendFile(content interface{}, args ...string) *SuperAgent {
 		//}
 
 		s.Errors = append(s.Errors, errors.New("SendFile currently only supports either a string (path/to/file) or a slice of bytes (file content itself)!"))
-		return s
-
 	}
 
 	return s

@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"mime/multipart"
+
 	"github.com/elazarl/goproxy"
 )
 
@@ -577,6 +579,14 @@ func TestMultipartRequest(t *testing.T) {
 	const case8_integration_send_json_struct = "/integration_send_json_struct"
 	const case9_send_duplicate_query_params = "/send_duplicate_query_params"
 
+	const case10_send_file_by_path = "/send_file_by_path"
+	const case11_send_file_by_path_without_name = "/send_file_by_path_without_name"
+	const case12_send_file_by_content_without_name = "/send_file_by_content_without_name"
+	const case13_send_file_by_content_with_name = "/send_file_by_content_with_name"
+	const case14_send_file_multiple_by_path_and_content_without_name = "/send_file_multiple_by_path_and_content_without_name"
+	const case15_send_file_multiple_by_path_and_content_with_name = "/send_file_multiple_by_path_and_content_with_name"
+	const case16_integration_send_file_and_data = "/integration_send_file_and_data"
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is POST before going to check other features
 		if r.Method != POST {
@@ -697,8 +707,8 @@ func TestMultipartRequest(t *testing.T) {
 			if r.MultipartForm.Value["query1"][0] != "test" {
 				t.Error("Expected query1:test", "| but got", r.MultipartForm.Value["query1"][0])
 			}
-			if r.MultipartForm.Value["Hey"][0] != "hey" {
-				t.Error("Expected Hey:'hey'", "| but got", r.MultipartForm.Value["Hey"][0])
+			if r.MultipartForm.Value["hey"][0] != "hey" {
+				t.Error("Expected hey:'hey'", "| but got", r.MultipartForm.Value["Hey"][0])
 			}
 		case case9_send_duplicate_query_params:
 			if len(r.MultipartForm.Value["param"]) != 4 {
@@ -716,7 +726,167 @@ func TestMultipartRequest(t *testing.T) {
 			if r.MultipartForm.Value["param"][3] != "1" {
 				t.Error("Expected param:3:1", "| but got", r.MultipartForm.Value["param"][3])
 			}
+		case case10_send_file_by_path, case11_send_file_by_path_without_name, case13_send_file_by_content_with_name:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if r.MultipartForm.File["file0"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file0"][0].Filename)
+			}
+			if r.MultipartForm.File["file0"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file0"][0].Header["Content-Type"])
+			}
+			var infile multipart.File
+			infile, err = r.MultipartForm.File["file0"][0].Open()
+			if err != nil {
+				t.Error(err)
+			}
+			defer infile.Close()
+			b, err := ioutil.ReadAll(infile)
+			if err != nil {
+				t.Error(err)
+			}
+			if len(b) == 0 {
+				t.Error("Expected file-content > 0", "| but got", len(b), string(b))
+			}
+		case case12_send_file_by_content_without_name:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if r.MultipartForm.File["file0"][0].Filename != "filename" {
+				t.Error("Expected Filename:filename", "| but got", r.MultipartForm.File["file0"][0].Filename)
+			}
+			if r.MultipartForm.File["file0"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file0"][0].Header["Content-Type"])
+			}
+			var infile multipart.File
+			infile, err = r.MultipartForm.File["file0"][0].Open()
+			if err != nil {
+				t.Error(err)
+			}
+			defer infile.Close()
+			b, err := ioutil.ReadAll(infile)
+			if err != nil {
+				t.Error(err)
+			}
+			if len(b) == 0 {
+				t.Error("Expected file-content > 0", "| but got", len(b), string(b))
+			}
+		case case14_send_file_multiple_by_path_and_content_without_name:
+			if len(r.MultipartForm.File) != 2 {
+				t.Error("Expected length of files:[] == 2", "| but got", len(r.MultipartForm.File))
+			}
+			// depends on map iteration order
+			if r.MultipartForm.File["file0"][0].Filename != "LICENSE" && r.MultipartForm.File["file0"][0].Filename != "filename" {
+				t.Error("Expected Filename:LICENSE||filename", "| but got", r.MultipartForm.File["file0"][0].Filename)
+			}
+			if r.MultipartForm.File["file0"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file0"][0].Header["Content-Type"])
+			}
+			// depends on map iteration order
+			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" && r.MultipartForm.File["file1"][0].Filename != "filename" {
+				t.Error("Expected Filename:LICENSE||filename", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+			}
+			var infile multipart.File
+			infile, err = r.MultipartForm.File["file0"][0].Open()
+			if err != nil {
+				t.Error(err)
+			}
+			defer infile.Close()
+			b, err := ioutil.ReadAll(infile)
+			if err != nil {
+				t.Error(err)
+			}
+			if len(b) == 0 {
+				t.Error("Expected file-content > 0", "| but got", len(b), string(b))
+			}
+			infile, err = r.MultipartForm.File["file1"][0].Open()
+			if err != nil {
+				t.Error(err)
+			}
+			b, err = ioutil.ReadAll(infile)
+			if err != nil {
+				t.Error(err)
+			}
+			if len(b) == 0 {
+				t.Error("Expected file-content > 0", "| but got", len(b), string(b))
+			}
+		case case15_send_file_multiple_by_path_and_content_with_name:
+			if len(r.MultipartForm.File) != 2 {
+				t.Error("Expected length of files:[] == 2", "| but got", len(r.MultipartForm.File))
+			}
+			// depends on map iteration order
+			if r.MultipartForm.File["file0"][0].Filename != "LICENSE" && r.MultipartForm.File["file0"][0].Filename != "LICENSE2" {
+				t.Error("Expected Filename:LICENSE||LICENSE2", "| but got", r.MultipartForm.File["file0"][0].Filename)
+			}
+			if r.MultipartForm.File["file0"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file0"][0].Header["Content-Type"])
+			}
+			// depends on map iteration order
+			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" && r.MultipartForm.File["file1"][0].Filename != "LICENSE2" {
+				t.Error("Expected Filename:LICENSE||LICENSE2", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+			}
+			var infile multipart.File
+			infile, err = r.MultipartForm.File["file0"][0].Open()
+			if err != nil {
+				t.Error(err)
+			}
+			defer infile.Close()
+			b, err := ioutil.ReadAll(infile)
+			if err != nil {
+				t.Error(err)
+			}
+			if len(b) == 0 {
+				t.Error("Expected file-content > 0", "| but got", len(b), string(b))
+			}
+			infile, err = r.MultipartForm.File["file1"][0].Open()
+			if err != nil {
+				t.Error(err)
+			}
+			b, err = ioutil.ReadAll(infile)
+			if err != nil {
+				t.Error(err)
+			}
+			if len(b) == 0 {
+				t.Error("Expected file-content > 0", "| but got", len(b), string(b))
+			}
+		case case16_integration_send_file_and_data:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if r.MultipartForm.File["file0"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file0"][0].Filename)
+			}
+			if r.MultipartForm.File["file0"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file0"][0].Header["Content-Type"])
+			}
+			var infile multipart.File
+			infile, err = r.MultipartForm.File["file0"][0].Open()
+			if err != nil {
+				t.Error(err)
+			}
+			defer infile.Close()
+			b, err := ioutil.ReadAll(infile)
+			if err != nil {
+				t.Error(err)
+			}
+			if len(b) == 0 {
+				t.Error("Expected file-content > 0", "| but got", len(b), string(b))
+			}
+			if len(r.MultipartForm.Value["query1"]) != 1 {
+				t.Error("Expected length of query1:test == 1", "| but got", len(r.MultipartForm.Value["query1"]))
+			}
+			if r.MultipartForm.Value["query1"][0] != "test" {
+				t.Error("Expected query1:test", "| but got", r.MultipartForm.Value["query1"][0])
+			}
 		}
+
 	}))
 	defer ts.Close()
 
@@ -788,6 +958,45 @@ func TestMultipartRequest(t *testing.T) {
 		Send("param=1").
 		Send("param=2").
 		Send("param=3&param=4").
+		End()
+
+	New().Post(ts.URL + case10_send_file_by_path).
+		Type("multipart").
+		SendFile("./LICENSE").
+		End()
+
+	New().Post(ts.URL+case11_send_file_by_path_without_name).
+		Type("multipart").
+		SendFile("./LICENSE", "").
+		End()
+
+	b, _ := ioutil.ReadFile("./LICENSE")
+	New().Post(ts.URL + case12_send_file_by_content_without_name).
+		Type("multipart").
+		SendFile(b).
+		End()
+
+	New().Post(ts.URL+case13_send_file_by_content_with_name).
+		Type("multipart").
+		SendFile(b, "LICENSE").
+		End()
+
+	New().Post(ts.URL + case14_send_file_multiple_by_path_and_content_without_name).
+		Type("multipart").
+		SendFile("./LICENSE").
+		SendFile(b).
+		End()
+
+	New().Post(ts.URL+case15_send_file_multiple_by_path_and_content_with_name).
+		Type("multipart").
+		SendFile("./LICENSE").
+		SendFile(b, "LICENSE2").
+		End()
+
+	New().Post(ts.URL + case16_integration_send_file_and_data).
+		Type("multipart").
+		SendFile("./LICENSE").
+		Send("query1=test").
 		End()
 }
 
