@@ -56,7 +56,7 @@ type SuperAgent struct {
 	SliceData         []interface{}
 	FormData          url.Values
 	QueryData         url.Values
-	FileData          map[string][]byte
+	FileData          []File
 	BounceToRawString bool
 	RawString         string
 	Client            *http.Client
@@ -85,7 +85,7 @@ func New() *SuperAgent {
 		SliceData:         []interface{}{},
 		FormData:          url.Values{},
 		QueryData:         url.Values{},
-		FileData:          make(map[string][]byte),
+		FileData:          make([]File, 0),
 		BounceToRawString: false,
 		Client:            &http.Client{Jar: jar},
 		Transport:         &http.Transport{},
@@ -127,7 +127,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.SliceData = []interface{}{}
 	s.FormData = url.Values{}
 	s.QueryData = url.Values{}
-	s.FileData = make(map[string][]byte)
+	s.FileData = make([]File, 0)
 	s.BounceToRawString = false
 	s.RawString = ""
 	s.ForceType = ""
@@ -616,34 +616,62 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 	return s
 }
 
-func (s *SuperAgent) SendFile(content interface{}, args ...string) *SuperAgent {
+type File struct {
+	Filename  string
+	Fieldname string
+	Data      []byte
+}
 
-	var err error
+// TODO describe & examples
+// file either string as path to file or content of file in bytes
+func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 
 	filename := "filename"
-	if len(args) > 0 && len(args[0]) > 0 {
+	fieldname := "file"
+
+	if len(args) >= 1 && len(args[0]) > 0 {
 		filename = args[0]
 	}
+	if len(args) >= 2 && len(args[1]) > 0 {
+		fieldname = args[1]
+	}
+	if fieldname == "file" {
+		fieldname = "file" + strconv.Itoa(len(s.FileData)+1)
+	}
 
-	switch v := reflect.ValueOf(content); v.Kind() {
+	switch v := reflect.ValueOf(file); v.Kind() {
 	case reflect.String:
-		file, _ := filepath.Abs(v.String())
-		filename = filepath.Base(file)
-		s.FileData[filename], err = ioutil.ReadFile(v.String())
+		pathToFile, err := filepath.Abs(v.String())
 		if err != nil {
 			s.Errors = append(s.Errors, err)
 			return s
 		}
+		filename = filepath.Base(pathToFile)
+		data, err := ioutil.ReadFile(v.String())
+		if err != nil {
+			s.Errors = append(s.Errors, err)
+			return s
+		}
+		s.FileData = append(s.FileData, File{
+			Filename:  filename,
+			Fieldname: fieldname,
+			Data:      data,
+		})
 	case reflect.Slice:
 		slice := makeSliceOfReflectValue(v)
-		s.FileData[filename] = make([]byte, len(slice))
-		for i := range slice {
-			s.FileData[filename][i] = slice[i].(byte)
+		f := File{
+			Filename:  filename,
+			Fieldname: fieldname,
+			Data:      make([]byte, len(slice)),
 		}
+		for i := range slice {
+			f.Data[i] = slice[i].(byte)
+		}
+		s.FileData = append(s.FileData, f)
 	case reflect.Ptr:
 		s.SendFile(v.Elem().Interface())
 	default:
-		// TODO add File datatype
+		// TODO add os.File type
 		//if v.Type() == reflect.TypeOf(os.File{}) {
 		//	fmt.Println("osFile!")
 		//
@@ -938,8 +966,6 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			var buf bytes.Buffer
 			mw := multipart.NewWriter(&buf)
 
-			// TODO else-if to separate if to send different stuff in one request
-
 			if s.BounceToRawString {
 				fieldName, ok := s.Header["data_fieldname"]
 				if !ok {
@@ -947,7 +973,9 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 				}
 				fw, _ := mw.CreateFormField(fieldName)
 				fw.Write([]byte(s.RawString))
-			} else if len(s.Data) != 0 {
+			}
+
+			if len(s.Data) != 0 {
 				formData := changeMapToURLValues(s.Data)
 				for key, values := range formData {
 					for _, value := range values {
@@ -955,7 +983,9 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 						fw.Write([]byte(value))
 					}
 				}
-			} else if len(s.SliceData) != 0 {
+			}
+
+			if len(s.SliceData) != 0 {
 				fieldName, ok := s.Header["json_fieldname"]
 				if !ok {
 					fieldName = "data"
@@ -975,11 +1005,9 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 
 			// add the files
 			if len(s.FileData) != 0 {
-				i := 0
-				for filename, file := range s.FileData {
-					fw, _ := mw.CreateFormFile(fmt.Sprintf("file%d", i), filename)
-					fw.Write(file)
-					i++
+				for _, file := range s.FileData {
+					fw, _ := mw.CreateFormFile(file.Fieldname, file.Filename)
+					fw.Write(file.Data)
 				}
 			}
 
