@@ -626,7 +626,7 @@ type File struct {
 // file either string as path to file or content of file in bytes
 func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 
-	filename := "filename"
+	filename := ""
 	fieldname := "file"
 
 	if len(args) >= 1 && len(args[0]) > 0 {
@@ -646,7 +646,9 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 			s.Errors = append(s.Errors, err)
 			return s
 		}
-		filename = filepath.Base(pathToFile)
+		if filename == "" {
+			filename = filepath.Base(pathToFile)
+		}
 		data, err := ioutil.ReadFile(v.String())
 		if err != nil {
 			s.Errors = append(s.Errors, err)
@@ -659,6 +661,9 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 		})
 	case reflect.Slice:
 		slice := makeSliceOfReflectValue(v)
+		if filename == "" {
+			filename = "filename"
+		}
 		f := File{
 			Filename:  filename,
 			Fieldname: fieldname,
@@ -669,22 +674,33 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 		}
 		s.FileData = append(s.FileData, f)
 	case reflect.Ptr:
-		s.SendFile(v.Elem().Interface())
+		if len(args) == 1 {
+			return s.SendFile(v.Elem().Interface(), args[0])
+		}
+		if len(args) >= 2 {
+			return s.SendFile(v.Elem().Interface(), args[0], args[1])
+		}
+		return s.SendFile(v.Elem().Interface())
 	default:
-		// TODO add os.File type
-		//if v.Type() == reflect.TypeOf(os.File{}) {
-		//	fmt.Println("osFile!")
-		//
-		//	fmt.Printf("file %v\r\n", v.Kind())
-		//
-		//	f := os.File{}
-		//
-		//	//FileData[filename], err = ioutil.ReadFile(v.String())
-		//
-		//	return err
-		//}
+		if v.Type() == reflect.TypeOf(os.File{}) {
+			osfile := v.Interface().(os.File)
+			if filename == "" {
+				filename = filepath.Base(osfile.Name())
+			}
+			data, err := ioutil.ReadFile(osfile.Name())
+			if err != nil {
+				s.Errors = append(s.Errors, err)
+				return s
+			}
+			s.FileData = append(s.FileData, File{
+				Filename:  filename,
+				Fieldname: fieldname,
+				Data:      data,
+			})
+			return s
+		}
 
-		s.Errors = append(s.Errors, errors.New("SendFile currently only supports either a string (path/to/file) or a slice of bytes (file content itself)!"))
+		s.Errors = append(s.Errors, errors.New("SendFile currently only supports either a string (path/to/file), a slice of bytes (file content itself), or a os.File!"))
 	}
 
 	return s
