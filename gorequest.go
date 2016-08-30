@@ -19,6 +19,14 @@ import (
 	"strings"
 	"time"
 
+	"mime/multipart"
+
+	"net/textproto"
+
+	"fmt"
+
+	"path/filepath"
+
 	"github.com/moul/http2curl"
 	"golang.org/x/net/publicsuffix"
 )
@@ -48,6 +56,7 @@ type SuperAgent struct {
 	SliceData         []interface{}
 	FormData          url.Values
 	QueryData         url.Values
+	FileData          []File
 	BounceToRawString bool
 	RawString         string
 	Client            *http.Client
@@ -76,6 +85,7 @@ func New() *SuperAgent {
 		SliceData:         []interface{}{},
 		FormData:          url.Values{},
 		QueryData:         url.Values{},
+		FileData:          make([]File, 0),
 		BounceToRawString: false,
 		Client:            &http.Client{Jar: jar},
 		Transport:         &http.Transport{},
@@ -117,6 +127,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.SliceData = []interface{}{}
 	s.FormData = url.Values{}
 	s.QueryData = url.Values{}
+	s.FileData = make([]File, 0)
 	s.BounceToRawString = false
 	s.RawString = ""
 	s.ForceType = ""
@@ -251,6 +262,7 @@ var Types = map[string]string{
 	"urlencoded": "application/x-www-form-urlencoded",
 	"form":       "application/x-www-form-urlencoded",
 	"form-data":  "application/x-www-form-urlencoded",
+	"multipart":  "multipart/form-data",
 }
 
 // Type is a convenience function to specify the data type to send.
@@ -604,6 +616,141 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 	return s
 }
 
+type File struct {
+	Filename  string
+	Fieldname string
+	Data      []byte
+}
+
+// SendFile function works only with type "multipart". The function accepts one mandatory and up to two optional arguments. The mandatory (first) argument is the file.
+// The function accepts a path to a file as string:
+//
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile("./example_file.ext").
+//        End()
+//
+// File can also be a []byte slice of a already file read by eg. ioutil.ReadFile:
+//
+//      b, _ := ioutil.ReadFile("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(b).
+//        End()
+//
+// Furthermore file can also be a os.File:
+//
+//      f, _ := os.Open("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(f).
+//        End()
+//
+// The first optional argument (second argument overall) is the filename, which will be automatically determined when file is a string (path) or a os.File.
+// When file is a []byte slice, filename defaults to "filename". In all cases the automatically determined filename can be overwritten:
+//
+//      b, _ := ioutil.ReadFile("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(b, "my_custom_filename").
+//        End()
+//
+// The second optional argument (third argument overall) is the fieldname in the multipart/form-data request. It defaults to fileNUMBER (eg. file1), where number is ascending and starts counting at 1.
+// So if you send multiple files, the fieldnames will be file1, file2, ... unless it is overwritten. If fieldname is set to "file" it will be automatically set to fileNUMBER, where number is the greatest exsiting number+1.
+//
+//      b, _ := ioutil.ReadFile("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(b, "", "my_custom_fieldname"). // filename left blank, will become "example_file.ext"
+//        End()
+//
+func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
+
+	filename := ""
+	fieldname := "file"
+
+	if len(args) >= 1 && len(args[0]) > 0 {
+		filename = strings.TrimSpace(args[0])
+	}
+	if len(args) >= 2 && len(args[1]) > 0 {
+		fieldname = strings.TrimSpace(args[1])
+	}
+	if fieldname == "file" || fieldname == "" {
+		fieldname = "file" + strconv.Itoa(len(s.FileData)+1)
+	}
+
+	switch v := reflect.ValueOf(file); v.Kind() {
+	case reflect.String:
+		pathToFile, err := filepath.Abs(v.String())
+		if err != nil {
+			s.Errors = append(s.Errors, err)
+			return s
+		}
+		if filename == "" {
+			filename = filepath.Base(pathToFile)
+		}
+		data, err := ioutil.ReadFile(v.String())
+		if err != nil {
+			s.Errors = append(s.Errors, err)
+			return s
+		}
+		s.FileData = append(s.FileData, File{
+			Filename:  filename,
+			Fieldname: fieldname,
+			Data:      data,
+		})
+	case reflect.Slice:
+		slice := makeSliceOfReflectValue(v)
+		if filename == "" {
+			filename = "filename"
+		}
+		f := File{
+			Filename:  filename,
+			Fieldname: fieldname,
+			Data:      make([]byte, len(slice)),
+		}
+		for i := range slice {
+			f.Data[i] = slice[i].(byte)
+		}
+		s.FileData = append(s.FileData, f)
+	case reflect.Ptr:
+		if len(args) == 1 {
+			return s.SendFile(v.Elem().Interface(), args[0])
+		}
+		if len(args) >= 2 {
+			return s.SendFile(v.Elem().Interface(), args[0], args[1])
+		}
+		return s.SendFile(v.Elem().Interface())
+	default:
+		if v.Type() == reflect.TypeOf(os.File{}) {
+			osfile := v.Interface().(os.File)
+			if filename == "" {
+				filename = filepath.Base(osfile.Name())
+			}
+			data, err := ioutil.ReadFile(osfile.Name())
+			if err != nil {
+				s.Errors = append(s.Errors, err)
+				return s
+			}
+			s.FileData = append(s.FileData, File{
+				Filename:  filename,
+				Fieldname: fieldname,
+				Data:      data,
+			})
+			return s
+		}
+
+		s.Errors = append(s.Errors, errors.New("SendFile currently only supports either a string (path/to/file), a slice of bytes (file content itself), or a os.File!"))
+	}
+
+	return s
+}
+
 func changeMapToURLValues(data map[string]interface{}) url.Values {
 	var newUrlValues = url.Values{}
 	for k, v := range data {
@@ -753,7 +900,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 	// check if there is forced type
 	switch s.ForceType {
-	case "json", "form", "xml", "text":
+	case "json", "form", "xml", "text", "multipart":
 		s.TargetType = s.ForceType
 		// If forcetype is not set, check whether user set Content-Type header.
 		// If yes, also bounce to the correct supported TargetType automatically.
@@ -875,6 +1022,61 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		} else if s.TargetType == "xml" {
 			req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
 			req.Header.Set("Content-Type", "application/xml")
+		} else if s.TargetType == "multipart" {
+
+			var buf bytes.Buffer
+			mw := multipart.NewWriter(&buf)
+
+			if s.BounceToRawString {
+				fieldName, ok := s.Header["data_fieldname"]
+				if !ok {
+					fieldName = "data"
+				}
+				fw, _ := mw.CreateFormField(fieldName)
+				fw.Write([]byte(s.RawString))
+			}
+
+			if len(s.Data) != 0 {
+				formData := changeMapToURLValues(s.Data)
+				for key, values := range formData {
+					for _, value := range values {
+						fw, _ := mw.CreateFormField(key)
+						fw.Write([]byte(value))
+					}
+				}
+			}
+
+			if len(s.SliceData) != 0 {
+				fieldName, ok := s.Header["json_fieldname"]
+				if !ok {
+					fieldName = "data"
+				}
+				// copied from CreateFormField() in mime/multipart/writer.go
+				h := make(textproto.MIMEHeader)
+				fieldName = strings.Replace(strings.Replace(fieldName, "\\", "\\\\", -1), `"`, "\\\"", -1)
+				h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"`, fieldName))
+				h.Set("Content-Type", "application/json")
+				fw, _ := mw.CreatePart(h)
+				contentJson, err := json.Marshal(s.SliceData)
+				if err != nil {
+					return nil, err
+				}
+				fw.Write(contentJson)
+			}
+
+			// add the files
+			if len(s.FileData) != 0 {
+				for _, file := range s.FileData {
+					fw, _ := mw.CreateFormFile(file.Fieldname, file.Filename)
+					fw.Write(file.Data)
+				}
+			}
+
+			// close before call to FormDataContentType ! otherwise its not valid multipart
+			mw.Close()
+
+			req, err = http.NewRequest(s.Method, s.Url, &buf)
+			req.Header.Set("Content-Type", mw.FormDataContentType())
 		} else {
 			// let's return an error instead of an nil pointer exception here
 			return nil, errors.New("TargetType '" + s.TargetType + "' could not be determined")

@@ -15,12 +15,27 @@ import (
 	"testing"
 	"time"
 
+	"mime/multipart"
+
+	"os"
+
 	"github.com/elazarl/goproxy"
 )
 
 type (
 	heyYou struct {
 		Hey string `json:"hey"`
+	}
+	testStruct struct {
+		String      string
+		Int         int
+		Btrue       bool
+		Bfalse      bool
+		Float       float64
+		StringArray []string
+		IntArray    []int
+		BoolArray   []bool
+		FloatArray  []float64
 	}
 )
 
@@ -389,7 +404,7 @@ func TestPost(t *testing.T) {
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			sbody := string(body)
-			if sbody != "param=4&param=3&param=2&param=1"   {
+			if sbody != "param=4&param=3&param=2&param=1" {
 				t.Error("Expected Body \"param=4&param=3&param=2&param=1\"", "| but got", sbody)
 			}
 			values, _ := url.ParseQuery(sbody)
@@ -401,7 +416,6 @@ func TestPost(t *testing.T) {
 			}
 		}
 	}))
-
 	defer ts.Close()
 
 	New().Post(ts.URL + case1_empty).
@@ -467,19 +481,7 @@ func TestPost(t *testing.T) {
 		Send(`{"id":123456789, "name":"nemo"}`).
 		End()
 
-	type TestStruct struct {
-		String      string
-		Int         int
-		Btrue       bool
-		Bfalse      bool
-		Float       float64
-		StringArray []string
-		IntArray    []int
-		BoolArray   []bool
-		FloatArray  []float64
-	}
-
-	payload := TestStruct{
+	payload := testStruct{
 		String:      "a string",
 		Int:         42,
 		Btrue:       true,
@@ -562,6 +564,574 @@ func TestPost(t *testing.T) {
 		Send("param=1").
 		Send("param=2").
 		Send("param=3&param=4").
+		End()
+}
+
+func checkFile(t *testing.T, fileheader *multipart.FileHeader) {
+	infile, err := fileheader.Open()
+	if err != nil {
+		t.Error(err)
+	}
+	defer infile.Close()
+	b, err := ioutil.ReadAll(infile)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(b) == 0 {
+		t.Error("Expected file-content > 0", "| but got", len(b), string(b))
+	}
+}
+
+// testing for POST-Request of Type multipart
+func TestMultipartRequest(t *testing.T) {
+
+	const case0_send_not_supported_filetype = "/send_not_supported_filetype"
+	const case1_send_string = "/send_string"
+	const case2_send_json = "/send_json"
+	const case3_integration_send_json_string = "/integration_send_json_string"
+	const case4_set_query = "/set_query"
+	const case5_send_struct = "/send_struct"
+	const case6_send_slice_string = "/send_slice_string"
+	const case6_send_slice_string_with_custom_fieldname = "/send_slice_string_with_custom_fieldname"
+	const case7_send_array = "/send_array"
+	const case8_integration_send_json_struct = "/integration_send_json_struct"
+	const case9_send_duplicate_query_params = "/send_duplicate_query_params"
+
+	const case10_send_file_by_path = "/send_file_by_path"
+	const case10a_send_file_by_path_with_name = "/send_file_by_path_with_name"
+	const case10b_send_file_by_path_pointer = "/send_file_by_path_pointer"
+	const case11_send_file_by_path_without_name = "/send_file_by_path_without_name"
+	const case12_send_file_by_path_without_name_but_with_fieldname = "/send_file_by_path_without_name_but_with_fieldname"
+
+	const case13_send_file_by_content_without_name = "/send_file_by_content_without_name"
+	const case13a_send_file_by_content_without_name_pointer = "/send_file_by_content_without_name_pointer"
+	const case14_send_file_by_content_with_name = "/send_file_by_content_with_name"
+
+	const case15_send_file_by_content_without_name_but_with_fieldname = "/send_file_by_content_without_name_but_with_fieldname"
+	const case16_send_file_by_content_with_name_and_with_fieldname = "/send_file_by_content_with_name_and_with_fieldname"
+
+	const case17_send_file_multiple_by_path_and_content_without_name = "/send_file_multiple_by_path_and_content_without_name"
+	const case18_send_file_multiple_by_path_and_content_with_name = "/send_file_multiple_by_path_and_content_with_name"
+	const case19_integration_send_file_and_data = "/integration_send_file_and_data"
+
+	const case20_send_file_as_osfile = "/send_file_as_osfile"
+	const case21_send_file_as_osfile_with_name = "/send_file_as_osfile_with_name"
+	const case22_send_file_as_osfile_with_name_and_with_fieldname = "/send_file_as_osfile_with_name_and_with_fieldname"
+
+	const case23_send_file_with_file_as_fieldname = "/send_file_with_file_as_fieldname"
+	const case24_send_file_with_name_with_spaces = "/send_file_with_name_with_spaces"
+	const case25_send_file_with_name_with_spaces_only = "/send_file_with_name_with_spaces_only"
+	const case26_send_file_with_fieldname_with_spaces = "/send_file_with_fieldname_with_spaces"
+	const case27_send_file_with_fieldname_with_spaces_only = "/send_file_with_fieldname_with_spaces_only"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is POST before going to check other features
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
+			t.Error("Expected Header Content-Type -> multipart/form-data", "| but got", r.Header.Get("Content-Type"))
+		}
+		const _24K = (1 << 20) * 24
+		err := r.ParseMultipartForm(_24K)
+		if err != nil {
+			t.Errorf("Error: %v", err)
+		}
+		t.Logf("case %v ", r.URL.Path)
+		switch r.URL.Path {
+		default:
+			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case0_send_not_supported_filetype:
+			// will be handled at place
+		case case1_send_string, case2_send_json, case3_integration_send_json_string:
+			if len(r.MultipartForm.Value["query1"]) != 1 {
+				t.Error("Expected length of query1:test == 1", "| but got", len(r.MultipartForm.Value["query1"]))
+			}
+			if r.MultipartForm.Value["query1"][0] != "test" {
+				t.Error("Expected query1:test", "| but got", r.MultipartForm.Value["query1"][0])
+			}
+			if len(r.MultipartForm.Value["query2"]) != 1 {
+				t.Error("Expected length of query2:test == 1", "| but got", len(r.MultipartForm.Value["query2"]))
+			}
+			if r.MultipartForm.Value["query2"][0] != "test" {
+				t.Error("Expected query2:test", "| but got", r.MultipartForm.Value["query2"][0])
+			}
+		case case4_set_query:
+			v := r.URL.Query()
+			if v["query1"][0] != "test" {
+				t.Error("Expected query1:test", "| but got", v["query1"][0])
+			}
+			if v["query2"][0] != "test" {
+				t.Error("Expected query2:test", "| but got", v["query2"][0])
+			}
+			if val, ok := r.MultipartForm.Value["query1"]; ok {
+				t.Error("Expected no value", "| but got", val)
+			}
+			if val, ok := r.MultipartForm.Value["query2"]; ok {
+				t.Error("Expected no value", "| but got", val)
+			}
+		case case5_send_struct:
+			if r.MultipartForm.Value["String"][0] != "a string" {
+				t.Error("Expected String:'a string'", "| but got", r.MultipartForm.Value["String"][0])
+			}
+			if r.MultipartForm.Value["Int"][0] != "42" {
+				t.Error("Expected Int:42", "| but got", r.MultipartForm.Value["Int"][0])
+			}
+			if r.MultipartForm.Value["Btrue"][0] != "true" {
+				t.Error("Expected Btrue:true", "| but got", r.MultipartForm.Value["Btrue"][0])
+			}
+			if r.MultipartForm.Value["Bfalse"][0] != "false" {
+				t.Error("Expected Btrue:false", "| but got", r.MultipartForm.Value["Bfalse"][0])
+			}
+			if r.MultipartForm.Value["Float"][0] != "12.345" {
+				t.Error("Expected Float:12.345", "| but got", r.MultipartForm.Value["Float"][0])
+			}
+			if len(r.MultipartForm.Value["StringArray"]) != 2 {
+				t.Error("Expected length of StringArray:2", "| but got", len(r.MultipartForm.Value["StringArray"]))
+			}
+			if r.MultipartForm.Value["StringArray"][0] != "string1" {
+				t.Error("Expected StringArray:string1", "| but got", r.MultipartForm.Value["StringArray"][0])
+			}
+			if r.MultipartForm.Value["StringArray"][1] != "string2" {
+				t.Error("Expected StringArray:string2", "| but got", r.MultipartForm.Value["StringArray"][1])
+			}
+			if len(r.MultipartForm.Value["IntArray"]) != 2 {
+				t.Error("Expected length of IntArray:2", "| but got", len(r.MultipartForm.Value["IntArray"]))
+			}
+			if r.MultipartForm.Value["IntArray"][0] != "1" {
+				t.Error("Expected IntArray:1", "| but got", r.MultipartForm.Value["IntArray"][0])
+			}
+			if r.MultipartForm.Value["IntArray"][1] != "2" {
+				t.Error("Expected IntArray:2", "| but got", r.MultipartForm.Value["IntArray"][1])
+			}
+			if len(r.MultipartForm.Value["BoolArray"]) != 2 {
+				t.Error("Expected length of BoolArray:2", "| but got", len(r.MultipartForm.Value["BoolArray"]))
+			}
+			if r.MultipartForm.Value["BoolArray"][0] != "true" {
+				t.Error("Expected BoolArray:true", "| but got", r.MultipartForm.Value["BoolArray"][0])
+			}
+			if r.MultipartForm.Value["BoolArray"][1] != "false" {
+				t.Error("Expected BoolArray:false", "| but got", r.MultipartForm.Value["BoolArray"][1])
+			}
+			if len(r.MultipartForm.Value["FloatArray"]) != 3 {
+				t.Error("Expected length of FloatArray:3", "| but got", len(r.MultipartForm.Value["FloatArray"]))
+			}
+			if r.MultipartForm.Value["FloatArray"][0] != "1.23" {
+				t.Error("Expected FloatArray:1.23", "| but got", r.MultipartForm.Value["FloatArray"][0])
+			}
+			if r.MultipartForm.Value["FloatArray"][1] != "4.56" {
+				t.Error("Expected FloatArray:4.56", "| but got", r.MultipartForm.Value["FloatArray"][1])
+			}
+			if r.MultipartForm.Value["FloatArray"][2] != "7.89" {
+				t.Error("Expected FloatArray:7.89", "| but got", r.MultipartForm.Value["FloatArray"][2])
+			}
+		case case6_send_slice_string, case7_send_array:
+			if len(r.MultipartForm.Value["data"]) != 1 {
+				t.Error("Expected length of data:JSON == 1", "| but got", len(r.MultipartForm.Value["data"]))
+			}
+			if r.MultipartForm.Value["data"][0] != `["string1","string2"]` {
+				t.Error(`Expected 'data' with ["string1","string2"]`, "| but got", r.MultipartForm.Value["data"][0])
+			}
+		case case6_send_slice_string_with_custom_fieldname:
+			if len(r.MultipartForm.Value["my_custom_data"]) != 1 {
+				t.Error("Expected length of my_custom_data:JSON == 1", "| but got", len(r.MultipartForm.Value["my_custom_data"]))
+			}
+			if r.MultipartForm.Value["my_custom_data"][0] != `["string1","string2"]` {
+				t.Error(`Expected 'my_custom_data' with ["string1","string2"]`, "| but got", r.MultipartForm.Value["my_custom_data"][0])
+			}
+		case case8_integration_send_json_struct:
+			if len(r.MultipartForm.Value["query1"]) != 1 {
+				t.Error("Expected length of query1:test == 1", "| but got", len(r.MultipartForm.Value["query1"]))
+			}
+			if r.MultipartForm.Value["query1"][0] != "test" {
+				t.Error("Expected query1:test", "| but got", r.MultipartForm.Value["query1"][0])
+			}
+			if r.MultipartForm.Value["hey"][0] != "hey" {
+				t.Error("Expected hey:'hey'", "| but got", r.MultipartForm.Value["Hey"][0])
+			}
+		case case9_send_duplicate_query_params:
+			if len(r.MultipartForm.Value["param"]) != 4 {
+				t.Error("Expected length of param:[] == 4", "| but got", len(r.MultipartForm.Value["param"]))
+			}
+			if r.MultipartForm.Value["param"][0] != "4" {
+				t.Error("Expected param:0:4", "| but got", r.MultipartForm.Value["param"][0])
+			}
+			if r.MultipartForm.Value["param"][1] != "3" {
+				t.Error("Expected param:1:3", "| but got", r.MultipartForm.Value["param"][1])
+			}
+			if r.MultipartForm.Value["param"][2] != "2" {
+				t.Error("Expected param:2:2", "| but got", r.MultipartForm.Value["param"][2])
+			}
+			if r.MultipartForm.Value["param"][3] != "1" {
+				t.Error("Expected param:3:1", "| but got", r.MultipartForm.Value["param"][3])
+			}
+		case case10_send_file_by_path, case11_send_file_by_path_without_name, case14_send_file_by_content_with_name, case20_send_file_as_osfile:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+			}
+			checkFile(t, r.MultipartForm.File["file1"][0])
+		case case10a_send_file_by_path_with_name, case10b_send_file_by_path_pointer, case21_send_file_as_osfile_with_name:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if r.MultipartForm.File["file1"][0].Filename != "MY_LICENSE" {
+				t.Error("Expected Filename:MY_LICENSE", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+		case case12_send_file_by_path_without_name_but_with_fieldname:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if _, ok := r.MultipartForm.File["my_fieldname"]; !ok {
+				keys := reflect.ValueOf(r.MultipartForm.File).MapKeys()
+				t.Error("Expected Fieldname:my_fieldname", "| but got", keys)
+			}
+			if r.MultipartForm.File["my_fieldname"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
+			}
+			if r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"])
+			}
+			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
+		case case13_send_file_by_content_without_name, case13a_send_file_by_content_without_name_pointer:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if r.MultipartForm.File["file1"][0].Filename != "filename" {
+				t.Error("Expected Filename:filename", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+			}
+			checkFile(t, r.MultipartForm.File["file1"][0])
+		case case15_send_file_by_content_without_name_but_with_fieldname:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if _, ok := r.MultipartForm.File["my_fieldname"]; !ok {
+				keys := reflect.ValueOf(r.MultipartForm.File).MapKeys()
+				t.Error("Expected Fieldname:my_fieldname", "| but got", keys)
+			}
+			if r.MultipartForm.File["my_fieldname"][0].Filename != "filename" {
+				t.Error("Expected Filename:filename", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
+			}
+			if r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"])
+			}
+			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
+		case case16_send_file_by_content_with_name_and_with_fieldname, case22_send_file_as_osfile_with_name_and_with_fieldname:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if _, ok := r.MultipartForm.File["my_fieldname"]; !ok {
+				keys := reflect.ValueOf(r.MultipartForm.File).MapKeys()
+				t.Error("Expected Fieldname:my_fieldname", "| but got", keys)
+			}
+			if r.MultipartForm.File["my_fieldname"][0].Filename != "MY_LICENSE" {
+				t.Error("Expected Filename:MY_LICENSE", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
+			}
+			if r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"])
+			}
+			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
+		case case17_send_file_multiple_by_path_and_content_without_name:
+			if len(r.MultipartForm.File) != 2 {
+				t.Error("Expected length of files:[] == 2", "| but got", len(r.MultipartForm.File))
+			}
+			// depends on map iteration order
+			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" && r.MultipartForm.File["file1"][0].Filename != "filename" {
+				t.Error("Expected Filename:LICENSE||filename", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+			}
+			// depends on map iteration order
+			if r.MultipartForm.File["file2"][0].Filename != "LICENSE" && r.MultipartForm.File["file2"][0].Filename != "filename" {
+				t.Error("Expected Filename:LICENSE||filename", "| but got", r.MultipartForm.File["file2"][0].Filename)
+			}
+			if r.MultipartForm.File["file2"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file2"][0].Header["Content-Type"])
+			}
+			checkFile(t, r.MultipartForm.File["file1"][0])
+			checkFile(t, r.MultipartForm.File["file2"][0])
+		case case18_send_file_multiple_by_path_and_content_with_name:
+			if len(r.MultipartForm.File) != 2 {
+				t.Error("Expected length of files:[] == 2", "| but got", len(r.MultipartForm.File))
+			}
+			// depends on map iteration order
+			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" && r.MultipartForm.File["file1"][0].Filename != "MY_LICENSE" {
+				t.Error("Expected Filename:LICENSE||MY_LICENSE", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+			}
+			// depends on map iteration order
+			if r.MultipartForm.File["file2"][0].Filename != "LICENSE" && r.MultipartForm.File["file2"][0].Filename != "MY_LICENSE" {
+				t.Error("Expected Filename:LICENSE||MY_LICENSE", "| but got", r.MultipartForm.File["file2"][0].Filename)
+			}
+			if r.MultipartForm.File["file2"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file2"][0].Header["Content-Type"])
+			}
+			checkFile(t, r.MultipartForm.File["file1"][0])
+			checkFile(t, r.MultipartForm.File["file2"][0])
+		case case19_integration_send_file_and_data:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
+				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+			}
+			checkFile(t, r.MultipartForm.File["file1"][0])
+			if len(r.MultipartForm.Value["query1"]) != 1 {
+				t.Error("Expected length of query1:test == 1", "| but got", len(r.MultipartForm.Value["query1"]))
+			}
+			if r.MultipartForm.Value["query1"][0] != "test" {
+				t.Error("Expected query1:test", "| but got", r.MultipartForm.Value["query1"][0])
+			}
+		case case23_send_file_with_file_as_fieldname:
+			if len(r.MultipartForm.File) != 2 {
+				t.Error("Expected length of files:[] == 2", "| but got", len(r.MultipartForm.File))
+			}
+			if val, ok := r.MultipartForm.File["file1"]; !ok {
+				t.Error("Expected file with key: file1", "| but got ", val)
+			}
+			if val, ok := r.MultipartForm.File["file2"]; !ok {
+				t.Error("Expected file with key: file2", "| but got ", val)
+			}
+			if r.MultipartForm.File["file1"][0].Filename != "b.file" {
+				t.Error("Expected Filename:b.file", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+			if r.MultipartForm.File["file2"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file2"][0].Filename)
+			}
+			checkFile(t, r.MultipartForm.File["file1"][0])
+			checkFile(t, r.MultipartForm.File["file2"][0])
+		case case24_send_file_with_name_with_spaces, case25_send_file_with_name_with_spaces_only, case27_send_file_with_fieldname_with_spaces_only:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if val, ok := r.MultipartForm.File["file1"]; !ok {
+				t.Error("Expected file with key: file1", "| but got ", val)
+			}
+			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+			checkFile(t, r.MultipartForm.File["file1"][0])
+		case case26_send_file_with_fieldname_with_spaces:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if val, ok := r.MultipartForm.File["my_fieldname"]; !ok {
+				t.Error("Expected file with key: my_fieldname", "| but got ", val)
+			}
+			if r.MultipartForm.File["my_fieldname"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
+			}
+			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
+		}
+
+	}))
+	defer ts.Close()
+
+	// "the zero case"
+	t.Logf("case %v ", case0_send_not_supported_filetype)
+	_, _, errs := New().Post(ts.URL + case0_send_not_supported_filetype).
+		Type("multipart").
+		SendFile(42).
+		End()
+
+	if len(errs) == 0 {
+		t.Errorf("Expected error, but got nothing: %v", errs)
+	}
+
+	New().Post(ts.URL + case1_send_string).
+		Type("multipart").
+		Send("query1=test").
+		Send("query2=test").
+		End()
+
+	New().Post(ts.URL + case2_send_json).
+		Type("multipart").
+		Send(`{"query1":"test"}`).
+		Send(`{"query2":"test"}`).
+		End()
+
+	New().Post(ts.URL + case3_integration_send_json_string).
+		Type("multipart").
+		Send("query1=test").
+		Send(`{"query2":"test"}`).
+		End()
+
+	New().Post(ts.URL + case4_set_query).
+		Type("multipart").
+		Query("query1=test").
+		Query("query2=test").
+		End()
+
+	New().Post(ts.URL + case5_send_struct).
+		Type("multipart").
+		Send(testStruct{
+			String:      "a string",
+			Int:         42,
+			Btrue:       true,
+			Bfalse:      false,
+			Float:       12.345,
+			StringArray: []string{"string1", "string2"},
+			IntArray:    []int{1, 2},
+			BoolArray:   []bool{true, false},
+			FloatArray:  []float64{1.23, 4.56, 7.89},
+		}).
+		End()
+
+	New().Post(ts.URL + case6_send_slice_string).
+		Type("multipart").
+		Send([]string{"string1", "string2"}).
+		End()
+
+	New().Post(ts.URL+case6_send_slice_string_with_custom_fieldname).
+		Type("multipart").
+		Set("json_fieldname", "my_custom_data").
+		Send([]string{"string1", "string2"}).
+		End()
+
+	New().Post(ts.URL + case7_send_array).
+		Type("multipart").
+		Send([2]string{"string1", "string2"}).
+		End()
+
+	New().Post(ts.URL + case8_integration_send_json_struct).
+		Type("multipart").
+		Send(`{"query1":"test"}`).
+		Send(heyYou{
+			Hey: "hey",
+		}).
+		End()
+
+	New().Post(ts.URL + case9_send_duplicate_query_params).
+		Type("multipart").
+		Send("param=1").
+		Send("param=2").
+		Send("param=3&param=4").
+		End()
+
+	fileByPath := "./LICENSE"
+	New().Post(ts.URL + case10_send_file_by_path).
+		Type("multipart").
+		SendFile(fileByPath).
+		End()
+
+	New().Post(ts.URL+case10a_send_file_by_path_with_name).
+		Type("multipart").
+		SendFile(fileByPath, "MY_LICENSE").
+		End()
+
+	New().Post(ts.URL+case10b_send_file_by_path_pointer).
+		Type("multipart").
+		SendFile(&fileByPath, "MY_LICENSE").
+		End()
+
+	New().Post(ts.URL+case11_send_file_by_path_without_name).
+		Type("multipart").
+		SendFile(fileByPath, "").
+		End()
+
+	New().Post(ts.URL+case12_send_file_by_path_without_name_but_with_fieldname).
+		Type("multipart").
+		SendFile(fileByPath, "", "my_fieldname").
+		End()
+
+	b, _ := ioutil.ReadFile("./LICENSE")
+	New().Post(ts.URL + case13_send_file_by_content_without_name).
+		Type("multipart").
+		SendFile(b).
+		End()
+
+	New().Post(ts.URL + case13a_send_file_by_content_without_name_pointer).
+		Type("multipart").
+		SendFile(&b).
+		End()
+
+	New().Post(ts.URL+case14_send_file_by_content_with_name).
+		Type("multipart").
+		SendFile(b, "LICENSE").
+		End()
+
+	New().Post(ts.URL+case15_send_file_by_content_without_name_but_with_fieldname).
+		Type("multipart").
+		SendFile(b, "", "my_fieldname").
+		End()
+
+	New().Post(ts.URL+case16_send_file_by_content_with_name_and_with_fieldname).
+		Type("multipart").
+		SendFile(b, "MY_LICENSE", "my_fieldname").
+		End()
+
+	New().Post(ts.URL + case17_send_file_multiple_by_path_and_content_without_name).
+		Type("multipart").
+		SendFile("./LICENSE").
+		SendFile(b).
+		End()
+
+	New().Post(ts.URL+case18_send_file_multiple_by_path_and_content_with_name).
+		Type("multipart").
+		SendFile("./LICENSE").
+		SendFile(b, "MY_LICENSE").
+		End()
+
+	New().Post(ts.URL + case19_integration_send_file_and_data).
+		Type("multipart").
+		SendFile("./LICENSE").
+		Send("query1=test").
+		End()
+
+	osFile, _ := os.Open("./LICENSE")
+	New().Post(ts.URL + case20_send_file_as_osfile).
+		Type("multipart").
+		SendFile(osFile).
+		End()
+
+	New().Post(ts.URL+case21_send_file_as_osfile_with_name).
+		Type("multipart").
+		SendFile(osFile, "MY_LICENSE").
+		End()
+
+	New().Post(ts.URL+case22_send_file_as_osfile_with_name_and_with_fieldname).
+		Type("multipart").
+		SendFile(osFile, "MY_LICENSE", "my_fieldname").
+		End()
+
+	New().Post(ts.URL+case23_send_file_with_file_as_fieldname).
+		Type("multipart").
+		SendFile(b, "b.file").
+		SendFile(osFile, "", "file").
+		End()
+
+	New().Post(ts.URL+case24_send_file_with_name_with_spaces).
+		Type("multipart").
+		SendFile(osFile, " LICENSE  ").
+		End()
+
+	New().Post(ts.URL+case25_send_file_with_name_with_spaces_only).
+		Type("multipart").
+		SendFile(osFile, "   ").
+		End()
+
+	New().Post(ts.URL+case26_send_file_with_fieldname_with_spaces).
+		Type("multipart").
+		SendFile(osFile, "", " my_fieldname  ").
+		End()
+
+	New().Post(ts.URL+case27_send_file_with_fieldname_with_spaces_only).
+		Type("multipart").
+		SendFile(osFile, "", "   ").
 		End()
 }
 
@@ -676,12 +1246,12 @@ func TestQueryFunc(t *testing.T) {
 		End()
 
 	New().Post(ts.URL + case3_send_string_with_duplicates).
-	  Query("query1=test1").
-	  Query("query2=test2").
-	  Query("param=1").
-	  Query("param=2").
-	  Query("param=3&param=4").
-	  End()
+		Query("query1=test1").
+		Query("query2=test2").
+		Query("param=1").
+		Query("param=2").
+		Query("param=3&param=4").
+		End()
 }
 
 // TODO: more tests on redirect

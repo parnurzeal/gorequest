@@ -12,6 +12,7 @@ Sending request would never been fun and easier than this. It comes with lots of
 * Get/Post/Put/Head/Delete/Patch/Options
 * Set - simple header setting
 * JSON - made it simple with JSON string as a parameter
+* Multipart-Support - send data and files as multipart request
 * Proxy - sending request via proxy
 * Timeout - setting timeout for a request
 * TLSClientConfig - taking control over tls where at least you can disable security check for https
@@ -148,6 +149,32 @@ func printStatus(resp gorequest.Response, body string, errs []error){
 }
 gorequest.New().Get("http://example.com").End(printStatus)
 ```
+
+## Multipart/Form-Data
+
+You can specify the content-type of the request to type `multipart` to send all data as `multipart/form-data`. This feature also allows you to send (multiple) files! Check the examples below!
+
+```go
+gorequest.New().Post("http://example.com/").
+  Type("multipart").
+  Send(`{"query1":"test"}`).
+  End()
+```
+
+The `SendFile` function accepts `strings` as path to a file, `[]byte` slice or even a `os.File`! You can also combine them to send multiple files with either custom name and/or custom fieldname:
+
+```go
+          f, _ := filepath.Abs("./file2.txt")
+bytesOfFile, _ := ioutil.ReadFile(f)
+    
+gorequest.New().Post("http://example.com/").
+  Type("multipart").
+  SendFile("./file1.txt").
+  SendFile(bytesOfFile, "file2.txt", "my_file_fieldname").
+  End()
+```
+
+Check the docs for `SendFile` to get more information about the types of arguments.
 
 ## Proxy
 
