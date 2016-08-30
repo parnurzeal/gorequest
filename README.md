@@ -155,7 +155,7 @@ gorequest.New().Get("http://example.com").End(printStatus)
 You can specify the content-type of the request to type `multipart` to send all data as `multipart/form-data`. This feature also allows you to send (multiple) files! Check the examples below!
 
 ```go
-gorequest.New().Post(""http://example.com/"").
+gorequest.New().Post("http://example.com/").
   Type("multipart").
   Send(`{"query1":"test"}`).
   End()
