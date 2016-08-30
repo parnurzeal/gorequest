@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v0.2.14 (2016-08-30)
+
+	Features
+		* Support multipart @fraenky8
+		* Support OPTIONS request @coderhaoxin
+		* Add EndStruct method @franciscocpg
+		* Add AsCurlCommand @jaytaylor
+		* Add CustomMethod @WaveCutz
+		* Add MakeRequest @quangbuule
+	Bug/Fixes
+		* Disable keep alive by default
+
+
 v0.2.13 (2015-11-21)
 
 	Features

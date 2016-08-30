@@ -252,7 +252,29 @@ If you find any improvement or issue you want to fix, feel free to send me a pul
 
 Thanks to all contributors thus far:
 
-@kemadz, @austinov, @figlief, @dickeyxxx, @killix, @jaytaylor, @na-ga, @dafang, @alaingilbert, @6david9, @pencil001, @QuentinPerez, @smallnest, @piotrmiskiewicz, @coderhaoxin, and @WaveCutz
+
+|   Contributors                        |
+|---------------------------------------|
+| https://github.com/kemadz             |
+| https://github.com/austinov           |
+| https://github.com/figlief            |
+| https://github.com/dickeyxxx          |
+| https://github.com/killix             |
+| https://github.com/jaytaylor          |
+| https://github.com/na-ga              |
+| https://github.com/dafang             |
+| https://github.com/alaingilbert       |
+| https://github.com/6david9            |
+| https://github.com/pencil001          |
+| https://github.com/QuentinPerez       |
+| https://github.com/smallnest          |
+| https://github.com/piotrmiskiewicz    |
+| https://github.com/coderhaoxin        |
+| https://github.com/WaveCutz           |
+| https://github.com/fraenky8           |
+| https://github.com/franciscocpg       |
+| https://github.com/quangbuule         |
+
 
 Also, co-maintainer is needed here. If anyone is interested, please email me (parnurzeal at gmail.com)
 
