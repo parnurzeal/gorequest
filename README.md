@@ -152,30 +152,29 @@ gorequest.New().Get("http://example.com").End(printStatus)
 
 ## Multipart/Form-Data
 
-You can specify the content-type of the request to type `multipart` to send all data as multipart/form-data. This feature also allows you to send (multiple) files! Check the examples below!
-
+You can specify the content-type of the request to type `multipart` to send all data as `multipart/form-data`. This feature also allows you to send (multiple) files! Check the examples below!
 
 ```go
 gorequest.New().Post("http://httpbin.org/post").
- Type("multipart").
- Send(`{"query1":"test"}`).
- End()
+  Type("multipart").
+  Send(`{"query1":"test"}`).
+  End()
 ```
 
-TODO Files as multipart/form-data with different types, own name and fieldtypes
-sends the file with fieldname=file1 and filename=file1.txt
-sends the file with fieldname=my_file_fieldname and filename=file2.txt
+The `SendFile` function accepts `strings` as path to a file, `[]byte` slice or even a `os.File`! You can also combine them to send multiple files with either custom name and/or custom fieldname:
 
 ```go
-    f, _ := filepath.Abs("./file2.txt")
-file2, _ := ioutil.ReadFile(f)
+          f, _ := filepath.Abs("./file2.txt")
+bytesOfFile, _ := ioutil.ReadFile(f)
     
-gorequest.New().Post("http://httpbin.org/post").
- Type("multipart").
- SendFile("./file1.txt").
- SendFile(file2, "file2.txt", "my_file_fieldname").
- End()
+gorequest.New().Post("http://example.com/").
+  Type("multipart").
+  SendFile("./file1.txt").
+  SendFile(bytesOfFile, "file2.txt", "my_file_fieldname").
+  End()
 ```
+
+Check the docs for `SendFile` to get more information about the types of arguments.
 
 ## Proxy
 

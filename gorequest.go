@@ -622,20 +622,65 @@ type File struct {
 	Data      []byte
 }
 
-// TODO describe & examples
-// file either string as path to file or content of file in bytes
+// SendFile function works only with type "multipart". The function accepts one mandatory and up to two optional arguments. The mandatory (first) argument is the file.
+// The function accepts a path to a file as string:
+//
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile("./example_file.ext").
+//        End()
+//
+// File can also be a []byte slice of a already file read by eg. ioutil.ReadFile:
+//
+//      b, _ := ioutil.ReadFile("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(b).
+//        End()
+//
+// Furthermore file can also be a os.File:
+//
+//      f, _ := os.Open("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(f).
+//        End()
+//
+// The first optional argument (second argument overall) is the filename, which will be automatically determined when file is a string (path) or a os.File.
+// When file is a []byte slice, filename defaults to "filename". In all cases the automatically determined filename can be overwritten:
+//
+//      b, _ := ioutil.ReadFile("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(b, "my_custom_filename").
+//        End()
+//
+// The second optional argument (third argument overall) is the fieldname in the multipart/form-data request. It defaults to fileNUMBER (eg. file1), where number is ascending and starts counting at 1.
+// So if you send multiple files, the fieldnames will be file1, file2, ... unless it is overwritten. If fieldname is set to "file" it will be automatically set to fileNUMBER, where number is the greatest exsiting number+1.
+//
+//      b, _ := ioutil.ReadFile("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(b, "", "my_custom_fieldname"). // filename left blank, will become "example_file.ext"
+//        End()
+//
 func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 
 	filename := ""
 	fieldname := "file"
 
 	if len(args) >= 1 && len(args[0]) > 0 {
-		filename = args[0]
+		filename = strings.TrimSpace(args[0])
 	}
 	if len(args) >= 2 && len(args[1]) > 0 {
-		fieldname = args[1]
+		fieldname = strings.TrimSpace(args[1])
 	}
-	if fieldname == "file" {
+	if fieldname == "file" || fieldname == "" {
 		fieldname = "file" + strconv.Itoa(len(s.FileData)+1)
 	}
 

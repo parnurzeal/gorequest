@@ -585,6 +585,7 @@ func checkFile(t *testing.T, fileheader *multipart.FileHeader) {
 // testing for POST-Request of Type multipart
 func TestMultipartRequest(t *testing.T) {
 
+	const case0_send_not_supported_filetype = "/send_not_supported_filetype"
 	const case1_send_string = "/send_string"
 	const case2_send_json = "/send_json"
 	const case3_integration_send_json_string = "/integration_send_json_string"
@@ -598,10 +599,12 @@ func TestMultipartRequest(t *testing.T) {
 
 	const case10_send_file_by_path = "/send_file_by_path"
 	const case10a_send_file_by_path_with_name = "/send_file_by_path_with_name"
+	const case10b_send_file_by_path_pointer = "/send_file_by_path_pointer"
 	const case11_send_file_by_path_without_name = "/send_file_by_path_without_name"
 	const case12_send_file_by_path_without_name_but_with_fieldname = "/send_file_by_path_without_name_but_with_fieldname"
 
 	const case13_send_file_by_content_without_name = "/send_file_by_content_without_name"
+	const case13a_send_file_by_content_without_name_pointer = "/send_file_by_content_without_name_pointer"
 	const case14_send_file_by_content_with_name = "/send_file_by_content_with_name"
 
 	const case15_send_file_by_content_without_name_but_with_fieldname = "/send_file_by_content_without_name_but_with_fieldname"
@@ -614,6 +617,12 @@ func TestMultipartRequest(t *testing.T) {
 	const case20_send_file_as_osfile = "/send_file_as_osfile"
 	const case21_send_file_as_osfile_with_name = "/send_file_as_osfile_with_name"
 	const case22_send_file_as_osfile_with_name_and_with_fieldname = "/send_file_as_osfile_with_name_and_with_fieldname"
+
+	const case23_send_file_with_file_as_fieldname = "/send_file_with_file_as_fieldname"
+	const case24_send_file_with_name_with_spaces = "/send_file_with_name_with_spaces"
+	const case25_send_file_with_name_with_spaces_only = "/send_file_with_name_with_spaces_only"
+	const case26_send_file_with_fieldname_with_spaces = "/send_file_with_fieldname_with_spaces"
+	const case27_send_file_with_fieldname_with_spaces_only = "/send_file_with_fieldname_with_spaces_only"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is POST before going to check other features
@@ -632,6 +641,8 @@ func TestMultipartRequest(t *testing.T) {
 		switch r.URL.Path {
 		default:
 			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case0_send_not_supported_filetype:
+			// will be handled at place
 		case case1_send_string, case2_send_json, case3_integration_send_json_string:
 			if len(r.MultipartForm.Value["query1"]) != 1 {
 				t.Error("Expected length of query1:test == 1", "| but got", len(r.MultipartForm.Value["query1"]))
@@ -765,7 +776,7 @@ func TestMultipartRequest(t *testing.T) {
 				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
 			}
 			checkFile(t, r.MultipartForm.File["file1"][0])
-		case case10a_send_file_by_path_with_name, case21_send_file_as_osfile_with_name:
+		case case10a_send_file_by_path_with_name, case10b_send_file_by_path_pointer, case21_send_file_as_osfile_with_name:
 			if len(r.MultipartForm.File) != 1 {
 				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
 			}
@@ -787,7 +798,7 @@ func TestMultipartRequest(t *testing.T) {
 				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"])
 			}
 			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
-		case case13_send_file_by_content_without_name:
+		case case13_send_file_by_content_without_name, case13a_send_file_by_content_without_name_pointer:
 			if len(r.MultipartForm.File) != 1 {
 				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
 			}
@@ -885,10 +896,61 @@ func TestMultipartRequest(t *testing.T) {
 			if r.MultipartForm.Value["query1"][0] != "test" {
 				t.Error("Expected query1:test", "| but got", r.MultipartForm.Value["query1"][0])
 			}
+		case case23_send_file_with_file_as_fieldname:
+			if len(r.MultipartForm.File) != 2 {
+				t.Error("Expected length of files:[] == 2", "| but got", len(r.MultipartForm.File))
+			}
+			if val, ok := r.MultipartForm.File["file1"]; !ok {
+				t.Error("Expected file with key: file1", "| but got ", val)
+			}
+			if val, ok := r.MultipartForm.File["file2"]; !ok {
+				t.Error("Expected file with key: file2", "| but got ", val)
+			}
+			if r.MultipartForm.File["file1"][0].Filename != "b.file" {
+				t.Error("Expected Filename:b.file", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+			if r.MultipartForm.File["file2"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file2"][0].Filename)
+			}
+			checkFile(t, r.MultipartForm.File["file1"][0])
+			checkFile(t, r.MultipartForm.File["file2"][0])
+		case case24_send_file_with_name_with_spaces, case25_send_file_with_name_with_spaces_only, case27_send_file_with_fieldname_with_spaces_only:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if val, ok := r.MultipartForm.File["file1"]; !ok {
+				t.Error("Expected file with key: file1", "| but got ", val)
+			}
+			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file1"][0].Filename)
+			}
+			checkFile(t, r.MultipartForm.File["file1"][0])
+		case case26_send_file_with_fieldname_with_spaces:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if val, ok := r.MultipartForm.File["my_fieldname"]; !ok {
+				t.Error("Expected file with key: my_fieldname", "| but got ", val)
+			}
+			if r.MultipartForm.File["my_fieldname"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
+			}
+			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
 		}
 
 	}))
 	defer ts.Close()
+
+	// "the zero case"
+	t.Logf("case %v ", case0_send_not_supported_filetype)
+	_, _, errs := New().Post(ts.URL + case0_send_not_supported_filetype).
+		Type("multipart").
+		SendFile(42).
+		End()
+
+	if len(errs) == 0 {
+		t.Errorf("Expected error, but got nothing: %v", errs)
+	}
 
 	New().Post(ts.URL + case1_send_string).
 		Type("multipart").
@@ -960,30 +1022,41 @@ func TestMultipartRequest(t *testing.T) {
 		Send("param=3&param=4").
 		End()
 
+	fileByPath := "./LICENSE"
 	New().Post(ts.URL + case10_send_file_by_path).
 		Type("multipart").
-		SendFile("./LICENSE").
+		SendFile(fileByPath).
 		End()
 
 	New().Post(ts.URL+case10a_send_file_by_path_with_name).
 		Type("multipart").
-		SendFile("./LICENSE", "MY_LICENSE").
+		SendFile(fileByPath, "MY_LICENSE").
+		End()
+
+	New().Post(ts.URL+case10b_send_file_by_path_pointer).
+		Type("multipart").
+		SendFile(&fileByPath, "MY_LICENSE").
 		End()
 
 	New().Post(ts.URL+case11_send_file_by_path_without_name).
 		Type("multipart").
-		SendFile("./LICENSE", "").
+		SendFile(fileByPath, "").
 		End()
 
 	New().Post(ts.URL+case12_send_file_by_path_without_name_but_with_fieldname).
 		Type("multipart").
-		SendFile("./LICENSE", "", "my_fieldname").
+		SendFile(fileByPath, "", "my_fieldname").
 		End()
 
 	b, _ := ioutil.ReadFile("./LICENSE")
 	New().Post(ts.URL + case13_send_file_by_content_without_name).
 		Type("multipart").
 		SendFile(b).
+		End()
+
+	New().Post(ts.URL + case13a_send_file_by_content_without_name_pointer).
+		Type("multipart").
+		SendFile(&b).
 		End()
 
 	New().Post(ts.URL+case14_send_file_by_content_with_name).
@@ -1019,20 +1092,46 @@ func TestMultipartRequest(t *testing.T) {
 		Send("query1=test").
 		End()
 
-	f, _ := os.Open("./LICENSE")
+	osFile, _ := os.Open("./LICENSE")
 	New().Post(ts.URL + case20_send_file_as_osfile).
 		Type("multipart").
-		SendFile(f).
+		SendFile(osFile).
 		End()
 
 	New().Post(ts.URL+case21_send_file_as_osfile_with_name).
 		Type("multipart").
-		SendFile(f, "MY_LICENSE").
+		SendFile(osFile, "MY_LICENSE").
 		End()
 
 	New().Post(ts.URL+case22_send_file_as_osfile_with_name_and_with_fieldname).
 		Type("multipart").
-		SendFile(f, "MY_LICENSE", "my_fieldname").
+		SendFile(osFile, "MY_LICENSE", "my_fieldname").
+		End()
+
+	New().Post(ts.URL+case23_send_file_with_file_as_fieldname).
+		Type("multipart").
+		SendFile(b, "b.file").
+		SendFile(osFile, "", "file").
+		End()
+
+	New().Post(ts.URL+case24_send_file_with_name_with_spaces).
+		Type("multipart").
+		SendFile(osFile, " LICENSE  ").
+		End()
+
+	New().Post(ts.URL+case25_send_file_with_name_with_spaces_only).
+		Type("multipart").
+		SendFile(osFile, "   ").
+		End()
+
+	New().Post(ts.URL+case26_send_file_with_fieldname_with_spaces).
+		Type("multipart").
+		SendFile(osFile, "", " my_fieldname  ").
+		End()
+
+	New().Post(ts.URL+case27_send_file_with_fieldname_with_spaces_only).
+		Type("multipart").
+		SendFile(osFile, "", "   ").
 		End()
 }
 
