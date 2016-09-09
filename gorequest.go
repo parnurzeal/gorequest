@@ -67,6 +67,13 @@ type SuperAgent struct {
 	Debug             bool
 	CurlCommand       bool
 	logger            *log.Logger
+	Retryable         struct {
+		RetryableStatus []int
+		RetryerTime     time.Duration
+		RetryerCount    int
+		Attempt         int
+		Enable          bool
+	}
 }
 
 var DisableTransportSwap = false
@@ -227,6 +234,39 @@ func (s *SuperAgent) Options(targetUrl string) *SuperAgent {
 //      End()
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 	s.Header[param] = value
+	return s
+}
+
+// Retryable is used for setting a Retryer policy
+// Example. To set Retryer policy with 5 seconds between each attempt.
+//          3 max attempt.
+//          And StatusBadRequest and StatusInternalServerError as RetryableStatus
+
+//    gorequest.New().
+//      Post("/gamelist").
+//      RetryableStatus(3, 5000 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
+//      End()
+func (s *SuperAgent) Retry(retryerCount int, retryerTime time.Duration, statusCode ...int) *SuperAgent {
+	for _, code := range statusCode {
+		statusText := http.StatusText(code)
+		if len(statusText) != 0 {
+			s.Errors = append(s.Errors, errors.New("StatusCode '"+strconv.Itoa(code)+"' doesn't exist in http package"))
+		}
+	}
+
+	s.Retryable = struct {
+		RetryableStatus []int
+		RetryerTime     time.Duration
+		RetryerCount    int
+		Attempt         int
+		Enable          bool
+	}{
+		statusCode,
+		retryerTime,
+		retryerCount,
+		0,
+		true,
+	}
 	return s
 }
 
@@ -852,9 +892,20 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 			},
 		}
 	}
+
 	resp, body, errs := s.EndBytes(bytesCallback...)
 	bodyString := string(body)
+
 	return resp, bodyString, errs
+}
+
+func contains(e int, s []int) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 // EndBytes should be used when you want the body as bytes. The callbacks work the same way as with `End`, except that a byte array is used instead of a string.
@@ -863,6 +914,7 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	if errs != nil {
 		return nil, nil, errs
 	}
+
 	respCallback := *resp
 	if len(callback) != 0 {
 		callback[0](&respCallback, body, s.Errors)
@@ -952,7 +1004,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 
 	// Send request
-	resp, err = s.Client.Do(req)
+	resp, err = s.sendRequest(req)
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 		return nil, nil, s.Errors
@@ -974,6 +1026,19 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
 	return resp, body, nil
+}
+
+func (s *SuperAgent) sendRequest(req *http.Request) (resp *http.Response, err error) {
+	resp, err = s.Client.Do(req)
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && contains(resp.StatusCode, s.Retryable.RetryableStatus) {
+		s.Retryable.RetryerCount++
+		time.Sleep(time.Duration(s.Retryable.RetryerTime))
+		fmt.Printf("Attemp retry number %d", s.Retryable.RetryerCount)
+		s.sendRequest(req)
+	} else {
+		fmt.Printf("No retry enable")
+	}
+	return resp, err
 }
 
 func (s *SuperAgent) MakeRequest() (*http.Request, error) {
