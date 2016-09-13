@@ -515,6 +515,8 @@ func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 		s.SendSlice(makeSliceOfReflectValue(v))
 	case reflect.Ptr:
 		s.Send(v.Elem().Interface())
+	case reflect.Map:
+		s.SendMap(v.Interface())
 	default:
 		// TODO: leave default for handling other types in the future, such as complex numbers, (nested) maps, etc
 		return s
@@ -542,6 +544,10 @@ func makeSliceOfReflectValue(v reflect.Value) (slice []interface{}) {
 func (s *SuperAgent) SendSlice(content []interface{}) *SuperAgent {
 	s.SliceData = append(s.SliceData, content...)
 	return s
+}
+
+func (s *SuperAgent) SendMap(content interface{}) *SuperAgent {
+	return s.SendStruct(content)
 }
 
 // SendStruct (similar to SendString) returns SuperAgent's itself for any next chain and takes content interface{} as a parameter.
