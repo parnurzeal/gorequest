@@ -899,15 +899,6 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	return resp, bodyString, errs
 }
 
-func contains(respStatus int, statuses []int) bool {
-	for _, status := range statuses {
-		if status == respStatus {
-			return true
-		}
-	}
-	return false
-}
-
 // EndBytes should be used when you want the body as bytes. The callbacks work the same way as with `End`, except that a byte array is used instead of a string.
 func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, errs []error)) (Response, []byte, []error) {
 	var (
@@ -921,8 +912,8 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 		if errs != nil {
 			return nil, nil, errs
 		}
-
 		if s.isRetryableRequest(resp) {
+			resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
 			break
 		}
 	}
@@ -935,14 +926,21 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 }
 
 func (s *SuperAgent) isRetryableRequest(resp Response) bool {
-	containsStatus := contains(resp.StatusCode, s.Retryable.RetryableStatus)
-	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && containsStatus {
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && contains(resp.StatusCode, s.Retryable.RetryableStatus) {
 		time.Sleep(s.Retryable.RetryerTime)
 		s.Retryable.Attempt++
 		return false
 	}
-
 	return true
+}
+
+func contains(respStatus int, statuses []int) bool {
+	for _, status := range statuses {
+		if status == respStatus {
+			return true
+		}
+	}
+	return false
 }
 
 // EndStruct should be used when you want the body as a struct. The callbacks work the same way as with `End`, except that a struct is used instead of a string.
