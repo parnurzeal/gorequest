@@ -249,7 +249,7 @@ func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 func (s *SuperAgent) Retry(retryerCount int, retryerTime time.Duration, statusCode ...int) *SuperAgent {
 	for _, code := range statusCode {
 		statusText := http.StatusText(code)
-		if len(statusText) != 0 {
+		if len(statusText) == 0 {
 			s.Errors = append(s.Errors, errors.New("StatusCode '"+strconv.Itoa(code)+"' doesn't exist in http package"))
 		}
 	}
@@ -899,9 +899,9 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	return resp, bodyString, errs
 }
 
-func contains(e int, s []int) bool {
-	for _, a := range s {
-		if a == e {
+func contains(respStatus int, statuses []int) bool {
+	for _, status := range statuses {
+		if status == respStatus {
 			return true
 		}
 	}
@@ -910,9 +910,21 @@ func contains(e int, s []int) bool {
 
 // EndBytes should be used when you want the body as bytes. The callbacks work the same way as with `End`, except that a byte array is used instead of a string.
 func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, errs []error)) (Response, []byte, []error) {
-	resp, body, errs := s.getResponseBytes()
-	if errs != nil {
-		return nil, nil, errs
+	var (
+		errs []error
+		resp Response
+		body []byte
+	)
+
+	for {
+		resp, body, errs = s.getResponseBytes()
+		if errs != nil {
+			return nil, nil, errs
+		}
+
+		if s.isRetryableRequest(resp) {
+			break
+		}
 	}
 
 	respCallback := *resp
@@ -920,6 +932,17 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 		callback[0](&respCallback, body, s.Errors)
 	}
 	return resp, body, nil
+}
+
+func (s *SuperAgent) isRetryableRequest(resp Response) bool {
+	containsStatus := contains(resp.StatusCode, s.Retryable.RetryableStatus)
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && containsStatus {
+		time.Sleep(s.Retryable.RetryerTime)
+		s.Retryable.Attempt++
+		return false
+	}
+
+	return true
 }
 
 // EndStruct should be used when you want the body as a struct. The callbacks work the same way as with `End`, except that a struct is used instead of a string.
@@ -1004,7 +1027,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 
 	// Send request
-	resp, err = s.sendRequest(req)
+	resp, err = s.Client.Do(req)
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 		return nil, nil, s.Errors
@@ -1026,19 +1049,6 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
 	return resp, body, nil
-}
-
-func (s *SuperAgent) sendRequest(req *http.Request) (resp *http.Response, err error) {
-	resp, err = s.Client.Do(req)
-	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && contains(resp.StatusCode, s.Retryable.RetryableStatus) {
-		s.Retryable.RetryerCount++
-		time.Sleep(time.Duration(s.Retryable.RetryerTime))
-		fmt.Printf("Attemp retry number %d", s.Retryable.RetryerCount)
-		s.sendRequest(req)
-	} else {
-		fmt.Printf("No retry enable")
-	}
-	return resp, err
 }
 
 func (s *SuperAgent) MakeRequest() (*http.Request, error) {
