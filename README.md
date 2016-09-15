@@ -237,11 +237,11 @@ resp, _, errs := gorequest.New().Get("http://example.com/").EndStruct(&heyYou)
 
 ## Retry 
 
-To set Retry policy with 5 seconds between each attempt with 3 max attempt and StatusBadRequest and StatusInternalServerError as RetryableStatus
+Supposing you need retry 3 times, with 5 seconds between each attempt when gets a BadRequest or a InternalServerError
 
 ```go
-request := gorequest.New().Retry(3, "password")
-resp, body, errs := request.Get("http://example-proxy.com").
+request := gorequest.New()
+resp, body, errs := request.Get("http://example.com/").
                     RetryableStatus(3, 5 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
                     End()
 ```
