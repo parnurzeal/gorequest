@@ -244,7 +244,7 @@ func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 
 //    gorequest.New().
 //      Post("/gamelist").
-//      RetryableStatus(3, 5000 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
+//      RetryableStatus(3, 5 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
 //      End()
 func (s *SuperAgent) Retry(retryerCount int, retryerTime time.Duration, statusCode ...int) *SuperAgent {
 	for _, code := range statusCode {

@@ -235,6 +235,17 @@ var heyYou heyYou
 resp, _, errs := gorequest.New().Get("http://example.com/").EndStruct(&heyYou)
 ```
 
+## Retry 
+
+To set Retry policy with 5 seconds between each attempt with 3 max attempt and StatusBadRequest and StatusInternalServerError as RetryableStatus
+
+```go
+request := gorequest.New().Retry(3, "password")
+resp, body, errs := request.Get("http://example-proxy.com").
+                    RetryableStatus(3, 5 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
+                    End()
+```
+
 ## Debug
 
 For debugging, GoRequest leverages `httputil` to dump details of every request/response. (Thanks to @dafang)

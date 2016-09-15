@@ -241,7 +241,7 @@ func TestRetryGet(t *testing.T) {
 	defer ts.Close()
 
 	resp, _, errs := New().Get(ts.URL+case1_empty).
-		Retry(3, 1*time.Second, http.StatusBadRequest).
+		Retry(3, 1*time.Nanosecond, http.StatusBadRequest).
 		End()
 	if errs != nil {
 		t.Errorf("No testing for this case yet : %q", errs)
@@ -253,7 +253,7 @@ func TestRetryGet(t *testing.T) {
 	}
 
 	resp, _, errs = New().Get(ts.URL+case24_after_3_attempt_return_valid).
-		Retry(4, 1*time.Second, http.StatusBadRequest).
+		Retry(4, 1*time.Nanosecond, http.StatusBadRequest).
 		End()
 	if errs != nil {
 		t.Errorf("No testing for this case yet : %q", errs)
@@ -347,8 +347,6 @@ func TestPost(t *testing.T) {
 	const case22_send_byte_int = "/send_byte_int"
 	const case22_send_byte_int_pointer = "/send_byte_int_pointer"
 	const case23_send_duplicate_query_params = "/send_duplicate_query_params"
-	//Set retry count to return a valid vlaue
-	const case24_after_3_attempt_return_valid = "/retry_3_attempt_then_valid"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is POST before going to check other features
