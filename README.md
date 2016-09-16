@@ -235,6 +235,17 @@ var heyYou heyYou
 resp, _, errs := gorequest.New().Get("http://example.com/").EndStruct(&heyYou)
 ```
 
+## Retry 
+
+Supposing you need retry 3 times, with 5 seconds between each attempt when gets a BadRequest or a InternalServerError
+
+```go
+request := gorequest.New()
+resp, body, errs := request.Get("http://example.com/").
+                    Retry(3, 5 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
+                    End()
+```
+
 ## Debug
 
 For debugging, GoRequest leverages `httputil` to dump details of every request/response. (Thanks to @dafang)

@@ -67,6 +67,13 @@ type SuperAgent struct {
 	Debug             bool
 	CurlCommand       bool
 	logger            *log.Logger
+	Retryable         struct {
+		RetryableStatus []int
+		RetryerTime     time.Duration
+		RetryerCount    int
+		Attempt         int
+		Enable          bool
+	}
 }
 
 var DisableTransportSwap = false
@@ -227,6 +234,39 @@ func (s *SuperAgent) Options(targetUrl string) *SuperAgent {
 //      End()
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 	s.Header[param] = value
+	return s
+}
+
+// Retryable is used for setting a Retryer policy
+// Example. To set Retryer policy with 5 seconds between each attempt.
+//          3 max attempt.
+//          And StatusBadRequest and StatusInternalServerError as RetryableStatus
+
+//    gorequest.New().
+//      Post("/gamelist").
+//      Retry(3, 5 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
+//      End()
+func (s *SuperAgent) Retry(retryerCount int, retryerTime time.Duration, statusCode ...int) *SuperAgent {
+	for _, code := range statusCode {
+		statusText := http.StatusText(code)
+		if len(statusText) == 0 {
+			s.Errors = append(s.Errors, errors.New("StatusCode '"+strconv.Itoa(code)+"' doesn't exist in http package"))
+		}
+	}
+
+	s.Retryable = struct {
+		RetryableStatus []int
+		RetryerTime     time.Duration
+		RetryerCount    int
+		Attempt         int
+		Enable          bool
+	}{
+		statusCode,
+		retryerTime,
+		retryerCount,
+		0,
+		true,
+	}
 	return s
 }
 
@@ -858,22 +898,55 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 			},
 		}
 	}
+
 	resp, body, errs := s.EndBytes(bytesCallback...)
 	bodyString := string(body)
+
 	return resp, bodyString, errs
 }
 
 // EndBytes should be used when you want the body as bytes. The callbacks work the same way as with `End`, except that a byte array is used instead of a string.
 func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, errs []error)) (Response, []byte, []error) {
-	resp, body, errs := s.getResponseBytes()
-	if errs != nil {
-		return nil, nil, errs
+	var (
+		errs []error
+		resp Response
+		body []byte
+	)
+
+	for {
+		resp, body, errs = s.getResponseBytes()
+		if errs != nil {
+			return nil, nil, errs
+		}
+		if s.isRetryableRequest(resp) {
+			resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
+			break
+		}
 	}
+
 	respCallback := *resp
 	if len(callback) != 0 {
 		callback[0](&respCallback, body, s.Errors)
 	}
 	return resp, body, nil
+}
+
+func (s *SuperAgent) isRetryableRequest(resp Response) bool {
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && contains(resp.StatusCode, s.Retryable.RetryableStatus) {
+		time.Sleep(s.Retryable.RetryerTime)
+		s.Retryable.Attempt++
+		return false
+	}
+	return true
+}
+
+func contains(respStatus int, statuses []int) bool {
+	for _, status := range statuses {
+		if status == respStatus {
+			return true
+		}
+	}
+	return false
 }
 
 // EndStruct should be used when you want the body as a struct. The callbacks work the same way as with `End`, except that a struct is used instead of a string.
