@@ -84,6 +84,9 @@ func New() *SuperAgent {
 		PublicSuffixList: publicsuffix.List,
 	}
 	jar, _ := cookiejar.New(&cookiejarOptions)
+
+	debug := os.Getenv("GOREQUEST_DEBUG") == "1"
+
 	s := &SuperAgent{
 		TargetType:        "json",
 		Data:              make(map[string]interface{}),
@@ -99,7 +102,7 @@ func New() *SuperAgent {
 		Cookies:           make([]*http.Cookie, 0),
 		Errors:            nil,
 		BasicAuth:         struct{ Username, Password string }{},
-		Debug:             false,
+		Debug:             debug,
 		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 	}

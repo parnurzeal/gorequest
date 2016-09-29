@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1711,5 +1712,28 @@ func TestAsCurlCommand(t *testing.T) {
 	expected := fmt.Sprintf(`curl -X PUT -d %q -H "Content-Type: application/json" '%v'`, strings.Replace(jsonData, " ", "", -1), endpoint)
 	if curlComand != expected {
 		t.Fatalf("\nExpected curlCommand=%v\n   but actual result=%v", expected, curlComand)
+	}
+}
+
+func TestSetDebugByEnvironmentVar(t *testing.T) {
+	endpoint := "http://github.com/parnurzeal/gorequest"
+
+	var buf bytes.Buffer
+	logger := log.New(&buf, "[gorequest]", log.LstdFlags)
+
+	os.Setenv("GOREQUEST_DEBUG", "1")
+	New().SetLogger(logger).Get(endpoint).End()
+
+	if len(buf.String()) == 0 {
+		t.Fatalf("\nExpected gorequest to log request and response object if GOREQUEST_DEBUG=1")
+	}
+
+	os.Setenv("GOREQUEST_DEBUG", "")
+	buf.Reset()
+
+	New().SetLogger(logger).Get(endpoint).End()
+
+	if len(buf.String()) > 0 {
+		t.Fatalf("\nExpected gorequest not to log request and response object if GOREQUEST_DEBUG is not set.")
 	}
 }
