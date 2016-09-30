@@ -250,7 +250,7 @@ resp, body, errs := request.Get("http://example.com/").
 
 For debugging, GoRequest leverages `httputil` to dump details of every request/response. (Thanks to @dafang)
 
-You can just use `SetDebug` to enable/disable debug mode and `SetLogger` to set your own choice of logger.
+You can just use `SetDebug` or environment variable `GOREQUEST_DEBUG=0|1` to enable/disable debug mode and `SetLogger` to set your own choice of logger.
 
 Thanks to @QuentinPerez, we can see even how gorequest is compared to CURL by using `SetCurlCommand`.
 
