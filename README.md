@@ -246,6 +246,28 @@ resp, body, errs := request.Get("http://example.com/").
                     End()
 ```
 
+## Handling Redirects
+
+Redirects can be handled with RedirectPolicy which behaves similarly to
+net/http Client's [CheckRedirect
+function](https://golang.org/pkg/net/http#Client). Simply specify a function
+which takes the Request about to be made and a slice of previous Requests in
+order of oldest first. When this function returns an error, the Request is not
+made.
+
+For example to redirect only to https endpoints:
+
+```go
+request := gorequest.New()
+resp, body, errs := request.Get("http://example.com/").
+                    RedirectPolicy(func(req Request, via []*Request) error {
+                      if req.URL.Scheme != "https" {
+                        return http.ErrUseLastResponse
+                      }
+                    }).
+                    End()
+```
+
 ## Debug
 
 For debugging, GoRequest leverages `httputil` to dump details of every request/response. (Thanks to @dafang)
