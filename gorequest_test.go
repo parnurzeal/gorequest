@@ -348,7 +348,7 @@ func TestPost(t *testing.T) {
 	const case22_send_byte_int = "/send_byte_int"
 	const case22_send_byte_int_pointer = "/send_byte_int_pointer"
 	const case23_send_duplicate_query_params = "/send_duplicate_query_params"
-    const case24_send_query_and_request_body = "/send_query_and_request_body"
+	const case24_send_query_and_request_body = "/send_query_and_request_body"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is POST before going to check other features
@@ -482,17 +482,17 @@ func TestPost(t *testing.T) {
 			if values["param"][0] != "4" || values["param"][1] != "3" || values["param"][2] != "2" || values["param"][3] != "1" {
 				t.Error("Expected Body with 4 params and values", "| but got", sbody)
 			}
-        case case24_send_query_and_request_body:
-            t.Logf("case %v ", case24_send_query_and_request_body)
-            defer r.Body.Close()
-            body, _ := ioutil.ReadAll(r.Body)
+		case case24_send_query_and_request_body:
+			t.Logf("case %v ", case24_send_query_and_request_body)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
 			sbody := string(body)
-            if sbody != `{"name":"jkbbwr"}` {
+			if sbody != `{"name":"jkbbwr"}` {
 				t.Error(`Expected Body "{"name":"jkbbwr"}"`, "| but got", sbody)
 			}
 
-            v := r.URL.Query()
-            if v["test"][0] != "true" {
+			v := r.URL.Query()
+			if v["test"][0] != "true" {
 				t.Error("Expected test:true", "| but got", v["test"][0])
 			}
 		}
@@ -647,8 +647,10 @@ func TestPost(t *testing.T) {
 		Send("param=3&param=4").
 		End()
 
-    data24 := struct{Name string `json:"name"`}{"jkbbwr"}
-    New().Post(ts.URL + case24_send_query_and_request_body).
+	data24 := struct {
+		Name string `json:"name"`
+	}{"jkbbwr"}
+	New().Post(ts.URL + case24_send_query_and_request_body).
 		Query("test=true").
 		Send(data24).
 		End()
@@ -1602,8 +1604,8 @@ func TestGetSetCookies(t *testing.T) {
 	defer ts.Close()
 
 	New().Get(ts.URL).AddCookies([]*http.Cookie{
-		&http.Cookie{Name: "API-Cookie-Name1", Value: "api-cookie-value1"},
-		&http.Cookie{Name: "API-Cookie-Name2", Value: "api-cookie-value2"},
+		{Name: "API-Cookie-Name1", Value: "api-cookie-value1"},
+		{Name: "API-Cookie-Name2", Value: "api-cookie-value2"},
 	}).End()
 }
 
