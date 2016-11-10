@@ -1289,6 +1289,7 @@ func TestQueryFunc(t *testing.T) {
 	const case1_send_string = "/send_string"
 	const case2_send_struct = "/send_struct"
 	const case3_send_string_with_duplicates = "/send_string_with_duplicates"
+	const case4_send_map = "/send_map"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != POST {
 			t.Errorf("Expected method %q; got %q", POST, r.Method)
@@ -1314,6 +1315,9 @@ func TestQueryFunc(t *testing.T) {
 			if v["param"][0] != "1" || v["param"][1] != "2" || v["param"][2] != "3" || v["param"][3] != "4" {
 				t.Error("Expected Body with 4 params and values", "| but got", r.URL.RawQuery)
 			}
+		case case4_send_map:
+			checkQuery(t, v, "query1", "test1")
+			checkQuery(t, v, "query2", "test2")
 		}
 	}))
 	defer ts.Close()
@@ -1340,6 +1344,13 @@ func TestQueryFunc(t *testing.T) {
 		Query("param=1").
 		Query("param=2").
 		Query("param=3&param=4").
+		End()
+
+	New().Post(ts.URL + case4_send_map).
+		Query(map[string]interface{}{
+			"query1": "test1",
+			"query2": "test2",
+		}).
 		End()
 }
 
