@@ -375,6 +375,8 @@ func (s *SuperAgent) Query(content interface{}) *SuperAgent {
 		s.queryString(v.String())
 	case reflect.Struct:
 		s.queryStruct(v.Interface())
+	case reflect.Map:
+		s.queryMap(v.Interface())
 	default:
 	}
 	return s
@@ -416,6 +418,10 @@ func (s *SuperAgent) queryString(content string) *SuperAgent {
 		// TODO: need to check correct format of 'field=val&field=val&...'
 	}
 	return s
+}
+
+func (s *SuperAgent) queryMap(content interface{}) *SuperAgent {
+	return s.queryStruct(content)
 }
 
 // As Go conventions accepts ; as a synonym for &. (https://github.com/golang/go/issues/2210)
