@@ -31,7 +31,11 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
+// Request represents an HTTP request received by a server
+// or to be sent by a client.
 type Request *http.Request
+
+// Response represents the response from an HTTP request
 type Response *http.Response
 
 // HTTP methods we support
@@ -74,6 +78,7 @@ type SuperAgent struct {
 		Attempt         int
 		Enable          bool
 	}
+	DoNotClearSuperAgent bool
 }
 
 var DisableTransportSwap = false
@@ -88,23 +93,24 @@ func New() *SuperAgent {
 	debug := os.Getenv("GOREQUEST_DEBUG") == "1"
 
 	s := &SuperAgent{
-		TargetType:        "json",
-		Data:              make(map[string]interface{}),
-		Header:            make(map[string]string),
-		RawString:         "",
-		SliceData:         []interface{}{},
-		FormData:          url.Values{},
-		QueryData:         url.Values{},
-		FileData:          make([]File, 0),
-		BounceToRawString: false,
-		Client:            &http.Client{Jar: jar},
-		Transport:         &http.Transport{},
-		Cookies:           make([]*http.Cookie, 0),
-		Errors:            nil,
-		BasicAuth:         struct{ Username, Password string }{},
-		Debug:             debug,
-		CurlCommand:       false,
-		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
+		TargetType:           "json",
+		Data:                 make(map[string]interface{}),
+		Header:               make(map[string]string),
+		RawString:            "",
+		SliceData:            []interface{}{},
+		FormData:             url.Values{},
+		QueryData:            url.Values{},
+		FileData:             make([]File, 0),
+		BounceToRawString:    false,
+		Client:               &http.Client{Jar: jar},
+		Transport:            &http.Transport{},
+		Cookies:              make([]*http.Cookie, 0),
+		Errors:               nil,
+		BasicAuth:            struct{ Username, Password string }{},
+		Debug:                debug,
+		CurlCommand:          false,
+		logger:               log.New(os.Stderr, "[gorequest]", log.LstdFlags),
+		DoNotClearSuperAgent: false,
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
@@ -128,22 +134,30 @@ func (s *SuperAgent) SetLogger(logger *log.Logger) *SuperAgent {
 	return s
 }
 
+// Enable the curlcommand mode which display a CURL command line
+func (s *SuperAgent) SetDoNotClearSuperAgent(enable bool) *SuperAgent {
+	s.DoNotClearSuperAgent = enable
+	return s
+}
+
 // Clear SuperAgent data for another new request.
 func (s *SuperAgent) ClearSuperAgent() {
-	s.Url = ""
-	s.Method = ""
-	s.Header = make(map[string]string)
-	s.Data = make(map[string]interface{})
-	s.SliceData = []interface{}{}
-	s.FormData = url.Values{}
-	s.QueryData = url.Values{}
-	s.FileData = make([]File, 0)
-	s.BounceToRawString = false
-	s.RawString = ""
-	s.ForceType = ""
-	s.TargetType = "json"
-	s.Cookies = make([]*http.Cookie, 0)
-	s.Errors = nil
+	if s.DoNotClearSuperAgent == false {
+		s.Url = ""
+		s.Method = ""
+		s.Header = make(map[string]string)
+		s.Data = make(map[string]interface{})
+		s.SliceData = []interface{}{}
+		s.FormData = url.Values{}
+		s.QueryData = url.Values{}
+		s.FileData = make([]File, 0)
+		s.BounceToRawString = false
+		s.RawString = ""
+		s.ForceType = ""
+		s.TargetType = "json"
+		s.Cookies = make([]*http.Cookie, 0)
+		s.Errors = nil
+	}
 }
 
 // Just a wrapper to initialize SuperAgent instance by method string
