@@ -1318,6 +1318,8 @@ func TestQueryFunc(t *testing.T) {
 		case case4_send_map:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
+			checkQuery(t, v, "query3", "3.1415926")
+			checkQuery(t, v, "query4", "true")
 		}
 	}))
 	defer ts.Close()
@@ -1350,6 +1352,8 @@ func TestQueryFunc(t *testing.T) {
 		Query(map[string]interface{}{
 			"query1": "test1",
 			"query2": "test2",
+			"query3": 3.1415926,
+			"query4": true,
 		}).
 		End()
 }

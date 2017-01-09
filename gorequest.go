@@ -392,7 +392,22 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 		} else {
 			for k, v := range val {
 				k = strings.ToLower(k)
-				s.QueryData.Add(k, v.(string))
+				var queryVal string
+				switch t := v.(type) {
+				case string:
+					queryVal = t
+				case float64:
+					queryVal = strconv.FormatFloat(t, 'f', -1, 64)
+				case time.Time:
+					queryVal = t.Format(time.RFC3339)
+				default:
+					j, err := json.Marshal(v)
+					if err != nil {
+						continue
+					}
+					queryVal = string(j)
+				}
+				s.QueryData.Add(k, queryVal)
 			}
 		}
 	}
