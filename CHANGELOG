@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v0.2.15 (2016-08-30)
+
+	Features
+		* Allow float and boolean in Query()'s queryStruct @davyzhang
+		* Support Map in Query() @yangmls
+		* Support Map in Send() @longlongh4
+		* Document RedirectPolicy @codegoalie
+		* Enable Debug mode by ENV variable @heytitle
+		* Add Retry() @xild
+	Bug/Fixes
+		* Allow bodies with all methods @pkopac
+		* Change std "errors" pkg to "github.com/pkg/errors" @pkopac
+
 v0.2.14 (2016-08-30)
 
 	Features
