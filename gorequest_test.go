@@ -348,6 +348,7 @@ func TestPost(t *testing.T) {
 	const case22_send_byte_int = "/send_byte_int"
 	const case22_send_byte_int_pointer = "/send_byte_int_pointer"
 	const case23_send_duplicate_query_params = "/send_duplicate_query_params"
+	const case24_send_query_and_request_body = "/send_query_and_request_body"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is POST before going to check other features
@@ -480,6 +481,19 @@ func TestPost(t *testing.T) {
 			}
 			if values["param"][0] != "4" || values["param"][1] != "3" || values["param"][2] != "2" || values["param"][3] != "1" {
 				t.Error("Expected Body with 4 params and values", "| but got", sbody)
+			}
+		case case24_send_query_and_request_body:
+			t.Logf("case %v ", case24_send_query_and_request_body)
+			defer r.Body.Close()
+			body, _ := ioutil.ReadAll(r.Body)
+			sbody := string(body)
+			if sbody != `{"name":"jkbbwr"}` {
+				t.Error(`Expected Body "{"name":"jkbbwr"}"`, "| but got", sbody)
+			}
+
+			v := r.URL.Query()
+			if v["test"][0] != "true" {
+				t.Error("Expected test:true", "| but got", v["test"][0])
 			}
 		}
 	}))
@@ -631,6 +645,14 @@ func TestPost(t *testing.T) {
 		Send("param=1").
 		Send("param=2").
 		Send("param=3&param=4").
+		End()
+
+	data24 := struct {
+		Name string `json:"name"`
+	}{"jkbbwr"}
+	New().Post(ts.URL + case24_send_query_and_request_body).
+		Query("test=true").
+		Send(data24).
 		End()
 }
 
@@ -1267,6 +1289,7 @@ func TestQueryFunc(t *testing.T) {
 	const case1_send_string = "/send_string"
 	const case2_send_struct = "/send_struct"
 	const case3_send_string_with_duplicates = "/send_string_with_duplicates"
+	const case4_send_map = "/send_map"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != POST {
 			t.Errorf("Expected method %q; got %q", POST, r.Method)
@@ -1292,6 +1315,11 @@ func TestQueryFunc(t *testing.T) {
 			if v["param"][0] != "1" || v["param"][1] != "2" || v["param"][2] != "3" || v["param"][3] != "4" {
 				t.Error("Expected Body with 4 params and values", "| but got", r.URL.RawQuery)
 			}
+		case case4_send_map:
+			checkQuery(t, v, "query1", "test1")
+			checkQuery(t, v, "query2", "test2")
+			checkQuery(t, v, "query3", "3.1415926")
+			checkQuery(t, v, "query4", "true")
 		}
 	}))
 	defer ts.Close()
@@ -1318,6 +1346,15 @@ func TestQueryFunc(t *testing.T) {
 		Query("param=1").
 		Query("param=2").
 		Query("param=3&param=4").
+		End()
+
+	New().Post(ts.URL + case4_send_map).
+		Query(map[string]interface{}{
+			"query1": "test1",
+			"query2": "test2",
+			"query3": 3.1415926,
+			"query4": true,
+		}).
 		End()
 }
 
@@ -1582,8 +1619,8 @@ func TestGetSetCookies(t *testing.T) {
 	defer ts.Close()
 
 	New().Get(ts.URL).AddCookies([]*http.Cookie{
-		&http.Cookie{Name: "API-Cookie-Name1", Value: "api-cookie-value1"},
-		&http.Cookie{Name: "API-Cookie-Name2", Value: "api-cookie-value2"},
+		{Name: "API-Cookie-Name1", Value: "api-cookie-value1"},
+		{Name: "API-Cookie-Name2", Value: "api-cookie-value2"},
 	}).End()
 }
 
@@ -1709,7 +1746,7 @@ func TestAsCurlCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := fmt.Sprintf(`curl -X PUT -d %q -H "Content-Type: application/json" '%v'`, strings.Replace(jsonData, " ", "", -1), endpoint)
+	expected := fmt.Sprintf(`curl -X 'PUT' -d '%v' -H 'Content-Type: application/json' '%v'`, strings.Replace(jsonData, " ", "", -1), endpoint)
 	if curlComand != expected {
 		t.Fatalf("\nExpected curlCommand=%v\n   but actual result=%v", expected, curlComand)
 	}

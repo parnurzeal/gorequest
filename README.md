@@ -166,7 +166,7 @@ The `SendFile` function accepts `strings` as path to a file, `[]byte` slice or e
 ```go
           f, _ := filepath.Abs("./file2.txt")
 bytesOfFile, _ := ioutil.ReadFile(f)
-    
+
 gorequest.New().Post("http://example.com/").
   Type("multipart").
   SendFile("./file1.txt").
@@ -235,7 +235,7 @@ var heyYou heyYou
 resp, _, errs := gorequest.New().Get("http://example.com/").EndStruct(&heyYou)
 ```
 
-## Retry 
+## Retry
 
 Supposing you need retry 3 times, with 5 seconds between each attempt when gets a BadRequest or a InternalServerError
 
@@ -243,6 +243,28 @@ Supposing you need retry 3 times, with 5 seconds between each attempt when gets 
 request := gorequest.New()
 resp, body, errs := request.Get("http://example.com/").
                     Retry(3, 5 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
+                    End()
+```
+
+## Handling Redirects
+
+Redirects can be handled with RedirectPolicy which behaves similarly to
+net/http Client's [CheckRedirect
+function](https://golang.org/pkg/net/http#Client). Simply specify a function
+which takes the Request about to be made and a slice of previous Requests in
+order of oldest first. When this function returns an error, the Request is not
+made.
+
+For example to redirect only to https endpoints:
+
+```go
+request := gorequest.New()
+resp, body, errs := request.Get("http://example.com/").
+                    RedirectPolicy(func(req Request, via []*Request) error {
+                      if req.URL.Scheme != "https" {
+                        return http.ErrUseLastResponse
+                      }
+                    }).
                     End()
 ```
 
@@ -266,25 +288,32 @@ Thanks to all contributors thus far:
 
 |   Contributors                        |
 |---------------------------------------|
-| https://github.com/kemadz             |
+| https://github.com/alaingilbert       |
 | https://github.com/austinov           |
-| https://github.com/figlief            |
+| https://github.com/coderhaoxin        |
+| https://github.com/codegoalie         |
+| https://github.com/dafang             |
+| https://github.com/davyzhang          |
 | https://github.com/dickeyxxx          |
+| https://github.com/figlief            |
+| https://github.com/fraenky8           |
+| https://github.com/franciscocpg       |
+| https://github.com/heytitle           |
+| https://github.com/hownowstephen      |
+| https://github.com/kemadz             |
 | https://github.com/killix             |
 | https://github.com/jaytaylor          |
 | https://github.com/na-ga              |
-| https://github.com/dafang             |
-| https://github.com/alaingilbert       |
-| https://github.com/6david9            |
+| https://github.com/piotrmiskiewicz    |
 | https://github.com/pencil001          |
+| https://github.com/pkopac             |
+| https://github.com/quangbuule         |
 | https://github.com/QuentinPerez       |
 | https://github.com/smallnest          |
-| https://github.com/piotrmiskiewicz    |
-| https://github.com/coderhaoxin        |
 | https://github.com/WaveCutz           |
-| https://github.com/fraenky8           |
-| https://github.com/franciscocpg       |
-| https://github.com/quangbuule         |
+| https://github.com/xild               |
+| https://github.com/yangmls            |
+| https://github.com/6david9            |
 
 
 Also, co-maintainer is needed here. If anyone is interested, please email me (parnurzeal at gmail.com)
