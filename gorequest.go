@@ -134,7 +134,6 @@ func (s *SuperAgent) SetLogger(logger *log.Logger) *SuperAgent {
 	return s
 }
 
-// Enable the curlcommand mode which display a CURL command line
 func (s *SuperAgent) SetDoNotClearSuperAgent(enable bool) *SuperAgent {
 	s.DoNotClearSuperAgent = enable
 	return s
@@ -142,21 +141,8 @@ func (s *SuperAgent) SetDoNotClearSuperAgent(enable bool) *SuperAgent {
 
 // Clear SuperAgent data for another new request.
 func (s *SuperAgent) ClearSuperAgent() {
-	if s.DoNotClearSuperAgent == false {
-		s.Url = ""
-		s.Method = ""
-		s.Header = make(map[string]string)
-		s.Data = make(map[string]interface{})
-		s.SliceData = []interface{}{}
-		s.FormData = url.Values{}
-		s.QueryData = url.Values{}
-		s.FileData = make([]File, 0)
-		s.BounceToRawString = false
-		s.RawString = ""
-		s.ForceType = ""
-		s.TargetType = "json"
-		s.Cookies = make([]*http.Cookie, 0)
-		s.Errors = nil
+	if s.DoNotClearSuperAgent {
+		return
 	}
 }
 
