@@ -67,7 +67,7 @@ type SuperAgent struct {
 	BasicAuth         struct{ Username, Password string }
 	Debug             bool
 	CurlCommand       bool
-	logger            *log.Logger
+	logger            Logger
 	Retryable         struct {
 		RetryableStatus []int
 		RetryerTime     time.Duration
@@ -124,7 +124,7 @@ func (s *SuperAgent) SetCurlCommand(enable bool) *SuperAgent {
 	return s
 }
 
-func (s *SuperAgent) SetLogger(logger *log.Logger) *SuperAgent {
+func (s *SuperAgent) SetLogger(logger Logger) *SuperAgent {
 	s.logger = logger
 	return s
 }
