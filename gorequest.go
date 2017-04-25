@@ -76,6 +76,7 @@ type SuperAgent struct {
 		Attempt         int
 		Enable          bool
 	}
+	DoNotClearSuperAgent bool
 }
 
 var DisableTransportSwap = false
@@ -125,6 +126,12 @@ func (s *SuperAgent) SetCurlCommand(enable bool) *SuperAgent {
 	return s
 }
 
+// Enable the DoNotClear mode for not clearing super agent and reuse for the next request
+func (s *SuperAgent) SetDoNotClearSuperAgent(enable bool) *SuperAgent {
+	s.DoNotClearSuperAgent = enable
+	return s
+}
+
 func (s *SuperAgent) SetLogger(logger Logger) *SuperAgent {
 	s.logger = logger
 	return s
@@ -132,6 +139,9 @@ func (s *SuperAgent) SetLogger(logger Logger) *SuperAgent {
 
 // Clear SuperAgent data for another new request.
 func (s *SuperAgent) ClearSuperAgent() {
+	if s.DoNotClearSuperAgent {
+		return
+	}
 	s.Url = ""
 	s.Method = ""
 	s.Header = make(map[string]string)
