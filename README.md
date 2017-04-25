@@ -242,7 +242,7 @@ Supposing you need retry 3 times, with 5 seconds between each attempt when gets 
 ```go
 request := gorequest.New()
 resp, body, errs := request.Get("http://example.com/").
-                    Retry(3, 5 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
+                    Retry(3, 5 * time.Second, http.StatusBadRequest, http.StatusInternalServerError).
                     End()
 ```
 
