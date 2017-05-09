@@ -76,6 +76,7 @@ type SuperAgent struct {
 		Attempt         int
 		Enable          bool
 	}
+	DoNotClearSuperAgent bool
 }
 
 var DisableTransportSwap = false
@@ -132,6 +133,9 @@ func (s *SuperAgent) SetLogger(logger Logger) *SuperAgent {
 
 // Clear SuperAgent data for another new request.
 func (s *SuperAgent) ClearSuperAgent() {
+	if s.DoNotClearSuperAgent {
+		return
+	}
 	s.Url = ""
 	s.Method = ""
 	s.Header = make(map[string]string)
