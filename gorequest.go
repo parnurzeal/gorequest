@@ -30,6 +30,7 @@ import (
 	"path/filepath"
 
 	"github.com/moul/http2curl"
+	"golang.org/x/net/proxy"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -496,6 +497,12 @@ func (s *SuperAgent) Proxy(proxyUrl string) *SuperAgent {
 		s.Errors = append(s.Errors, err)
 	} else if proxyUrl == "" {
 		s.Transport.Proxy = nil
+	} else if proxyUrl[:6] == "socks5" {
+		socks5Dialer, err := proxy.FromURL(parsedProxyUrl, proxy.Direct)
+		if err != nil {
+			s.Errors = append(s.Errors, err)
+		}
+		s.Transport = &http.Transport{Dial: socks5Dialer.Dial}
 	} else {
 		s.Transport.Proxy = http.ProxyURL(parsedProxyUrl)
 	}
