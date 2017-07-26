@@ -497,7 +497,7 @@ func (s *SuperAgent) Proxy(proxyUrl string) *SuperAgent {
 		s.Errors = append(s.Errors, err)
 	} else if proxyUrl == "" {
 		s.Transport.Proxy = nil
-	} else if proxyUrl[:6] == "socks5" {
+	} else if strings.ToLower(proxyUrl[:6]) == "socks5" {
 		socks5Dialer, err := proxy.FromURL(parsedProxyUrl, proxy.Direct)
 		if err != nil {
 			s.Errors = append(s.Errors, err)
