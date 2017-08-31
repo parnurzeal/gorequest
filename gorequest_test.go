@@ -40,6 +40,76 @@ type (
 	}
 )
 
+// Test for type constants.
+func TestTypeConstants(t *testing.T) {
+	if TypeJSON != "json" {
+		t.Errorf("Expected TypeJSON -> json | but got %s", TypeJSON)
+	}
+
+	if TypeXML != "xml" {
+		t.Errorf("Expected TypeXML -> xml | but got %s", TypeXML)
+	}
+
+	if TypeForm != "form" {
+		t.Errorf("Expected TypeForm -> form | but got %s", TypeForm)
+	}
+
+	if TypeFormData != "form-data" {
+		t.Errorf("Expected TypeFormData -> form-data | but got %s", TypeFormData)
+	}
+
+	if TypeUrlencoded != "urlencoded" {
+		t.Errorf("Expected TypeUrlencoded -> urlencoded | but got %s", TypeUrlencoded)
+	}
+
+	if TypeHTML != "html" {
+		t.Errorf("Expected TypeHTML -> html | but got %s", TypeHTML)
+	}
+
+	if TypeText != "text" {
+		t.Errorf("Expected TypeText -> text | but got %s", TypeText)
+	}
+
+	if TypeMultipart != "multipart" {
+		t.Errorf("Expected TypeMultipart -> multipart | but got %s", TypeMultipart)
+	}
+}
+
+// Test for Types map.
+func TestTypesMap(t *testing.T) {
+	if Types[TypeJSON] != "application/json" {
+		t.Errorf(`Expected Types["json"] -> "application/json" | but got %s`, Types[TypeJSON])
+	}
+
+	if Types[TypeXML] != "application/xml" {
+		t.Errorf(`Expected Types["xml"] -> "applicaion/xml" | but got %s`, Types[TypeXML])
+	}
+
+	if Types[TypeForm] != "application/x-www-form-urlencoded" {
+		t.Errorf(`Expected Types["form"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeForm])
+	}
+
+	if Types[TypeFormData] != "application/x-www-form-urlencoded" {
+		t.Errorf(`Expected Types["form-data"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeFormData])
+	}
+
+	if Types[TypeUrlencoded] != "application/x-www-form-urlencoded" {
+		t.Errorf(`Expected Types["urlencoded"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeUrlencoded])
+	}
+
+	if Types[TypeHTML] != "text/html" {
+		t.Errorf(`Expected Types["html"] -> "text/html" | but got %s`, Types[TypeHTML])
+	}
+
+	if Types[TypeText] != "text/plain" {
+		t.Errorf(`Expected Types["text"] -> "text/plain" | but got %s`, Types[TypeText])
+	}
+
+	if Types[TypeMultipart] != "multipart/form-data" {
+		t.Errorf(`Expected Types["multipart"] -> "multipart/form-data" | but got %s`, Types[TypeMultipart])
+	}
+}
+
 // Test for changeMapToURLValues
 func TestChangeMapToURLValues(t *testing.T) {
 

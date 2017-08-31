@@ -47,6 +47,18 @@ const (
 	OPTIONS = "OPTIONS"
 )
 
+// Types we support.
+const (
+	TypeJSON       = "json"
+	TypeXML        = "xml"
+	TypeUrlencoded = "urlencoded"
+	TypeForm       = "form"
+	TypeFormData   = "form-data"
+	TypeHTML       = "html"
+	TypeText       = "text"
+	TypeMultipart  = "multipart"
+)
+
 // A SuperAgent is a object storing all request data for client.
 type SuperAgent struct {
 	Url               string
@@ -90,7 +102,7 @@ func New() *SuperAgent {
 	debug := os.Getenv("GOREQUEST_DEBUG") == "1"
 
 	s := &SuperAgent{
-		TargetType:        "json",
+		TargetType:        TypeJSON,
 		Data:              make(map[string]interface{}),
 		Header:            make(map[string]string),
 		RawString:         "",
@@ -143,7 +155,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.BounceToRawString = false
 	s.RawString = ""
 	s.ForceType = ""
-	s.TargetType = "json"
+	s.TargetType = TypeJSON
 	s.Cookies = make([]*http.Cookie, 0)
 	s.Errors = nil
 }
@@ -300,14 +312,14 @@ func (s *SuperAgent) AddCookies(cookies []*http.Cookie) *SuperAgent {
 }
 
 var Types = map[string]string{
-	"html":       "text/html",
-	"json":       "application/json",
-	"xml":        "application/xml",
-	"text":       "text/plain",
-	"urlencoded": "application/x-www-form-urlencoded",
-	"form":       "application/x-www-form-urlencoded",
-	"form-data":  "application/x-www-form-urlencoded",
-	"multipart":  "multipart/form-data",
+	TypeJSON:       "application/json",
+	TypeXML:        "application/xml",
+	TypeForm:       "application/x-www-form-urlencoded",
+	TypeFormData:   "application/x-www-form-urlencoded",
+	TypeUrlencoded: "application/x-www-form-urlencoded",
+	TypeHTML:       "text/html",
+	TypeText:       "text/plain",
+	TypeMultipart:  "multipart/form-data",
 }
 
 // Type is a convenience function to specify the data type to send.
@@ -684,7 +696,7 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 					}
 				}
 			}
-			s.TargetType = "form"
+			s.TargetType = TypeForm
 		} else {
 			s.BounceToRawString = true
 		}
@@ -1011,7 +1023,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 	// check if there is forced type
 	switch s.ForceType {
-	case "json", "form", "xml", "text", "multipart":
+	case TypeJSON, TypeForm, TypeXML, TypeText, TypeMultipart:
 		s.TargetType = s.ForceType
 		// If forcetype is not set, check whether user set Content-Type header.
 		// If yes, also bounce to the correct supported TargetType automatically.
@@ -1111,7 +1123,8 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	//
 	//     https://github.com/parnurzeal/gorequest/pull/136
 	//
-	if s.TargetType == "json" {
+	switch s.TargetType {
+	case TypeJSON:
 		// If-case to give support to json array. we check if
 		// 1) Map only: send it as json map from s.Data
 		// 2) Array or Mix of map & array or others: send it as rawstring from s.RawString
@@ -1127,7 +1140,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			contentReader = bytes.NewReader(contentJson)
 			contentType = "application/json"
 		}
-	} else if s.TargetType == "form" || s.TargetType == "form-data" || s.TargetType == "urlencoded" {
+	case TypeForm, TypeFormData, TypeUrlencoded:
 		var contentForm []byte
 		if s.BounceToRawString || len(s.SliceData) != 0 {
 			contentForm = []byte(s.RawString)
@@ -1139,17 +1152,17 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			contentReader = bytes.NewReader(contentForm)
 			contentType = "application/x-www-form-urlencoded"
 		}
-	} else if s.TargetType == "text" {
+	case TypeText:
 		if len(s.RawString) != 0 {
 			contentReader = strings.NewReader(s.RawString)
 			contentType = "text/plain"
 		}
-	} else if s.TargetType == "xml" {
+	case TypeXML:
 		if len(s.RawString) != 0 {
 			contentReader = strings.NewReader(s.RawString)
 			contentType = "application/xml"
 		}
-	} else if s.TargetType == "multipart" {
+	case TypeMultipart:
 		var (
 			buf = &bytes.Buffer{}
 			mw  = multipart.NewWriter(buf)
@@ -1210,7 +1223,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		if contentReader != nil {
 			contentType = mw.FormDataContentType()
 		}
-	} else {
+	default:
 		// let's return an error instead of an nil pointer exception here
 		return nil, errors.New("TargetType '" + s.TargetType + "' could not be determined")
 	}
