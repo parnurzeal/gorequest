@@ -695,9 +695,10 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 }
 
 type File struct {
-	Filename  string
-	Fieldname string
-	Data      []byte
+	Filename    string
+	Fieldname   string
+	Data        []byte
+	ContentType string
 }
 
 // SendFile function works only with type "multipart". The function accepts one mandatory and up to two optional arguments. The mandatory (first) argument is the file.
@@ -747,10 +748,20 @@ type File struct {
 //        SendFile(b, "", "my_custom_fieldname"). // filename left blank, will become "example_file.ext"
 //        End()
 //
+// The third optional argument (fourth argument overall) is the contenttype in the multipart/form-data request. It defaults to "application/octet-stream"
+//
+//      b, _ := ioutil.ReadFile("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(b, "", "my_custom_fieldname", "application/xml").
+//        End()
+//
 func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 
 	filename := ""
 	fieldname := "file"
+	contenttype := ""
 
 	if len(args) >= 1 && len(args[0]) > 0 {
 		filename = strings.TrimSpace(args[0])
@@ -758,6 +769,10 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 	if len(args) >= 2 && len(args[1]) > 0 {
 		fieldname = strings.TrimSpace(args[1])
 	}
+	if len(args) >= 3 && len(args[2]) > 0 {
+		contenttype = strings.TrimSpace(args[2])
+	}
+
 	if fieldname == "file" || fieldname == "" {
 		fieldname = "file" + strconv.Itoa(len(s.FileData)+1)
 	}
@@ -778,9 +793,10 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 			return s
 		}
 		s.FileData = append(s.FileData, File{
-			Filename:  filename,
-			Fieldname: fieldname,
-			Data:      data,
+			Filename:    filename,
+			Fieldname:   fieldname,
+			Data:        data,
+			ContentType: contenttype,
 		})
 	case reflect.Slice:
 		slice := makeSliceOfReflectValue(v)
@@ -788,9 +804,10 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 			filename = "filename"
 		}
 		f := File{
-			Filename:  filename,
-			Fieldname: fieldname,
-			Data:      make([]byte, len(slice)),
+			Filename:    filename,
+			Fieldname:   fieldname,
+			Data:        make([]byte, len(slice)),
+			ContentType: contenttype,
 		}
 		for i := range slice {
 			f.Data[i] = slice[i].(byte)
@@ -800,8 +817,11 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 		if len(args) == 1 {
 			return s.SendFile(v.Elem().Interface(), args[0])
 		}
-		if len(args) >= 2 {
+		if len(args) == 2 {
 			return s.SendFile(v.Elem().Interface(), args[0], args[1])
+		}
+		if len(args) >= 3 {
+			return s.SendFile(v.Elem().Interface(), args[0], args[1], args[2])
 		}
 		return s.SendFile(v.Elem().Interface())
 	default:
@@ -816,9 +836,10 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 				return s
 			}
 			s.FileData = append(s.FileData, File{
-				Filename:  filename,
-				Fieldname: fieldname,
-				Data:      data,
+				Filename:    filename,
+				Fieldname:   fieldname,
+				Data:        data,
+				ContentType: contenttype,
 			})
 			return s
 		}
@@ -1150,6 +1171,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			contentType = "application/xml"
 		}
 	} else if s.TargetType == "multipart" {
+
 		var (
 			buf = &bytes.Buffer{}
 			mw  = multipart.NewWriter(buf)
@@ -1198,8 +1220,20 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		// add the files
 		if len(s.FileData) != 0 {
 			for _, file := range s.FileData {
-				fw, _ := mw.CreateFormFile(file.Fieldname, file.Filename)
-				fw.Write(file.Data)
+				if len(file.ContentType) > 0 {
+					h := make(textproto.MIMEHeader)
+					h.Set("Content-Type", file.ContentType)
+					var fns string
+					if len(file.Filename) > 0 {
+						fns = fmt.Sprintf(`; filename="%s"`, escapeQuotes(file.Filename))
+					}
+					h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"%s`, escapeQuotes(file.Fieldname), fns))
+					fw, _ := mw.CreatePart(h)
+					fw.Write(file.Data)
+				} else {
+					fw, _ := mw.CreateFormFile(file.Fieldname, file.Filename)
+					fw.Write(file.Data)
+				}
 			}
 			contentReader = buf
 		}
@@ -1264,4 +1298,10 @@ func (s *SuperAgent) AsCurlCommand() (string, error) {
 		return "", err
 	}
 	return cmd.String(), nil
+}
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
 }
