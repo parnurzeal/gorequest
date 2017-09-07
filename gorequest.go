@@ -1179,7 +1179,13 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		// add the files
 		if len(s.FileData) != 0 {
 			for _, file := range s.FileData {
-				fw, _ := mw.CreateFormFile(file.Fieldname, file.Filename)
+				h := make(textproto.MIMEHeader)
+				h.Set("Content-Disposition",
+					fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+						strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(file.Fieldname), strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(file.Filename)))
+				contentType := http.DetectContentType(file.Data)
+				h.Set("Content-Type", contentType)
+				fw, _ := mw.CreatePart(h)
 				fw.Write(file.Data)
 			}
 		}
