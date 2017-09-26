@@ -800,7 +800,7 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 		})
 	case reflect.Slice:
 		slice := makeSliceOfReflectValue(v)
-		if filename == "" {
+		if filename == "" && contenttype == "" { //default only if contenttype not specified
 			filename = "filename"
 		}
 		f := File{
