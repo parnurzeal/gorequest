@@ -51,7 +51,7 @@ const (
 type SuperAgent struct {
 	Url               string
 	Method            string
-	Header            map[string]string
+	Header            http.Header
 	TargetType        string
 	ForceType         string
 	Data              map[string]interface{}
@@ -92,7 +92,7 @@ func New() *SuperAgent {
 	s := &SuperAgent{
 		TargetType:        "json",
 		Data:              make(map[string]interface{}),
-		Header:            make(map[string]string),
+		Header:            http.Header{},
 		RawString:         "",
 		SliceData:         []interface{}{},
 		FormData:          url.Values{},
@@ -134,7 +134,7 @@ func (s *SuperAgent) SetLogger(logger Logger) *SuperAgent {
 func (s *SuperAgent) ClearSuperAgent() {
 	s.Url = ""
 	s.Method = ""
-	s.Header = make(map[string]string)
+	s.Header = http.Header{}
 	s.Data = make(map[string]interface{})
 	s.SliceData = []interface{}{}
 	s.FormData = url.Values{}
@@ -230,7 +230,8 @@ func (s *SuperAgent) Options(targetUrl string) *SuperAgent {
 	return s
 }
 
-// Set is used for setting header fields.
+// Set is used for setting header fields,
+// this will overwrite the existed values of Header through AppendHeader().
 // Example. To set `Accept` as `application/json`
 //
 //    gorequest.New().
@@ -238,7 +239,20 @@ func (s *SuperAgent) Options(targetUrl string) *SuperAgent {
 //      Set("Accept", "application/json").
 //      End()
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
-	s.Header[param] = value
+	s.Header.Set(param, value)
+	return s
+}
+
+// AppendHeader is used for setting header fileds with multiple values,
+// Example. To set `Accept` as `application/json, text/plain`
+//
+//    gorequest.New().
+//      Post("/gamelist").
+//      AppendHeader("Accept", "application/json").
+//      AppendHeader("Accept", "text/plain").
+//      End()
+func (s *SuperAgent) AppendHeader(param string, value string) *SuperAgent {
+	s.Header.Add(param, value)
 	return s
 }
 
@@ -1016,8 +1030,9 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		// If forcetype is not set, check whether user set Content-Type header.
 		// If yes, also bounce to the correct supported TargetType automatically.
 	default:
+		contentType := s.Header.Get("Content-Type")
 		for k, v := range Types {
-			if s.Header["Content-Type"] == v {
+			if contentType == v {
 				s.TargetType = k
 			}
 		}
@@ -1156,8 +1171,8 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		)
 
 		if s.BounceToRawString {
-			fieldName, ok := s.Header["data_fieldname"]
-			if !ok {
+			fieldName := s.Header.Get("data_fieldname")
+			if fieldName == "" {
 				fieldName = "data"
 			}
 			fw, _ := mw.CreateFormField(fieldName)
@@ -1177,8 +1192,8 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		}
 
 		if len(s.SliceData) != 0 {
-			fieldName, ok := s.Header["json_fieldname"]
-			if !ok {
+			fieldName := s.Header.Get("json_fieldname")
+			if fieldName == "" {
 				fieldName = "data"
 			}
 			// copied from CreateFormField() in mime/multipart/writer.go
@@ -1219,17 +1234,21 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		return nil, err
 	}
 
+	for k, vals := range s.Header {
+		for _, v := range vals {
+			req.Header.Add(k, v)
+		}
+
+		// Setting the Host header is a special case, see this issue: https://github.com/golang/go/issues/7682
+		if strings.EqualFold(k, "Host") {
+			req.Host = vals[0]
+		}
+	}
+
 	if len(contentType) != 0 {
 		req.Header.Set("Content-Type", contentType)
 	}
 
-	for k, v := range s.Header {
-		req.Header.Set(k, v)
-		// Setting the host header is a special case, see this issue: https://github.com/golang/go/issues/7682
-		if strings.EqualFold(k, "host") {
-			req.Host = v
-		}
-	}
 	// Add all querystring from Query func
 	q := req.URL.Query()
 	for k, v := range s.QueryData {

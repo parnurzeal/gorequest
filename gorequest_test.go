@@ -1734,6 +1734,147 @@ func TestPlainText(t *testing.T) {
 		End()
 }
 
+// Test for force type to plain text even the request has specific Content-Type header.
+func TestForceTypeToPlainText(t *testing.T) {
+	text := `hello world \r\n I am GoRequest`
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is PATCH before going to check other features
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		if r.Header.Get("Content-Type") != "text/plain" {
+			t.Error("Expected Header Content-Type -> text/plain", "| but got", r.Header.Get("Content-Type"))
+		}
+
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != text {
+			t.Error("Expected text ", text, "| but got", string(body))
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Post(ts.URL).
+		Set("Content-Type", "text/plain").
+		Type("text").
+		Send(text).
+		End()
+
+	New().Post(ts.URL).
+		Set("Content-Type", "application/json").
+		Type("text").
+		Send(text).
+		End()
+
+	New().Post(ts.URL).
+		Type("text").
+		Set("Content-Type", "application/json").
+		Send(text).
+		End()
+}
+
+// Test for force type to JSON even the request has specific Content-Type header.
+func TestForceTypeToJSON(t *testing.T) {
+	jsonData := `{"data":"hello world \r\n I am GoRequest"}`
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is PATCH before going to check other features
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		if r.Header.Get("Content-Type") != "application/json" {
+			t.Error("Expected Header Content-Type -> application/json", "| but got", r.Header.Get("Content-Type"))
+		}
+
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != jsonData {
+			t.Error("Expected JSON ", jsonData, "| but got", string(body))
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Post(ts.URL).
+		Set("Content-Type", "application/json").
+		Type("json").
+		Send(jsonData).
+		End()
+
+	New().Post(ts.URL).
+		Set("Content-Type", "text/plain").
+		Type("json").
+		Send(jsonData).
+		End()
+
+	New().Post(ts.URL).
+		Type("json").
+		Set("Content-Type", "text/plain").
+		Send(jsonData).
+		End()
+}
+
+// Test for request can accept multiple types.
+func TestAcceptMultipleTypes(t *testing.T) {
+	text := `hello world \r\n I am GoRequest`
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is PATCH before going to check other features
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		if r.Header.Get("Content-Type") != "text/plain" {
+			t.Error("Expected Header Content-Type -> text/plain", "| but got", r.Header.Get("Content-Type"))
+		}
+
+		expectedAccepts := []string{"text/plain", "application/json"}
+		if strings.Join(r.Header["Accept"], ", ") != strings.Join(expectedAccepts, ", ") {
+			t.Error("Expected Header Accept -> ", expectedAccepts, "| but got", r.Header["Accept"])
+		}
+
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != text {
+			t.Error(`Expected text `, text, "| but got", string(body))
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Post(ts.URL).
+		AppendHeader("Accept", "text/plain").
+		AppendHeader("Accept", "application/json").
+		Type("text").
+		Send(text).
+		End()
+
+	New().Post(ts.URL).
+		Set("Accept", "text/plain").
+		AppendHeader("Accept", "application/json").
+		Set("Content-Type", "text/plain").
+		Send(text).
+		End()
+
+	New().Post(ts.URL).
+		AppendHeader("Accept", "texxt/html"). // This will be overwritten by Set("Accept")
+		Set("Accept", "text/plain").
+		AppendHeader("Accept", "application/json").
+		Type("text").
+		Send(text).
+		End()
+}
+
 func TestAsCurlCommand(t *testing.T) {
 	var (
 		endpoint = "http://github.com/parnurzeal/gorequest"
