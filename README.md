@@ -268,6 +268,23 @@ resp, body, errs := request.Get("http://example.com/").
                     End()
 ```
 
+
+## Clone
+
+You can reuse settings of a Request by cloning it _before_ making any requests. This can be useful if you wish to re-use the SuperAgent across multiple requests without worrying about concurrency or having too many Transports being created.
+
+Clones will copy the same settings (headers, query, etc..), but will only shallow copy any "Data" given to it. They will also share the same Transport and http.Client.
+
+```go
+baseRequest := gorequest.New()
+// apply anything you want to these settings. Eg:
+baseRequest.Timeout(10 * time.Millisecond).
+  BasicAuth("user", "password")
+
+// then reuse the base request elsewhere, cloning before modifying or using it.
+resp, body, errs := baseRequest.Clone().Get("http://exmaple.com/").End()
+```
+
 ## Debug
 
 For debugging, GoRequest leverages `httputil` to dump details of every request/response. (Thanks to @dafang)
