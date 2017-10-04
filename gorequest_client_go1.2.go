@@ -1,4 +1,5 @@
-// +build go1.2, !go1.3
+// +build go1.2
+// +build !go1.3
 
 package gorequest
 
