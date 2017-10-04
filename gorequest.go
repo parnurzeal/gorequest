@@ -597,52 +597,6 @@ func (s *SuperAgent) Param(key string, value string) *SuperAgent {
 	return s
 }
 
-// does a shallow clone of the transport
-func (s *SuperAgent) safeModifyTransport() {
-	if !s.isClone {
-		return
-	}
-	oldTransport := s.Transport
-	s.Transport = &http.Transport{
-		Proxy:                  oldTransport.Proxy,
-		DialContext:            oldTransport.DialContext,
-		Dial:                   oldTransport.Dial,
-		DialTLS:                oldTransport.DialTLS,
-		TLSClientConfig:        oldTransport.TLSClientConfig,
-		TLSHandshakeTimeout:    oldTransport.TLSHandshakeTimeout,
-		DisableKeepAlives:      oldTransport.DisableKeepAlives,
-		DisableCompression:     oldTransport.DisableCompression,
-		MaxIdleConns:           oldTransport.MaxIdleConns,
-		MaxIdleConnsPerHost:    oldTransport.MaxIdleConnsPerHost,
-		IdleConnTimeout:        oldTransport.IdleConnTimeout,
-		ResponseHeaderTimeout:  oldTransport.ResponseHeaderTimeout,
-		ExpectContinueTimeout:  oldTransport.ExpectContinueTimeout,
-		TLSNextProto:           oldTransport.TLSNextProto,
-		ProxyConnectHeader:     oldTransport.ProxyConnectHeader,
-		MaxResponseHeaderBytes: oldTransport.MaxResponseHeaderBytes,
-	}
-}
-
-// we don't want to mess up other clones when we modify the client..
-// so unfortantely we need to create a new client
-func (s *SuperAgent) safeModifyHttpClient() {
-	if !s.isClone {
-		return
-	}
-	oldClient := s.Client
-	s.Client = &http.Client{}
-	s.Client.Jar = oldClient.Jar
-	s.Client.Transport = oldClient.Transport
-	s.Client.Timeout = oldClient.Timeout
-	s.Client.CheckRedirect = oldClient.CheckRedirect
-}
-
-func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
-	s.safeModifyHttpClient()
-	s.Client.Timeout = timeout
-	return s
-}
-
 // Set TLSClientConfig for underling Transport.
 // One example is you can use it to disable security check (https):
 //
