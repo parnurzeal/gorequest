@@ -1,0 +1,25 @@
+{
+	"ImportPath": "github.com/NafisFaysal/gorequest",
+	"GoVersion": "go1.8",
+	"GodepVersion": "v79",
+	"Deps": [
+		{
+			"ImportPath": "github.com/elazarl/goproxy",
+			"Comment": "v1.0-108-gaacba83",
+			"Rev": "aacba83f36a55ac31cbb71c06547a328c0cd1604"
+		},
+		{
+			"ImportPath": "github.com/moul/http2curl",
+			"Rev": "9ac6cf4d929b2fa8fd2d2e6dec5bb0feb4f4911d"
+		},
+		{
+			"ImportPath": "github.com/pkg/errors",
+			"Comment": "v0.8.0-6-g2b3a18b",
+			"Rev": "2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb"
+		},
+		{
+			"ImportPath": "golang.org/x/net/publicsuffix",
+			"Rev": "a04bdaca5b32abe1c069418fb7088ae607de5bd0"
+		}
+	]
+}
