@@ -88,6 +88,7 @@ type SuperAgent struct {
 		Attempt         int
 		Enable          bool
 	}
+	//If true prevents clearing Superagent data and makes it possible to reuse it for the next requests
 	DoNotClearSuperAgent bool
 }
 
