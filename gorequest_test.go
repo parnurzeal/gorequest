@@ -1804,52 +1804,54 @@ func TestPlainText(t *testing.T) {
 		End()
 }
 
-func TestCustomHeaderTakePriorityOnTypeInference(t *testing.T) {
+// TestContentTypeInference tests that the ContentType header is set
+// properly when a custom override is provided using AppendHeader
+// or Set methods.
+// https://github.com/parnurzeal/gorequest/issues/164
+func TestContentTypeInference(t *testing.T) {
 	var tests = []struct {
-		name           string
-		customHeader   string
+		customContentType string
+		//type is reserved keyword
 		Type           string
 		expectedHeader string
 		body           string
 	}{
-		{"same", "application/json", "json", "application/json", "{}"},
-		{"emptybody", "", "json", "", ""},
-		{"normal emptyjson", "", "json", "", "{}"},
-		{"json_override", "text/json", "json", "text/json", "{}"},
-		{"xml_override", "text/xml", "json", "text/xml", "<a />"},
+		{"application/json", "json", "application/json", "{}"},
+		{"", "json", "", ""},
+		{"", "json", "", "{}"},
+		{"text/json", "json", "text/json", "{}"},
+		{"text/xml", "json", "text/xml", "<a />"},
 	}
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				// check method is PATCH before going to check other features
-				if r.Method != POST {
-					t.Errorf("Expected method %q; got %q", POST, r.Method)
-				}
-				if r.Header == nil {
-					t.Error("Expected non-nil request Header")
-				}
-				if r.Header.Get("Content-Type") != test.expectedHeader {
-					t.Errorf("Expected Header Content-Type -> %q | but got %q", test.expectedHeader, r.Header.Get("Content-Type"))
-				}
-			}))
-			defer ts.Close()
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// check method is PATCH before going to check other features
+			if r.Method != POST {
+				t.Errorf("Expected method %q; got %q", POST, r.Method)
+			}
+			if r.Header == nil {
+				t.Error("Expected non-nil request Header")
+			}
+			if r.Header.Get("Content-Type") != test.expectedHeader {
+				t.Errorf("Expected Header Content-Type -> %q | but got %q", test.expectedHeader, r.Header.Get("Content-Type"))
+			}
+		}))
 
-			New().Post(ts.URL).
-				Set("Content-Type", test.customHeader).
-				Type(test.Type).
-				Send(test.body).
-				End()
-			New().Post(ts.URL).
-				Set("cOnTent-tYpE", test.customHeader).
-				Type(test.Type).
-				Send(test.body).
-				End()
-			New().Post(ts.URL).
-				AppendHeader("Content-Type", test.customHeader).
-				Type(test.Type).
-				Send(test.body).
-				End()
-		})
+		New().Post(ts.URL).
+			Set("Content-Type", test.customContentType).
+			Type(test.Type).
+			Send(test.body).
+			End()
+		New().Post(ts.URL).
+			Set("cOnTent-tYpE", test.customContentType).
+			Type(test.Type).
+			Send(test.body).
+			End()
+		New().Post(ts.URL).
+			AppendHeader("Content-Type", test.customContentType).
+			Type(test.Type).
+			Send(test.body).
+			End()
+		ts.Close()
 	}
 }
 
