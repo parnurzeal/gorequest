@@ -1268,8 +1268,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			req.Host = vals[0]
 		}
 	}
-
-	if len(contentType) != 0 {
+	if len(contentType) != 0 && req.Header.Get("Content-Type") == "" {
 		req.Header.Set("Content-Type", contentType)
 	}
 

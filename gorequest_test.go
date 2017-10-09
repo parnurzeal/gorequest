@@ -1804,92 +1804,53 @@ func TestPlainText(t *testing.T) {
 		End()
 }
 
-// Test for force type to plain text even the request has specific Content-Type header.
-func TestForceTypeToPlainText(t *testing.T) {
-	text := `hello world \r\n I am GoRequest`
+func TestCustomHeaderTakePriorityOnTypeInference(t *testing.T) {
+	var tests = []struct {
+		name           string
+		customHeader   string
+		Type           string
+		expectedHeader string
+		body           string
+	}{
+		{"same", "application/json", "json", "application/json", "{}"},
+		{"emptybody", "", "json", "", ""},
+		{"normal emptyjson", "", "json", "", "{}"},
+		{"json_override", "text/json", "json", "text/json", "{}"},
+		{"xml_override", "text/xml", "json", "text/xml", "<a />"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// check method is PATCH before going to check other features
+				if r.Method != POST {
+					t.Errorf("Expected method %q; got %q", POST, r.Method)
+				}
+				if r.Header == nil {
+					t.Error("Expected non-nil request Header")
+				}
+				if r.Header.Get("Content-Type") != test.expectedHeader {
+					t.Errorf("Expected Header Content-Type -> %q | but got %q", test.expectedHeader, r.Header.Get("Content-Type"))
+				}
+			}))
+			defer ts.Close()
 
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// check method is PATCH before going to check other features
-		if r.Method != POST {
-			t.Errorf("Expected method %q; got %q", POST, r.Method)
-		}
-		if r.Header == nil {
-			t.Error("Expected non-nil request Header")
-		}
-		if r.Header.Get("Content-Type") != "text/plain" {
-			t.Error("Expected Header Content-Type -> text/plain", "| but got", r.Header.Get("Content-Type"))
-		}
-
-		defer r.Body.Close()
-		body, _ := ioutil.ReadAll(r.Body)
-		if string(body) != text {
-			t.Error("Expected text ", text, "| but got", string(body))
-		}
-	}))
-
-	defer ts.Close()
-
-	New().Post(ts.URL).
-		Set("Content-Type", "text/plain").
-		Type("text").
-		Send(text).
-		End()
-
-	New().Post(ts.URL).
-		Set("Content-Type", "application/json").
-		Type("text").
-		Send(text).
-		End()
-
-	New().Post(ts.URL).
-		Type("text").
-		Set("Content-Type", "application/json").
-		Send(text).
-		End()
-}
-
-// Test for force type to JSON even the request has specific Content-Type header.
-func TestForceTypeToJSON(t *testing.T) {
-	jsonData := `{"data":"hello world \r\n I am GoRequest"}`
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// check method is PATCH before going to check other features
-		if r.Method != POST {
-			t.Errorf("Expected method %q; got %q", POST, r.Method)
-		}
-		if r.Header == nil {
-			t.Error("Expected non-nil request Header")
-		}
-		if r.Header.Get("Content-Type") != "application/json" {
-			t.Error("Expected Header Content-Type -> application/json", "| but got", r.Header.Get("Content-Type"))
-		}
-
-		defer r.Body.Close()
-		body, _ := ioutil.ReadAll(r.Body)
-		if string(body) != jsonData {
-			t.Error("Expected JSON ", jsonData, "| but got", string(body))
-		}
-	}))
-
-	defer ts.Close()
-
-	New().Post(ts.URL).
-		Set("Content-Type", "application/json").
-		Type("json").
-		Send(jsonData).
-		End()
-
-	New().Post(ts.URL).
-		Set("Content-Type", "text/plain").
-		Type("json").
-		Send(jsonData).
-		End()
-
-	New().Post(ts.URL).
-		Type("json").
-		Set("Content-Type", "text/plain").
-		Send(jsonData).
-		End()
+			New().Post(ts.URL).
+				Set("Content-Type", test.customHeader).
+				Type(test.Type).
+				Send(test.body).
+				End()
+			New().Post(ts.URL).
+				Set("cOnTent-tYpE", test.customHeader).
+				Type(test.Type).
+				Send(test.body).
+				End()
+			New().Post(ts.URL).
+				AppendHeader("Content-Type", test.customHeader).
+				Type(test.Type).
+				Send(test.body).
+				End()
+		})
+	}
 }
 
 // Test for request can accept multiple types.
