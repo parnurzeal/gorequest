@@ -1269,7 +1269,9 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		}
 	}
 
-	if len(contentType) != 0 {
+	// https://github.com/parnurzeal/gorequest/issues/164
+	// Don't infer the content type header if an overrride is already provided.
+	if len(contentType) != 0 && req.Header.Get("Content-Type") == "" {
 		req.Header.Set("Content-Type", contentType)
 	}
 
