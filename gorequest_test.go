@@ -40,6 +40,76 @@ type (
 	}
 )
 
+// Test for type constants.
+func TestTypeConstants(t *testing.T) {
+	if TypeJSON != "json" {
+		t.Errorf("Expected TypeJSON -> json | but got %s", TypeJSON)
+	}
+
+	if TypeXML != "xml" {
+		t.Errorf("Expected TypeXML -> xml | but got %s", TypeXML)
+	}
+
+	if TypeForm != "form" {
+		t.Errorf("Expected TypeForm -> form | but got %s", TypeForm)
+	}
+
+	if TypeFormData != "form-data" {
+		t.Errorf("Expected TypeFormData -> form-data | but got %s", TypeFormData)
+	}
+
+	if TypeUrlencoded != "urlencoded" {
+		t.Errorf("Expected TypeUrlencoded -> urlencoded | but got %s", TypeUrlencoded)
+	}
+
+	if TypeHTML != "html" {
+		t.Errorf("Expected TypeHTML -> html | but got %s", TypeHTML)
+	}
+
+	if TypeText != "text" {
+		t.Errorf("Expected TypeText -> text | but got %s", TypeText)
+	}
+
+	if TypeMultipart != "multipart" {
+		t.Errorf("Expected TypeMultipart -> multipart | but got %s", TypeMultipart)
+	}
+}
+
+// Test for Types map.
+func TestTypesMap(t *testing.T) {
+	if Types[TypeJSON] != "application/json" {
+		t.Errorf(`Expected Types["json"] -> "application/json" | but got %s`, Types[TypeJSON])
+	}
+
+	if Types[TypeXML] != "application/xml" {
+		t.Errorf(`Expected Types["xml"] -> "applicaion/xml" | but got %s`, Types[TypeXML])
+	}
+
+	if Types[TypeForm] != "application/x-www-form-urlencoded" {
+		t.Errorf(`Expected Types["form"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeForm])
+	}
+
+	if Types[TypeFormData] != "application/x-www-form-urlencoded" {
+		t.Errorf(`Expected Types["form-data"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeFormData])
+	}
+
+	if Types[TypeUrlencoded] != "application/x-www-form-urlencoded" {
+		t.Errorf(`Expected Types["urlencoded"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeUrlencoded])
+	}
+
+	if Types[TypeHTML] != "text/html" {
+		t.Errorf(`Expected Types["html"] -> "text/html" | but got %s`, Types[TypeHTML])
+	}
+
+	if Types[TypeText] != "text/plain" {
+		t.Errorf(`Expected Types["text"] -> "text/plain" | but got %s`, Types[TypeText])
+	}
+
+	if Types[TypeMultipart] != "multipart/form-data" {
+		t.Errorf(`Expected Types["multipart"] -> "multipart/form-data" | but got %s`, Types[TypeMultipart])
+	}
+}
+
 // Test for changeMapToURLValues
 func TestChangeMapToURLValues(t *testing.T) {
 
@@ -1754,6 +1824,110 @@ func TestPlainText(t *testing.T) {
 
 	New().Post(ts.URL).
 		Set("Content-Type", "text/plain").
+		Send(text).
+		End()
+}
+
+// TestContentTypeInference tests that the ContentType header is set
+// properly when a custom override is provided using AppendHeader
+// or Set methods.
+// https://github.com/parnurzeal/gorequest/issues/164
+func TestContentTypeInference(t *testing.T) {
+	var tests = []struct {
+		customContentType string
+		//type is reserved keyword
+		Type           string
+		expectedHeader string
+		body           string
+	}{
+		{"application/json", "json", "application/json", "{}"},
+		{"", "json", "", ""},
+		{"", "json", "", "{}"},
+		{"text/json", "json", "text/json", "{}"},
+		{"text/xml", "json", "text/xml", "<a />"},
+	}
+	for _, test := range tests {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// check method is PATCH before going to check other features
+			if r.Method != POST {
+				t.Errorf("Expected method %q; got %q", POST, r.Method)
+			}
+			if r.Header == nil {
+				t.Error("Expected non-nil request Header")
+			}
+			if r.Header.Get("Content-Type") != test.expectedHeader {
+				t.Errorf("Expected Header Content-Type -> %q | but got %q", test.expectedHeader, r.Header.Get("Content-Type"))
+			}
+		}))
+
+		New().Post(ts.URL).
+			Set("Content-Type", test.customContentType).
+			Type(test.Type).
+			Send(test.body).
+			End()
+		New().Post(ts.URL).
+			Set("cOnTent-tYpE", test.customContentType).
+			Type(test.Type).
+			Send(test.body).
+			End()
+		New().Post(ts.URL).
+			AppendHeader("Content-Type", test.customContentType).
+			Type(test.Type).
+			Send(test.body).
+			End()
+		ts.Close()
+	}
+}
+
+// Test for request can accept multiple types.
+func TestAcceptMultipleTypes(t *testing.T) {
+	text := `hello world \r\n I am GoRequest`
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is PATCH before going to check other features
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		if r.Header.Get("Content-Type") != "text/plain" {
+			t.Error("Expected Header Content-Type -> text/plain", "| but got", r.Header.Get("Content-Type"))
+		}
+
+		expectedAccepts := []string{"text/plain", "application/json"}
+		if strings.Join(r.Header["Accept"], ", ") != strings.Join(expectedAccepts, ", ") {
+			t.Error("Expected Header Accept -> ", expectedAccepts, "| but got", r.Header["Accept"])
+		}
+
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != text {
+			t.Error(`Expected text `, text, "| but got", string(body))
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Post(ts.URL).
+		AppendHeader("Accept", "text/plain").
+		AppendHeader("Accept", "application/json").
+		Type("text").
+		Send(text).
+		End()
+
+	New().Post(ts.URL).
+		Set("Accept", "text/plain").
+		AppendHeader("Accept", "application/json").
+		Set("Content-Type", "text/plain").
+		Send(text).
+		End()
+
+	New().Post(ts.URL).
+		AppendHeader("Accept", "texxt/html"). // This will be overwritten by Set("Accept")
+		Set("Accept", "text/plain").
+		AppendHeader("Accept", "application/json").
+		Type("text").
 		Send(text).
 		End()
 }
