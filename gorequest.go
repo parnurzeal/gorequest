@@ -1024,6 +1024,8 @@ func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response
 	if errs != nil {
 		return nil, body, errs
 	}
+	// Trim the BOM.
+	body = bytes.TrimPrefix(body, []byte("\xef\xbb\xbf"))
 	err := json.Unmarshal(body, &v)
 	if err != nil {
 		s.Errors = append(s.Errors, err)
