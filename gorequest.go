@@ -375,21 +375,23 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 	return s
 }
 
-// Query function accepts either json string or strings which will form a query-string in url of GET method or body of POST method.
-// For example, making "/search?query=bicycle&size=50x50&weight=20kg" using GET method:
+// Query function accepts either a JSON string or strings which will form a query-string in url of GET method or body of POST method; alternatively you may provide a struct or a map.
+// For example, making "/search?query=bicycle&size=50x50&weight=20kg&count=2&working=false" using GET method:
 //
 //      gorequest.New().
 //        Get("/search").
-//        Query(`{ query: 'bicycle' }`).
-//        Query(`{ size: '50x50' }`).
-//        Query(`{ weight: '20kg' }`).
+//        Query(`{ "query": "bicycle" }`).
+//        Query(`{ "size": "50x50" }`).
+//        Query(`{ "weight": "20kg" }`).
+//        Query(`{ "count": 2 }`).
+//        Query(`{ "working": false }`).
 //        End()
 //
 // Or you can put multiple json values:
 //
 //      gorequest.New().
 //        Get("/search").
-//        Query(`{ query: 'bicycle', size: '50x50', weight: '20kg' }`).
+//        Query(`{ "query": "bicycle", "size": "50x50", "weight": "20kg", "count":2, "working": false }`).
 //        End()
 //
 // Strings are also acceptable:
@@ -398,6 +400,7 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 //        Get("/search").
 //        Query("query=bicycle&size=50x50").
 //        Query("weight=20kg").
+//        Query("count=2&working=false").
 //        End()
 //
 // Or even Mixed! :)
@@ -405,7 +408,29 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 //      gorequest.New().
 //        Get("/search").
 //        Query("query=bicycle").
-//        Query(`{ size: '50x50', weight:'20kg' }`).
+//        Query(`{ "size": "50x50", "weight": "20kg", "count": 2, "working": false }`).
+//        End()
+//
+// A map:
+//
+//      gorequest.New().
+//        Get("/search").
+//        Query(map[string]interface{}{"query": "bicycle", "size": "50x50", "weight": "20kg", "count": 2, "working": false}).
+//        End()
+//
+// Or a struct:
+
+//      type Bicycle struct {
+// 	        Query   string
+// 	        Size    string
+// 	        Weight  string
+// 	        Count   int
+// 	        Working bool
+//      }
+//
+//      gorequest.New().
+//        Get("/search").
+//        Query(Bicycle{"bicycle", "50x50", "20kg", 2, false}).
 //        End()
 //
 func (s *SuperAgent) Query(content interface{}) *SuperAgent {
