@@ -757,9 +757,6 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 	if len(args) >= 2 && len(args[1]) > 0 {
 		fieldname = strings.TrimSpace(args[1])
 	}
-	if fieldname == "file" || fieldname == "" {
-		fieldname = "file" + strconv.Itoa(len(s.FileData)+1)
-	}
 
 	switch v := reflect.ValueOf(file); v.Kind() {
 	case reflect.String:
@@ -1039,6 +1036,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		s.Client.Transport = s.Transport
 	}
 
+	//这里打印请求和响应
 	// Log details of this request
 	if s.Debug {
 		dump, err := httputil.DumpRequest(req, true)
