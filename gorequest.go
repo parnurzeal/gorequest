@@ -757,7 +757,7 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 	if len(args) >= 2 && len(args[1]) > 0 {
 		fieldname = strings.TrimSpace(args[1])
 	}
-	//TODO 把这一块拿掉，默认用file作为fieldname，上层在使用的时候需要传fieldname
+	//把这一块拿掉，默认用file作为fieldname，上层在使用的时候需要传fieldname
 	/*if fieldname == "file" || fieldname == "" {
 		fieldname = "file" + strconv.Itoa(len(s.FileData)+1)
 	}*/
