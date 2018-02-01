@@ -7,7 +7,7 @@ GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.
 
 #### "Shooting Requests like a Machine Gun" - Gopher
 
-Sending request would never been fun and easier than this. It comes with lots of feature:
+Sending request has never been as fun nor easier than this. It comes with lots of features:
 
 * Get/Post/Put/Head/Delete/Patch/Options
 * Set - simple header setting
@@ -59,7 +59,7 @@ Or below if you don't want to reuse it for other requests.
 resp, body, errs := gorequest.New().Get("http://example.com/").End()
 ```
 
-How about getting control over HTTP client headers, redirect policy, and etc. Things is getting more complicated in golang. You need to create a Client, setting header in different command, ... to do just only one __GET__
+How about getting control over HTTP client headers, redirect policy, and etc. Things can quickly get more complicated in golang. You need to create a Client, set headers in a different command, ... just to do only one __GET__
 
 ```go
 client := &http.Client{
@@ -72,7 +72,7 @@ req.Header.Add("If-None-Match", `W/"wyzzy"`)
 resp, err := client.Do(req)
 ```
 
-Why making things ugly while you can just do as follows:
+Why make things ugly while you can just do it as follows:
 
 ```go
 request := gorequest.New()
@@ -82,7 +82,7 @@ resp, body, errs := request.Get("http://example.com").
   End()
 ```
 
-__DELETE__, __HEAD__, __POST__, __PUT__, __PATCH__ are now supported and can be used the same way as __GET__:
+__DELETE__, __HEAD__, __POST__, __PUT__, __PATCH__ are now supported and can be used in the same way as __GET__:
 
 ```go
 request := gorequest.New()
@@ -95,7 +95,7 @@ resp, body, errs := request.Post("http://example.com").End()
 
 ### JSON
 
-For a __JSON POST__ with standard libraries, you might need to marshal map data structure to json format, setting header to 'application/json' (and other headers if you need to) and declare http.Client. So, you code become longer and hard to maintain:
+For a __JSON POST__ with standard libraries, you might need to marshal map data structure to json format, set headers to 'application/json' (and other headers if you need to) and declare http.Client. So, your code becomes longer and harder to maintain:
 
 ```go
 m := map[string]interface{}{
