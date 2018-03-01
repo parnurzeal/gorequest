@@ -1557,6 +1557,51 @@ func TestTimeoutFunc(t *testing.T) {
 
 }
 
+func TestTimeoutDetailFunc(t *testing.T) {
+	// 1st case, dial timeout
+	startTime := time.Now()
+	_, _, errs := New().TimeoutDetail(1000*time.Millisecond, 500*time.Millisecond).Get("http://www.google.com:81").End()
+	elapsedTime := time.Since(startTime)
+	if errs == nil {
+		t.Error("Expected dial timeout error but get nothing")
+	}
+	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
+	}
+
+	// 2st case, read/write timeout (Can dial to url but want to timeout because too long operation on the server)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(1100 * time.Millisecond) // slightly longer than expected
+		w.WriteHeader(200)
+	}))
+	request := New().TimeoutDetail(500*time.Millisecond, 1000*time.Millisecond)
+	startTime = time.Now()
+	_, _, errs = request.Get(ts.URL).End()
+	elapsedTime = time.Since(startTime)
+	if errs == nil {
+		t.Error("Expected dial+read/write timeout | but get nothing")
+	}
+	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
+	}
+
+	// 3rd case, testing reuse of same request
+	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(1100 * time.Millisecond) // slightly longer than expected
+		w.WriteHeader(200)
+	}))
+	startTime = time.Now()
+	_, _, errs = request.Get(ts.URL).End()
+	elapsedTime = time.Since(startTime)
+	if errs == nil {
+		t.Error("Expected dial+read/write timeout | but get nothing")
+	}
+	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
+		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
+	}
+
+}
+
 func TestCookies(t *testing.T) {
 	request := New().Timeout(60 * time.Second)
 	_, _, errs := request.Get("https://github.com").End()

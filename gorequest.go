@@ -461,6 +461,22 @@ func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 	return s
 }
 
+// TimeoutDetail sets dial and read/write timeout respectively, making the request more detailed.
+//		request := gorequest.New().TimeoutDetail(2*time.Millisecond,3*time.Millisecond)
+//		resp, body, errs:= request.Get("http://example.com").End()
+func (s *SuperAgent) TimeoutDetail(connTimeout time.Duration, respTimeout time.Duration) *SuperAgent {
+	s.Transport.Dial = func(network, addr string) (net.Conn, error) {
+		conn, err := net.DialTimeout(network, addr, connTimeout)
+		if err != nil {
+			s.Errors = append(s.Errors, err)
+			return nil, err
+		}
+		conn.SetDeadline(time.Now().Add(respTimeout))
+		return conn, nil
+	}
+	return s
+}
+
 // Set TLSClientConfig for underling Transport.
 // One example is you can use it to disable security check (https):
 //
