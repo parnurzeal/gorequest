@@ -977,23 +977,25 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 // EndBytes should be used when you want the body as bytes. The callbacks work the same way as with `End`, except that a byte array is used instead of a string.
 func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, errs []error)) (Response, []byte, []error) {
 	var (
-		errs []error
-		resp Response
-		body []byte
+		errs         []error
+		resp         Response
+		body         []byte
+		respCallback http.Response
 	)
 
 	for {
 		resp, body, errs = s.getResponseBytes()
 		if errs != nil {
-			return nil, nil, errs
+			break
 		}
+
 		if s.isRetryableRequest(resp) {
 			resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
+			respCallback = *resp
 			break
 		}
 	}
 
-	respCallback := *resp
 	if len(callback) != 0 {
 		callback[0](&respCallback, body, s.Errors)
 	}
