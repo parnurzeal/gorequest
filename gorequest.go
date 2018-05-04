@@ -31,7 +31,7 @@ import (
 
 	"github.com/moul/http2curl"
 	"golang.org/x/net/publicsuffix"
-	"context"
+	//"context"
 )
 
 type Request *http.Request
@@ -492,7 +492,17 @@ func (s *SuperAgent) Param(key string, value string) *SuperAgent {
 }
 
 func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
-	s.Transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+	//s.Transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+	//	conn, err := net.DialTimeout(network, addr, timeout)
+	//	if err != nil {
+	//		s.Errors = append(s.Errors, err)
+	//		return nil, err
+	//	}
+	//	conn.SetDeadline(time.Now().Add(timeout))
+	//	return conn, nil
+	//}
+
+	s.Transport.Dial = func(network, addr string) (net.Conn, error) {
 		conn, err := net.DialTimeout(network, addr, timeout)
 		if err != nil {
 			s.Errors = append(s.Errors, err)
@@ -891,14 +901,14 @@ func changeMapToURLValuesLoop(urlValues *url.Values, k string, data interface{})
 		for i := 0; i < dataVal.Len(); i++ {
 			changeMapToURLValuesLoop(urlValues, k, dataVal.Index(i).Interface())
 		}
-	case reflect.Map: // exist this case? to check & test ???
+	case reflect.Map: // exist this case? to check & test ??? TODO
 		for _, mk := range dataVal.MapKeys() {
 			changeMapToURLValuesLoop(urlValues, k, dataVal.MapIndex(mk).Interface())
 			//changeMapToURLValuesLoop(urlValues, mk.String(), dataVal.MapIndex(mk).Interface())
 		}
-	case reflect.Struct: // exist this case? to check & test ???
-	case reflect.Invalid: //
-	default:  // 
+	case reflect.Struct: // exist this case? to check & test ??? TODO consider how to use fieldName tag etc.
+	case reflect.Invalid: // TODO
+	default:  // TODO
 	}
 }
 
