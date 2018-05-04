@@ -608,17 +608,17 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 //
 func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 	// TODO: add normal text mode or other mode to Send func
-	switch v := reflect.ValueOf(content); v.Kind() {
+	v := reflect.ValueOf(content)
+	vKind := getKind(v)
+	switch vKind {
 	case reflect.String:
 		s.SendString(v.String())
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64: // includes rune
+	case reflect.Int: // includes rune
 		s.SendString(strconv.FormatInt(v.Int(), 10))
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64: // includes byte
+	case reflect.Uint: // includes byte
 		s.SendString(strconv.FormatUint(v.Uint(), 10))
-	case reflect.Float64:
-		s.SendString(strconv.FormatFloat(v.Float(), 'f', -1, 64))
 	case reflect.Float32:
-		s.SendString(strconv.FormatFloat(v.Float(), 'f', -1, 32))
+		s.SendString(strconv.FormatFloat(v.Float(), 'f', -1, 64))
 	case reflect.Bool:
 		s.SendString(strconv.FormatBool(v.Bool()))
 	case reflect.Struct:
@@ -1314,4 +1314,19 @@ func (s *SuperAgent) AsCurlCommand() (string, error) {
 		return "", err
 	}
 	return cmd.String(), nil
+}
+
+func getKind(val reflect.Value) reflect.Kind {
+	kind := val.Kind()
+
+	switch {
+	case kind >= reflect.Int && kind <= reflect.Int64:
+		return reflect.Int
+	case kind >= reflect.Uint && kind <= reflect.Uint64:
+		return reflect.Uint
+	case kind >= reflect.Float32 && kind <= reflect.Float64:
+		return reflect.Float32
+	default:
+		return kind
+	}
 }
