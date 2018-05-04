@@ -454,10 +454,14 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 }
 
 func (s *SuperAgent) queryString(content string) *SuperAgent {
-	var val map[string]string
+	var val map[string]interface{}
 	if err := json.Unmarshal([]byte(content), &val); err == nil {
 		for k, v := range val {
-			s.QueryData.Add(k, v)
+			if v == nil {
+				s.QueryData.Add(k, "null")
+			} else {
+				s.QueryData.Add(k, fmt.Sprintf("%v", v))
+			}
 		}
 	} else {
 		if queryData, err := url.ParseQuery(content); err == nil {
