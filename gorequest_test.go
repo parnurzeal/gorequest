@@ -1434,7 +1434,7 @@ func TestQueryFunc(t *testing.T) {
 		}).
 		End()
 
-	New().Post(ts.URL + case5_send_string_like_mutil_type_map).
+	New().Post(ts.URL + case5_send_string_like_map_with_multi_type_vaule).
 		Query(`{"query1": "test1", "query2": "test2", "query3": "3.1415926", "query4":true}`).
 		End()
 }

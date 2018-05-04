@@ -31,6 +31,7 @@ import (
 
 	"github.com/moul/http2curl"
 	"golang.org/x/net/publicsuffix"
+	"context"
 )
 
 type Request *http.Request
@@ -491,7 +492,7 @@ func (s *SuperAgent) Param(key string, value string) *SuperAgent {
 }
 
 func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
-	s.Transport.Dial = func(network, addr string) (net.Conn, error) {
+	s.Transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		conn, err := net.DialTimeout(network, addr, timeout)
 		if err != nil {
 			s.Errors = append(s.Errors, err)
