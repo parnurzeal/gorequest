@@ -891,14 +891,14 @@ func changeMapToURLValuesLoop(urlValues *url.Values, k string, data interface{})
 		for i := 0; i < dataVal.Len(); i++ {
 			changeMapToURLValuesLoop(urlValues, k, dataVal.Index(i).Interface())
 		}
-	case reflect.Map: // exist this case? to check & test ??? TODO
+	case reflect.Map: // exist this case? to check & test ???
 		for _, mk := range dataVal.MapKeys() {
 			changeMapToURLValuesLoop(urlValues, k, dataVal.MapIndex(mk).Interface())
 			//changeMapToURLValuesLoop(urlValues, mk.String(), dataVal.MapIndex(mk).Interface())
 		}
-	case reflect.Struct: // exist this case? to check & test ??? TODO consider how to use fieldName tag etc.
-	case reflect.Invalid: // TODO
-	default:  // TODO
+	case reflect.Struct: // exist this case? to check & test ???
+	case reflect.Invalid: //
+	default:  // 
 	}
 }
 
