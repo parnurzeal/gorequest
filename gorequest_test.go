@@ -1361,7 +1361,7 @@ func TestQueryFunc(t *testing.T) {
 	const case2_send_struct = "/send_struct"
 	const case3_send_string_with_duplicates = "/send_string_with_duplicates"
 	const case4_send_map = "/send_map"
-	const case5_send_string_like_mutil_type_map = "/string_like_mutil_type_map"
+	const case5_send_string_like_map_with_multi_type_vaule = "/string_like_map_with_multi_type_vaule"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != POST {
 			t.Errorf("Expected method %q; got %q", POST, r.Method)
@@ -1392,7 +1392,7 @@ func TestQueryFunc(t *testing.T) {
 			checkQuery(t, v, "query2", "test2")
 			checkQuery(t, v, "query3", "3.1415926")
 			checkQuery(t, v, "query4", "true")
-		case case5_send_string_like_mutil_type_map:
+		case case5_send_string_like_map_with_multi_type_vaule:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
 			checkQuery(t, v, "query3", "3.1415926")
