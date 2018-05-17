@@ -984,13 +984,13 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 
 	for {
 		resp, body, errs = s.getResponseBytes()
-		if errs != nil {
-			return nil, nil, errs
-		}
-		if s.isRetryableRequest(resp) {
+		if s.isRetryableRequest(resp, errs) {
 			resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
 			break
 		}
+	}
+	if errs != nil {
+		return nil, nil, errs
 	}
 
 	respCallback := *resp
@@ -1000,8 +1000,8 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	return resp, body, nil
 }
 
-func (s *SuperAgent) isRetryableRequest(resp Response) bool {
-	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && contains(resp.StatusCode, s.Retryable.RetryableStatus) {
+func (s *SuperAgent) isRetryableRequest(resp Response, errs []error) bool {
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && (errs != nil || contains(resp.StatusCode, s.Retryable.RetryableStatus)) {
 		time.Sleep(s.Retryable.RetryerTime)
 		s.Retryable.Attempt++
 		return false
