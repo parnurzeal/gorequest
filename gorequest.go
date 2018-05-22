@@ -985,7 +985,9 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	for {
 		resp, body, errs = s.getResponseBytes()
 		if s.isRetryableRequest(resp, errs) {
-			resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
+			if resp != nil {
+				resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
+			}
 			break
 		}
 	}
