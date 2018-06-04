@@ -122,8 +122,6 @@ func New() *SuperAgent {
 		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 	}
-	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
-	s.Transport.DisableKeepAlives = true
 	return s
 }
 
@@ -1106,7 +1104,6 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		s.Errors = append(s.Errors, err)
 		return nil, nil, s.Errors
 	}
-	defer resp.Body.Close()
 
 	// Log details of this response
 	if s.Debug {
@@ -1119,6 +1116,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 	// Reset resp.Body so it can be use again
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
