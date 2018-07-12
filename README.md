@@ -125,8 +125,8 @@ Moreover, it also supports struct type. So, you can have a fun __Mix & Match__ s
 
 ```go
 type BrowserVersionSupport struct {
-  Chrome string
-  Firefox string
+  Chrome string  `json:"chrome"`
+  Firefox string `json:"firefox"`
 }
 ver := BrowserVersionSupport{ Chrome: "37.0.2041.6", Firefox: "30.0" }
 request := gorequest.New()
