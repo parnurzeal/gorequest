@@ -91,6 +91,7 @@ type SuperAgent struct {
 		Attempt         int
 		Enable          bool
 	}
+	SpanContext opentracing.SpanContext
 	//If true prevents clearing Superagent data and makes it possible to reuse it for the next requests
 	DoNotClearSuperAgent bool
 }
@@ -1261,6 +1262,11 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		return nil, err
 	}
 
+	if s.SpanContext != nil {
+		fmt.Println("reject header")
+		tracing.InjectTraceID(s.SpanContext, req.Header)
+	}
+
 	for k, vals := range s.Header {
 		for _, v := range vals {
 			req.Header.Add(k, v)
@@ -1312,15 +1318,4 @@ func (s *SuperAgent) AsCurlCommand() (string, error) {
 		return "", err
 	}
 	return cmd.String(), nil
-}
-
-type SuperOpentracingAgent struct {
-	SpanContext opentracing.SpanContext
-	SuperAgent
-}
-
-func (s *SuperOpentracingAgent) MakeRequest() (*http.Request, error) {
-	req, err := s.SuperAgent.MakeRequest()
-	tracing.InjectTraceID(s.SpanContext, req.Header)
-	return req, err
 }
