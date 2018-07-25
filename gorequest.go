@@ -3,7 +3,6 @@ package gorequest
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"encoding/json"
 	"io"
@@ -19,6 +18,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/opentracing/opentracing-go"
+	"gitlab.goiot.net/sde-base/golib/tracing"
 
 	"github.com/pkg/errors"
 
@@ -91,13 +93,12 @@ type SuperAgent struct {
 	}
 	//If true prevents clearing Superagent data and makes it possible to reuse it for the next requests
 	DoNotClearSuperAgent bool
-	ctx                  context.Context
 }
 
 var DisableTransportSwap = false
 
 // Used to create a new SuperAgent object.
-func New(ctx context.Context) *SuperAgent {
+func New() *SuperAgent {
 	cookiejarOptions := cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
 	}
@@ -123,7 +124,6 @@ func New(ctx context.Context) *SuperAgent {
 		Debug:             debug,
 		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
-		ctx:               ctx,
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
@@ -1260,7 +1260,6 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	if req, err = http.NewRequest(s.Method, s.Url, contentReader); err != nil {
 		return nil, err
 	}
-	req = req.WithContext(s.ctx)
 
 	for k, vals := range s.Header {
 		for _, v := range vals {
@@ -1313,4 +1312,15 @@ func (s *SuperAgent) AsCurlCommand() (string, error) {
 		return "", err
 	}
 	return cmd.String(), nil
+}
+
+type SuperOpentracingAgent struct {
+	SpanContext opentracing.SpanContext
+	SuperAgent
+}
+
+func (s *SuperOpentracingAgent) MakeRequest() (*http.Request, error) {
+	req, err := s.SuperAgent.MakeRequest()
+	tracing.InjectTraceID(s.SpanContext, req.Header)
+	return req, err
 }
