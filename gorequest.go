@@ -1263,7 +1263,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	}
 
 	if s.SpanContext != nil {
-		fmt.Println("reject header")
+		// fmt.Println("reject header")
 		tracing.InjectTraceID(s.SpanContext, req.Header)
 	}
 
