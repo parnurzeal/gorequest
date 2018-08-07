@@ -949,7 +949,7 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 		if errs != nil {
 			return nil, nil, errs
 		}
-		if s.isRetryableRequest(resp) {
+		if s.isRetryableRequest(resp, errs) {
 			resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
 			break
 		}
@@ -962,8 +962,8 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	return resp, body, nil
 }
 
-func (s *SuperAgent) isRetryableRequest(resp Response) bool {
-	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && contains(resp.StatusCode, s.Retryable.RetryableStatus) {
+func (s *SuperAgent) isRetryableRequest(resp Response, errs []error) bool {
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && (contains(resp.StatusCode, s.Retryable.RetryableStatus) || IsTimeout(errs)) {
 		time.Sleep(s.Retryable.RetryerTime)
 		s.Retryable.Attempt++
 		return false
@@ -977,6 +977,18 @@ func contains(respStatus int, statuses []int) bool {
 			return true
 		}
 	}
+	return false
+}
+
+// IsTimeout checks is it a net timeout error.
+// Applicable only for  go version >1.6
+func IsTimeout(errs []error) bool {
+	for _, v := range errs {
+		if err, ok := v.(net.Error); ok && err.Timeout() {
+			return true
+		}
+	}
+
 	return false
 }
 
