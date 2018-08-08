@@ -947,11 +947,14 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	for {
 		resp, body, errs = s.getResponseBytes()
 		if errs != nil {
-			return nil, nil, errs
-		}
-		if s.isRetryableRequest(resp, errs) {
-			resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
-			break
+			if s.isErrNotRetryableRequest(errs) {
+				return nil, nil, errs
+			}
+		} else {
+			if s.isRetryableRequest(resp, errs) {
+				resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
+				break
+			}
 		}
 	}
 
@@ -963,9 +966,19 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 }
 
 func (s *SuperAgent) isRetryableRequest(resp Response, errs []error) bool {
-	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && (contains(resp.StatusCode, s.Retryable.RetryableStatus) || IsTimeout(errs)) {
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && (contains(resp.StatusCode, s.Retryable.RetryableStatus)) {
 		time.Sleep(s.Retryable.RetryerTime)
 		s.Retryable.Attempt++
+		return false
+	}
+	return true
+}
+
+func (s *SuperAgent) isErrNotRetryableRequest(errs []error) bool {
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && IsTimeout(errs) {
+		time.Sleep(s.Retryable.RetryerTime)
+		s.Retryable.Attempt++
+		s.Errors = nil
 		return false
 	}
 	return true
