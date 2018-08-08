@@ -943,7 +943,8 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 		resp Response
 		body []byte
 	)
-
+	
+	s.Retryable.Attempt = 1
 	for {
 		resp, body, errs = s.getResponseBytes()
 		if errs != nil {
