@@ -203,9 +203,12 @@ func TestGet(t *testing.T) {
 // testing for Get method with retry option
 func TestRetryGet(t *testing.T) {
 	const (
-		case1_empty                         = "/"
-		case24_after_3_attempt_return_valid = "/retry_3_attempt_then_valid"
-		retry_count_expected                = "3"
+		case1_empty                              = "/"
+		case24_after_3_attempt_return_valid      = "/retry_3_attempt_then_valid"
+		retry_count_expected                     = "3"
+		casetimeout_after_3_attempt_return_valid = "/timeout_after_3_attempt_return_valid"
+		timeout_retry_expected                   = "retry attempt: 3"
+		casetimeout_retry_3_attempt              = "/imeout_retry_3_attempt"
 	)
 
 	var attempt int
@@ -233,6 +236,16 @@ func TestRetryGet(t *testing.T) {
 			} else {
 				w.WriteHeader(400)
 				t.Logf("case %v ", case24_after_3_attempt_return_valid)
+			}
+			attempt++
+		case casetimeout_retry_3_attempt:
+			time.Sleep(5 * time.Nanosecond)
+			attempt++
+		case casetimeout_after_3_attempt_return_valid:
+			if attempt == 4 {
+				w.WriteHeader(200)
+			} else {
+				time.Sleep(2 * time.Second)
 			}
 			attempt++
 		}
@@ -263,6 +276,33 @@ func TestRetryGet(t *testing.T) {
 	retryCountReturn = resp.Header.Get("Retry-Count")
 	if retryCountReturn != retry_count_expected {
 		t.Errorf("Expected [%s] retry but was [%s]", retry_count_expected, retryCountReturn)
+	}
+
+	// Timeout retry 3 times
+	_, _, errs = New().Get(ts.URL+casetimeout_retry_3_attempt).
+		Timeout(1*time.Nanosecond).
+		Retry(3, 1*time.Nanosecond, http.StatusBadRequest).
+		End()
+	if errs != nil {
+		lastErr := errs[len(errs)-1]
+		if lastErr.Error() != timeout_retry_expected {
+			t.Errorf("Expected [%s] retry but was [%s]", timeout_retry_expected, lastErr)
+		}
+	} else {
+		t.Errorf("No testing for this case yet : %q", errs)
+	}
+
+	// Timeout, after 3 attempt valid
+	resp, _, errs = New().Get(ts.URL+casetimeout_after_3_attempt_return_valid).
+		Timeout(1*time.Second).
+		Retry(3, 1*time.Second).
+		End()
+	if errs != nil {
+		t.Errorf("No testing for this case yet : %v", errs)
+	} else {
+		if resp.StatusCode != 200 {
+			t.Errorf("Expected [%d] but was [%d]", resp.StatusCode, http.StatusOK)
+		}
 	}
 }
 
