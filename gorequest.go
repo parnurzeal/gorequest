@@ -19,6 +19,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+	"gitlab.goiot.net/sde-base/golib/tracing"
+
 	"github.com/pkg/errors"
 
 	"mime/multipart"
@@ -88,6 +91,7 @@ type SuperAgent struct {
 		Attempt         int
 		Enable          bool
 	}
+	SpanContext opentracing.SpanContext
 	//If true prevents clearing Superagent data and makes it possible to reuse it for the next requests
 	DoNotClearSuperAgent bool
 }
@@ -1258,6 +1262,11 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 
 	if req, err = http.NewRequest(s.Method, s.Url, contentReader); err != nil {
 		return nil, err
+	}
+
+	if s.SpanContext != nil {
+		// fmt.Println("reject header")
+		tracing.InjectTraceID(s.SpanContext, req.Header)
 	}
 
 	for k, vals := range s.Header {
