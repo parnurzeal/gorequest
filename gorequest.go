@@ -1101,16 +1101,26 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 
 	// Send request
-	resp, err = s.Client.Do(req)
+	resp, body, err := s.sendRequest(req)
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 		return nil, nil, s.Errors
 	}
-	defer resp.Body.Close()
+
+	return resp, body, nil
+}
+
+// sendRequest executes request, returns all bytes & response or error.
+func (s *SuperAgent) sendRequest(req *http.Request) (Response, []byte, error) {
+	resp, err := s.Client.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// Log details of this response
 	if s.Debug {
-		dump, err := httputil.DumpResponse(resp, true)
+		var dump []byte
+		dump, err = httputil.DumpResponse(resp, true)
 		if nil != err {
 			s.logger.Println("Error:", err)
 		} else {
@@ -1118,13 +1128,16 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		}
 	}
 
+	// ReadAll doesn't close in itself, so immediately closing here to prevent leaking.
 	body, err := ioutil.ReadAll(resp.Body)
-	// Reset resp.Body so it can be use again
+	resp.Body.Close()
+
+	// Creates a buffer on top of the returned []byte, so resp.Body can be used again.
+	// Any changes made to 'body' bytes will be reflected in this buffer.
+	// In the case of a partial read, the partial data will be there.
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-	if err != nil {
-		return nil, nil, []error{err}
-	}
-	return resp, body, nil
+
+	return resp, body, err
 }
 
 func (s *SuperAgent) MakeRequest() (*http.Request, error) {
