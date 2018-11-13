@@ -124,7 +124,7 @@ func New() *SuperAgent {
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
-	return s
+	return s.Timeout(time.Second * 10)
 }
 
 // Enable the debug mode which logs request/response detail
