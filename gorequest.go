@@ -1045,9 +1045,9 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		resp Response
 	)
 	// check whether there is an error. if yes, return all errors
-	if len(s.Errors) != 0 {
-		return nil, nil, s.Errors
-	}
+	// if len(s.Errors) != 0 {
+	// 	return nil, nil, s.Errors
+	// }
 	// check if there is forced type
 	switch s.ForceType {
 	case TypeJSON, TypeForm, TypeXML, TypeText, TypeMultipart:
