@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
@@ -59,37 +58,39 @@ const (
 	TypeMultipart  = "multipart"
 )
 
+type superAgentRetryable struct {
+	RetryableStatus []int
+	RetryerTime     time.Duration
+	RetryerCount    int
+	Attempt         int
+	Enable          bool
+}
+
 // A SuperAgent is a object storing all request data for client.
 type SuperAgent struct {
-	Url               string
-	Method            string
-	Header            http.Header
-	TargetType        string
-	ForceType         string
-	Data              map[string]interface{}
-	SliceData         []interface{}
-	FormData          url.Values
-	QueryData         url.Values
-	FileData          []File
-	BounceToRawString bool
-	RawString         string
-	Client            *http.Client
-	Transport         *http.Transport
-	Cookies           []*http.Cookie
-	Errors            []error
-	BasicAuth         struct{ Username, Password string }
-	Debug             bool
-	CurlCommand       bool
-	logger            Logger
-	Retryable         struct {
-		RetryableStatus []int
-		RetryerTime     time.Duration
-		RetryerCount    int
-		Attempt         int
-		Enable          bool
-	}
-	//If true prevents clearing Superagent data and makes it possible to reuse it for the next requests
+	Url                  string
+	Method               string
+	Header               http.Header
+	TargetType           string
+	ForceType            string
+	Data                 map[string]interface{}
+	SliceData            []interface{}
+	FormData             url.Values
+	QueryData            url.Values
+	FileData             []File
+	BounceToRawString    bool
+	RawString            string
+	Client               *http.Client
+	Transport            *http.Transport
+	Cookies              []*http.Cookie
+	Errors               []error
+	BasicAuth            struct{ Username, Password string }
+	Debug                bool
+	CurlCommand          bool
+	logger               Logger
+	Retryable            superAgentRetryable
 	DoNotClearSuperAgent bool
+	isClone              bool
 }
 
 var DisableTransportSwap = false
@@ -121,10 +122,120 @@ func New() *SuperAgent {
 		Debug:             debug,
 		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
+		isClone:           false,
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
 	return s
+}
+
+func cloneMapArray(old map[string][]string) map[string][]string {
+	newMap := make(map[string][]string, len(old))
+	for k, vals := range old {
+		newMap[k] = make([]string, len(vals))
+		for i := range vals {
+			newMap[k][i] = vals[i]
+		}
+	}
+	return newMap
+}
+func shallowCopyData(old map[string]interface{}) map[string]interface{} {
+	if old == nil {
+		return nil
+	}
+	newData := make(map[string]interface{})
+	for k, val := range old {
+		newData[k] = val
+	}
+	return newData
+}
+func shallowCopyDataSlice(old []interface{}) []interface{} {
+	if old == nil {
+		return nil
+	}
+	newData := make([]interface{}, len(old))
+	for i := range old {
+		newData[i] = old[i]
+	}
+	return newData
+}
+func shallowCopyFileArray(old []File) []File {
+	if old == nil {
+		return nil
+	}
+	newData := make([]File, len(old))
+	for i := range old {
+		newData[i] = old[i]
+	}
+	return newData
+}
+func shallowCopyCookies(old []*http.Cookie) []*http.Cookie {
+	if old == nil {
+		return nil
+	}
+	newData := make([]*http.Cookie, len(old))
+	for i := range old {
+		newData[i] = old[i]
+	}
+	return newData
+}
+func shallowCopyErrors(old []error) []error {
+	if old == nil {
+		return nil
+	}
+	newData := make([]error, len(old))
+	for i := range old {
+		newData[i] = old[i]
+	}
+	return newData
+}
+
+// just need to change the array pointer?
+func copyRetryable(old superAgentRetryable) superAgentRetryable {
+	newRetryable := old
+	newRetryable.RetryableStatus = make([]int, len(old.RetryableStatus))
+	for i := range old.RetryableStatus {
+		newRetryable.RetryableStatus[i] = old.RetryableStatus[i]
+	}
+	return newRetryable
+}
+
+// Returns a copy of this superagent. Useful if you want to reuse the client/settings
+// concurrently.
+// Note: This does a shallow copy of the parent. So you will need to be
+// careful of Data provided
+// Note: It also directly re-uses the client and transport. If you modify the Timeout,
+// or RedirectPolicy on a clone, the clone will have a new http.client. It is recommended
+// that the base request set your timeout and redirect polices, and no modification of
+// the client or transport happen after cloning.
+// Note: DoNotClearSuperAgent is forced to "true" after Clone
+func (s *SuperAgent) Clone() *SuperAgent {
+	clone := &SuperAgent{
+		Url:                  s.Url,
+		Method:               s.Method,
+		Header:               http.Header(cloneMapArray(s.Header)),
+		TargetType:           s.TargetType,
+		ForceType:            s.ForceType,
+		Data:                 shallowCopyData(s.Data),
+		SliceData:            shallowCopyDataSlice(s.SliceData),
+		FormData:             url.Values(cloneMapArray(s.FormData)),
+		QueryData:            url.Values(cloneMapArray(s.QueryData)),
+		FileData:             shallowCopyFileArray(s.FileData),
+		BounceToRawString:    s.BounceToRawString,
+		RawString:            s.RawString,
+		Client:               s.Client,
+		Transport:            s.Transport,
+		Cookies:              shallowCopyCookies(s.Cookies),
+		Errors:               shallowCopyErrors(s.Errors),
+		BasicAuth:            s.BasicAuth,
+		Debug:                s.Debug,
+		CurlCommand:          s.CurlCommand,
+		logger:               s.logger, // thread safe.. anyway
+		Retryable:            copyRetryable(s.Retryable),
+		DoNotClearSuperAgent: true,
+		isClone:              true,
+	}
+	return clone
 }
 
 // Enable the debug mode which logs request/response detail
@@ -486,19 +597,6 @@ func (s *SuperAgent) Param(key string, value string) *SuperAgent {
 	return s
 }
 
-func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
-	s.Transport.Dial = func(network, addr string) (net.Conn, error) {
-		conn, err := net.DialTimeout(network, addr, timeout)
-		if err != nil {
-			s.Errors = append(s.Errors, err)
-			return nil, err
-		}
-		conn.SetDeadline(time.Now().Add(timeout))
-		return conn, nil
-	}
-	return s
-}
-
 // Set TLSClientConfig for underling Transport.
 // One example is you can use it to disable security check (https):
 //
@@ -507,6 +605,7 @@ func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 //        End()
 //
 func (s *SuperAgent) TLSClientConfig(config *tls.Config) *SuperAgent {
+	s.safeModifyTransport()
 	s.Transport.TLSClientConfig = config
 	return s
 }
@@ -532,8 +631,10 @@ func (s *SuperAgent) Proxy(proxyUrl string) *SuperAgent {
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 	} else if proxyUrl == "" {
+		s.safeModifyTransport()
 		s.Transport.Proxy = nil
 	} else {
+		s.safeModifyTransport()
 		s.Transport.Proxy = http.ProxyURL(parsedProxyUrl)
 	}
 	return s
@@ -546,6 +647,7 @@ func (s *SuperAgent) Proxy(proxyUrl string) *SuperAgent {
 // The policy function's arguments are the Request about to be made and the
 // past requests in order of oldest first.
 func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) error) *SuperAgent {
+	s.safeModifyHttpClient()
 	s.Client.CheckRedirect = func(r *http.Request, v []*http.Request) error {
 		vv := make([]Request, len(v))
 		for i, r := range v {
@@ -1259,7 +1361,6 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	if req, err = http.NewRequest(s.Method, s.Url, contentReader); err != nil {
 		return nil, err
 	}
-
 	for k, vals := range s.Header {
 		for _, v := range vals {
 			req.Header.Add(k, v)
