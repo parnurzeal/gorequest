@@ -3,6 +3,7 @@ package gorequest
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"io"
@@ -91,6 +92,7 @@ type SuperAgent struct {
 	Retryable            superAgentRetryable
 	DoNotClearSuperAgent bool
 	isClone              bool
+	ctx                  context.Context
 }
 
 var DisableTransportSwap = false
@@ -126,6 +128,12 @@ func New() *SuperAgent {
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
+	return s
+}
+
+func NewWithContext(ctx context.Context) *SuperAgent {
+	s := New()
+	s.ctx = ctx
 	return s
 }
 
@@ -1395,6 +1403,11 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	// Add cookies
 	for _, cookie := range s.Cookies {
 		req.AddCookie(cookie)
+	}
+
+	// Add context into request
+	if s.ctx != nil {
+		req = req.WithContext(s.ctx)
 	}
 
 	return req, nil
