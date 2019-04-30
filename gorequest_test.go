@@ -2,6 +2,7 @@ package gorequest
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -2567,5 +2568,25 @@ func TestSetDebugByEnvironmentVar(t *testing.T) {
 
 	if len(buf.String()) > 0 {
 		t.Fatalf("\nExpected gorequest not to log request and response object if GOREQUEST_DEBUG is not set.")
+	}
+}
+
+func TestContenxt(t *testing.T) {
+	// requesting a long connection which block this requst for a time,
+	// but 2 seconds later we unable to hold ourself back and force close it
+	ctx, cancel := context.WithCancel(context.Background())
+	go New().Context(ctx).Get("http://127.0.0.1:8080/foo").EndBytes(func(response Response, body []byte, errs []error) {
+
+
+		if len(errs) > 0 {
+			fmt.Printf("%+v\n", errs[0])
+		}
+		fmt.Println(string(body))
+	})
+
+	select {
+	case <-time.After(2 * time.Second):
+		fmt.Println("cancel...")
+		cancel()
 	}
 }
