@@ -1284,7 +1284,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			q.Add(k, vv)
 		}
 	}
-	req.URL.RawQuery = q.Encode()
+	//req.URL.RawQuery = q.Encode()
 
 	// Add basic auth
 	if s.BasicAuth != struct{ Username, Password string }{} {
