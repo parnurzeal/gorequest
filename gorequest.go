@@ -390,6 +390,32 @@ func (s *SuperAgent) AppendHeader(param string, value string) *SuperAgent {
 	return s
 }
 
+//SetBulkHeaders
+func (s *SuperAgent) SetHeaders(headers interface{}) *SuperAgent {
+	switch v := reflect.ValueOf(headers); v.Kind() {
+	case reflect.String:
+		s.setHeadersString(v.String())
+	case reflect.Struct:
+		s.setHeadersStruct(v.Interface())
+	case reflect.Map:
+		s.setHeadersMap(v.Interface())
+	default:
+	}
+	return s
+}
+
+func setHeadersString(content string) *SuperAgent {
+
+}
+
+func setHeadersStruct(content interface{}) *SuperAgent {
+
+}
+
+func setHeadersMap(content interface{}) {
+
+}
+
 // Retryable is used for setting a Retryer policy
 // Example. To set Retryer policy with 5 seconds between each attempt.
 //          3 max attempt.
