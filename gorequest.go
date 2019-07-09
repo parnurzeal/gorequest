@@ -390,7 +390,15 @@ func (s *SuperAgent) AppendHeader(param string, value string) *SuperAgent {
 	return s
 }
 
-//SetBulkHeaders
+// SetHeaders is used for setting all your headers with the use of a map or a struct.
+// It uses AppendHeader() method so it allows for multiple values of the same header
+// Example. To set the following struct as headers, simply do
+//
+// headers := apiHeaders{Accept: "application/json", Content-Type: "text/html", X-Frame-Options: "deny"}
+// gorequest.New().
+//  Post("apiEndPoint").
+//  Set(headers).
+//  End()
 func (s *SuperAgent) SetHeaders(headers interface{}) *SuperAgent {
 	switch v := reflect.ValueOf(headers); v.Kind() {
 	case reflect.Struct:
