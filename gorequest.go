@@ -393,8 +393,6 @@ func (s *SuperAgent) AppendHeader(param string, value string) *SuperAgent {
 //SetBulkHeaders
 func (s *SuperAgent) SetHeaders(headers interface{}) *SuperAgent {
 	switch v := reflect.ValueOf(headers); v.Kind() {
-	case reflect.String:
-		s.setHeadersString(v.String())
 	case reflect.Struct:
 		s.setHeadersStruct(v.Interface())
 	case reflect.Map:
@@ -404,16 +402,35 @@ func (s *SuperAgent) SetHeaders(headers interface{}) *SuperAgent {
 	return s
 }
 
-func setHeadersString(content string) *SuperAgent {
-
+func (s *SuperAgent) setHeadersStruct(content interface{}) *SuperAgent {
+	if marshalContent, err := json.Marshal(content); err != nil {
+		s.Errors = append(s.Errors, err)
+	} else {
+		var val map[string]interface{}
+		if err := json.Unmarshal(marshalContent, &val); err != nil {
+			s.Errors = append(s.Errors, err)
+		} else {
+			for k, v := range val {
+				var headerVal string
+				switch t := v.(type) {
+				case string:
+					headerVal = t
+				default:
+					j, err := json.Marshal(v)
+					if err != nil {
+						continue
+					}
+					headerVal = string(j)
+				}
+				s.AppendHeader(k, headerVal)
+			}
+		}
+	}
+	return s
 }
 
-func setHeadersStruct(content interface{}) *SuperAgent {
-
-}
-
-func setHeadersMap(content interface{}) {
-
+func (s *SuperAgent) setHeadersMap(content interface{}) *SuperAgent {
+	return s.setHeadersStruct(content)
 }
 
 // Retryable is used for setting a Retryer policy
