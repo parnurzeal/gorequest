@@ -4,24 +4,24 @@
 package gorequest
 
 import (
-    "net/http"
+	"net/http"
 )
 
 // does a shallow clone of the transport
 func (s *SuperAgent) safeModifyTransport() {
-    if !s.isClone {
-        return
-    }
-    oldTransport := s.Transport
-    s.Transport = &http.Transport{
-        Proxy:                  oldTransport.Proxy,
-        Dial:                   oldTransport.Dial,
-        TLSClientConfig:        oldTransport.TLSClientConfig,
-        DisableKeepAlives:      oldTransport.DisableKeepAlives,
-        DisableCompression:     oldTransport.DisableCompression,
-        MaxIdleConnsPerHost:    oldTransport.MaxIdleConnsPerHost,
-        ResponseHeaderTimeout:  oldTransport.ResponseHeaderTimeout,
-        // new in 1.3
-        TLSHandshakeTimeout:    oldTransport.TLSHandshakeTimeout,
-    }
+	if !s.isClone {
+		return
+	}
+	oldTransport := s.Transport
+	s.Transport = &http.Transport{
+		Proxy:                 oldTransport.Proxy,
+		Dial:                  oldTransport.Dial,
+		TLSClientConfig:       oldTransport.TLSClientConfig,
+		DisableKeepAlives:     oldTransport.DisableKeepAlives,
+		DisableCompression:    oldTransport.DisableCompression,
+		MaxIdleConnsPerHost:   oldTransport.MaxIdleConnsPerHost,
+		ResponseHeaderTimeout: oldTransport.ResponseHeaderTimeout,
+		// new in 1.3
+		TLSHandshakeTimeout: oldTransport.TLSHandshakeTimeout,
+	}
 }
