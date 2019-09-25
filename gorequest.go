@@ -5,31 +5,26 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
+	"net/textproto"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
-
-	"mime/multipart"
-
-	"net/textproto"
-
-	"fmt"
-
-	"path/filepath"
-
-	"github.com/moul/http2curl"
 	"golang.org/x/net/publicsuffix"
+	"moul.io/http2curl"
 )
 
 type Request *http.Request
