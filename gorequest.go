@@ -121,7 +121,7 @@ func New() *SuperAgent {
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
-	return s
+	return s.Timeout(time.Second * 10)
 }
 
 func cloneMapArray(old map[string][]string) map[string][]string {
@@ -1081,13 +1081,15 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 
 	for {
 		resp, body, errs = s.getResponseBytes()
-		if errs != nil {
-			return nil, nil, errs
-		}
-		if s.isRetryableRequest(resp) {
-			resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
+		if s.isRetryableRequest(resp, errs) {
+			if resp != nil {
+				resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
+			}
 			break
 		}
+	}
+	if errs != nil {
+		return nil, nil, errs
 	}
 
 	respCallback := *resp
@@ -1097,8 +1099,8 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 	return resp, body, nil
 }
 
-func (s *SuperAgent) isRetryableRequest(resp Response) bool {
-	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && contains(resp.StatusCode, s.Retryable.RetryableStatus) {
+func (s *SuperAgent) isRetryableRequest(resp Response, errs []error) bool {
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && (errs != nil || contains(resp.StatusCode, s.Retryable.RetryableStatus)) {
 		time.Sleep(s.Retryable.RetryerTime)
 		s.Retryable.Attempt++
 		return false
@@ -1140,9 +1142,9 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		resp Response
 	)
 	// check whether there is an error. if yes, return all errors
-	if len(s.Errors) != 0 {
-		return nil, nil, s.Errors
-	}
+	// if len(s.Errors) != 0 {
+	// 	return nil, nil, s.Errors
+	// }
 	// check if there is forced type
 	switch s.ForceType {
 	case TypeJSON, TypeForm, TypeXML, TypeText, TypeMultipart:
@@ -1380,7 +1382,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			q.Add(k, vv)
 		}
 	}
-	req.URL.RawQuery = q.Encode()
+	//req.URL.RawQuery = q.Encode()
 
 	// Add basic auth
 	if s.BasicAuth != struct{ Username, Password string }{} {
