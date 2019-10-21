@@ -3,6 +3,7 @@ package gorequest
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/tls"
 	"encoding/json"
 	"io"
@@ -1026,6 +1027,7 @@ func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response
 	if errs != nil {
 		return nil, body, errs
 	}
+
 	err := json.Unmarshal(body, &v)
 	if err != nil {
 		s.Errors = append(s.Errors, err)
@@ -1036,6 +1038,16 @@ func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response
 		callback[0](&respCallback, v, body, s.Errors)
 	}
 	return resp, body, nil
+}
+
+func gzipDecode(in []byte) ([]byte, error) {
+	reader, err := gzip.NewReader(bytes.NewReader(in))
+	if err != nil {
+		var out []byte
+		return out, err
+	}
+	defer reader.Close()
+	return ioutil.ReadAll(reader)
 }
 
 func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
@@ -1121,6 +1133,13 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		body, err = gzipDecode(body)
+		if err != nil {
+			s.Errors = append(s.Errors, err)
+			return resp, body, s.Errors
+		}
+	}
 	// Reset resp.Body so it can be use again
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
