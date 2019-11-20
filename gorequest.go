@@ -1042,11 +1042,11 @@ func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response
 
 func gzipDecode(in []byte) ([]byte, error) {
 	reader, err := gzip.NewReader(bytes.NewReader(in))
+	defer reader.Close()
 	if err != nil {
 		var out []byte
 		return out, err
 	}
-	defer reader.Close()
 	return ioutil.ReadAll(reader)
 }
 
@@ -1133,7 +1133,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
-	if resp.Header.Get("Content-Encoding") == "gzip" {
+	if strings.ToLower(resp.Header.Get("Content-Encoding")) == "gzip" {
 		body, err = gzipDecode(body)
 		if err != nil {
 			s.Errors = append(s.Errors, err)
