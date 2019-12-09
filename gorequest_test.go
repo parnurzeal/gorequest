@@ -1211,6 +1211,7 @@ func TestMultipartRequest(t *testing.T) {
 
 	const case15_send_file_by_content_without_name_but_with_fieldname = "/send_file_by_content_without_name_but_with_fieldname"
 	const case16_send_file_by_content_with_name_and_with_fieldname = "/send_file_by_content_with_name_and_with_fieldname"
+	const case16a_send_file_by_content_with_name_fieldname_and_content_type = "/send_file_by_content_with_name_fieldname_and_content_type"
 
 	const case17_send_file_multiple_by_path_and_content_without_name = "/send_file_multiple_by_path_and_content_without_name"
 	const case18_send_file_multiple_by_path_and_content_with_name = "/send_file_multiple_by_path_and_content_with_name"
@@ -1440,6 +1441,24 @@ func TestMultipartRequest(t *testing.T) {
 			if r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"][0] != "application/octet-stream" {
 				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"])
 			}
+			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
+		case case16a_send_file_by_content_with_name_fieldname_and_content_type:
+
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if _, ok := r.MultipartForm.File["my_fieldname"]; !ok {
+				keys := reflect.ValueOf(r.MultipartForm.File).MapKeys()
+				t.Error("Expected Fieldname:my_fieldname", "| but got", keys)
+			}
+			if r.MultipartForm.File["my_fieldname"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
+			}
+
+			if r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"][0] != "application/xml" {
+				t.Error("Expected Header:Content-Type:application/xml", "| but got", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"])
+			}
+
 			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
 		case case17_send_file_multiple_by_path_and_content_without_name:
 			if len(r.MultipartForm.File) != 2 {
@@ -1675,6 +1694,11 @@ func TestMultipartRequest(t *testing.T) {
 	New().Post(ts.URL+case16_send_file_by_content_with_name_and_with_fieldname).
 		Type("multipart").
 		SendFile(b, "MY_LICENSE", "my_fieldname").
+		End()
+
+	New().Post(ts.URL+case16a_send_file_by_content_with_name_fieldname_and_content_type).
+		Type("multipart").
+		SendFile(b, "LICENSE", "my_fieldname", "application/xml").
 		End()
 
 	New().Post(ts.URL + case17_send_file_multiple_by_path_and_content_without_name).
