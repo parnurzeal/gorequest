@@ -831,10 +831,11 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 type File struct {
 	Filename  string
 	Fieldname string
+	MimeType  string
 	Data      []byte
 }
 
-// SendFile function works only with type "multipart". The function accepts one mandatory and up to two optional arguments. The mandatory (first) argument is the file.
+// SendFile function works only with type "multipart". The function accepts one mandatory and up to three optional arguments. The mandatory (first) argument is the file.
 // The function accepts a path to a file as string:
 //
 //      gorequest.New().
@@ -881,10 +882,20 @@ type File struct {
 //        SendFile(b, "", "my_custom_fieldname"). // filename left blank, will become "example_file.ext"
 //        End()
 //
+// The third optional argument (fourth argument overall) is the mimetype request form-data part. It defaults to "application/octet-stream".
+//
+//      b, _ := ioutil.ReadFile("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(b, "filename", "my_custom_fieldname", "mime_type").
+//        End()
+//
 func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 
 	filename := ""
 	fieldname := "file"
+	fileType := "application/octet-stream"
 
 	if len(args) >= 1 && len(args[0]) > 0 {
 		filename = strings.TrimSpace(args[0])
@@ -894,6 +905,13 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 	}
 	if fieldname == "file" || fieldname == "" {
 		fieldname = "file" + strconv.Itoa(len(s.FileData)+1)
+	}
+	if len(args) >= 3 && len(args[2]) > 0 {
+		fileType = strings.TrimSpace(args[2])
+	}
+	if fileType == "" {
+		s.Errors = append(s.Errors, errors.New("The fourth SendFile method argument for MIME type cannot be an empty string"))
+		return s
 	}
 
 	switch v := reflect.ValueOf(file); v.Kind() {
@@ -914,6 +932,7 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 		s.FileData = append(s.FileData, File{
 			Filename:  filename,
 			Fieldname: fieldname,
+			MimeType:  fileType,
 			Data:      data,
 		})
 	case reflect.Slice:
@@ -924,6 +943,7 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 		f := File{
 			Filename:  filename,
 			Fieldname: fieldname,
+			MimeType:  fileType,
 			Data:      make([]byte, len(slice)),
 		}
 		for i := range slice {
@@ -934,8 +954,11 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 		if len(args) == 1 {
 			return s.SendFile(v.Elem().Interface(), args[0])
 		}
-		if len(args) >= 2 {
+		if len(args) == 2 {
 			return s.SendFile(v.Elem().Interface(), args[0], args[1])
+		}
+		if len(args) >= 3 {
+			return s.SendFile(v.Elem().Interface(), args[0], args[1], args[2])
 		}
 		return s.SendFile(v.Elem().Interface())
 	default:
@@ -952,6 +975,7 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 			s.FileData = append(s.FileData, File{
 				Filename:  filename,
 				Fieldname: fieldname,
+				MimeType:  fileType,
 				Data:      data,
 			})
 			return s
@@ -1336,7 +1360,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		// add the files
 		if len(s.FileData) != 0 {
 			for _, file := range s.FileData {
-				fw, _ := mw.CreateFormFile(file.Fieldname, file.Filename)
+				fw, _ := CreateFormFile(mw, file.Fieldname, file.Filename, file.MimeType)
 				fw.Write(file.Data)
 			}
 			contentReader = buf
@@ -1393,6 +1417,23 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	}
 
 	return req, nil
+}
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
+}
+
+// CreateFormFile is a convenience wrapper around CreatePart. It creates
+// a new form-data header with the provided field name and file name.
+func CreateFormFile(w *multipart.Writer, fieldname, filename string, contenttype string) (io.Writer, error) {
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+			escapeQuotes(fieldname), escapeQuotes(filename)))
+	h.Set("Content-Type", contenttype)
+	return w.CreatePart(h)
 }
 
 // AsCurlCommand returns a string representing the runnable `curl' command
