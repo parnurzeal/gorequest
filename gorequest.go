@@ -872,7 +872,7 @@ type File struct {
 //        End()
 //
 // The second optional argument (third argument overall) is the fieldname in the multipart/form-data request. It defaults to fileNUMBER (eg. file1), where number is ascending and starts counting at 1.
-// So if you send multiple files, the fieldnames will be file1, file2, ... unless it is overwritten. If fieldname is set to "file" it will be automatically set to fileNUMBER, where number is the greatest exsiting number+1.
+// So if you send multiple files, the fieldnames will be file1, file2, ... unless it is overwritten. If fieldname is set to "" it will be automatically set to fileNUMBER, where number is the greatest exsiting number+1.
 //
 //      b, _ := ioutil.ReadFile("./example_file.ext")
 //      gorequest.New().
@@ -892,7 +892,7 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 	if len(args) >= 2 && len(args[1]) > 0 {
 		fieldname = strings.TrimSpace(args[1])
 	}
-	if fieldname == "file" || fieldname == "" {
+	if fieldname == "" {
 		fieldname = "file" + strconv.Itoa(len(s.FileData)+1)
 	}
 
