@@ -2,6 +2,7 @@ package gorequest
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -2568,4 +2569,13 @@ func TestSetDebugByEnvironmentVar(t *testing.T) {
 	if len(buf.String()) > 0 {
 		t.Fatalf("\nExpected gorequest not to log request and response object if GOREQUEST_DEBUG is not set.")
 	}
+}
+
+func TestSetSpanContext(t *testing.T) {
+	endpoint := "http://github.com/parnurzeal/gorequest"
+	ctx := context.Background()
+	New().Get(endpoint).SetSpanContext(ctx).End()
+
+	ctx = context.TODO()
+	New().Get(endpoint).SetSpanContext(ctx).End()
 }

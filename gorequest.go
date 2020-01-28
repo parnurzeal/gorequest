@@ -3,6 +3,7 @@ package gorequest
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -22,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"golang.org/x/net/publicsuffix"
 	"moul.io/http2curl"
@@ -86,6 +88,8 @@ type SuperAgent struct {
 	Retryable            superAgentRetryable
 	DoNotClearSuperAgent bool
 	isClone              bool
+	isTracing            bool
+	span                 opentracing.Span
 }
 
 var DisableTransportSwap = false
@@ -118,6 +122,7 @@ func New() *SuperAgent {
 		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 		isClone:           false,
+		isTracing:         false,
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
@@ -229,6 +234,7 @@ func (s *SuperAgent) Clone() *SuperAgent {
 		Retryable:            copyRetryable(s.Retryable),
 		DoNotClearSuperAgent: true,
 		isClone:              true,
+		isTracing:            false,
 	}
 	return clone
 }
@@ -275,6 +281,19 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.TargetType = TypeJSON
 	s.Cookies = make([]*http.Cookie, 0)
 	s.Errors = nil
+}
+
+func (s *SuperAgent) SetSpanContext(ctx context.Context) *SuperAgent {
+	span := opentracing.SpanFromContext(ctx)
+	s.span = span
+	s.isTracing = true
+	return s
+}
+
+func (s *SuperAgent) SetSpan(span opentracing.Span) *SuperAgent {
+	s.span = span
+	s.isTracing = true
+	return s
 }
 
 // Just a wrapper to initialize SuperAgent instance by method string
@@ -1196,7 +1215,13 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 			s.logger.Printf("CURL command line: %s", curl)
 		}
 	}
-
+	// set span context
+	if s.isTracing && s.span != nil {
+		opentracing.GlobalTracer().Inject(
+			s.span.Context(),
+			opentracing.HTTPHeaders,
+			opentracing.HTTPHeadersCarrier(req.Header))
+	}
 	// Send request
 	resp, err = s.Client.Do(req)
 	if err != nil {
