@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/opentracing/opentracing-go"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -2578,4 +2579,7 @@ func TestSetSpanContext(t *testing.T) {
 
 	ctx = context.TODO()
 	New().Get(endpoint).SetSpanContext(ctx).End()
+
+	var span opentracing.Span
+	New().Get(endpoint).SetSpan(span).End()
 }
