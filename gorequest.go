@@ -6,32 +6,24 @@ import (
 	"compress/gzip"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
+	"net/textproto"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
-
-	"mime/multipart"
-
-	"net/textproto"
-
-	"fmt"
-
-	"path/filepath"
-
-	"github.com/moul/http2curl"
-	"golang.org/x/net/publicsuffix"
 )
 
 type Request *http.Request
@@ -80,7 +72,6 @@ type SuperAgent struct {
 	Errors            []error
 	BasicAuth         struct{ Username, Password string }
 	Debug             bool
-	CurlCommand       bool
 	logger            Logger
 	Retryable         struct {
 		RetryableStatus []int
@@ -97,10 +88,7 @@ var DisableTransportSwap = false
 
 // Used to create a new SuperAgent object.
 func New() *SuperAgent {
-	cookiejarOptions := cookiejar.Options{
-		PublicSuffixList: publicsuffix.List,
-	}
-	jar, _ := cookiejar.New(&cookiejarOptions)
+	jar, _ := cookiejar.New(nil)
 
 	debug := os.Getenv("GOREQUEST_DEBUG") == "1"
 
@@ -120,7 +108,6 @@ func New() *SuperAgent {
 		Errors:            nil,
 		BasicAuth:         struct{ Username, Password string }{},
 		Debug:             debug,
-		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
@@ -131,12 +118,6 @@ func New() *SuperAgent {
 // Enable the debug mode which logs request/response detail
 func (s *SuperAgent) SetDebug(enable bool) *SuperAgent {
 	s.Debug = enable
-	return s
-}
-
-// Enable the curlcommand mode which display a CURL command line
-func (s *SuperAgent) SetCurlCommand(enable bool) *SuperAgent {
-	s.CurlCommand = enable
 	return s
 }
 
@@ -1103,17 +1084,6 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		}
 	}
 
-	// Display CURL command line
-	if s.CurlCommand {
-		curl, err := http2curl.GetCurlCommand(req)
-		s.logger.SetPrefix("[curl] ")
-		if err != nil {
-			s.logger.Println("Error:", err)
-		} else {
-			s.logger.Printf("CURL command line: %s", curl)
-		}
-	}
-
 	// Send request
 	resp, err = s.Client.Do(req)
 	if err != nil {
@@ -1316,18 +1286,4 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	}
 
 	return req, nil
-}
-
-// AsCurlCommand returns a string representing the runnable `curl' command
-// version of the request.
-func (s *SuperAgent) AsCurlCommand() (string, error) {
-	req, err := s.MakeRequest()
-	if err != nil {
-		return "", err
-	}
-	cmd, err := http2curl.GetCurlCommand(req)
-	if err != nil {
-		return "", err
-	}
-	return cmd.String(), nil
 }
