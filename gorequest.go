@@ -951,8 +951,11 @@ func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent
 		if len(args) == 1 {
 			return s.SendFile(v.Elem().Interface(), args[0])
 		}
-		if len(args) >= 2 {
+		if len(args) == 2 {
 			return s.SendFile(v.Elem().Interface(), args[0], args[1])
+		}
+		if len(args) == 3 {
+			return s.SendFile(v.Elem().Interface(), args[0], args[1], args[2])
 		}
 		return s.SendFile(v.Elem().Interface())
 	default:
