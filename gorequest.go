@@ -3,6 +3,7 @@ package gorequest
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -86,6 +87,7 @@ type SuperAgent struct {
 	Retryable            superAgentRetryable
 	DoNotClearSuperAgent bool
 	isClone              bool
+	context				 context.Context
 }
 
 var DisableTransportSwap = false
@@ -118,6 +120,7 @@ func New() *SuperAgent {
 		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 		isClone:           false,
+		context:           nil,
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
@@ -229,6 +232,7 @@ func (s *SuperAgent) Clone() *SuperAgent {
 		Retryable:            copyRetryable(s.Retryable),
 		DoNotClearSuperAgent: true,
 		isClone:              true,
+		context: 			  s.context,
 	}
 	return clone
 }
@@ -275,6 +279,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.TargetType = TypeJSON
 	s.Cookies = make([]*http.Cookie, 0)
 	s.Errors = nil
+	s.context = nil
 }
 
 // Just a wrapper to initialize SuperAgent instance by method string
@@ -1135,6 +1140,14 @@ func contains(respStatus int, statuses []int) bool {
 	return false
 }
 
+func (s *SuperAgent) Context(ctx context.Context) *SuperAgent{
+	if ctx == nil {
+		panic("context can't be nil")
+	}
+	s.context = ctx
+	return s
+}
+
 // EndStruct should be used when you want the body as a struct. The callbacks work the same way as with `End`, except that a struct is used instead of a string.
 func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response, v interface{}, body []byte, errs []error)) (Response, []byte, []error) {
 	resp, body, errs := s.EndBytes()
@@ -1376,6 +1389,11 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	if req, err = http.NewRequest(s.Method, s.Url, contentReader); err != nil {
 		return nil, err
 	}
+
+	if s.context != nil {
+		req = req.WithContext(s.context)
+	}
+
 	for k, vals := range s.Header {
 		for _, v := range vals {
 			req.Header.Add(k, v)
