@@ -63,29 +63,30 @@ type superAgentRetryable struct {
 
 // A SuperAgent is a object storing all request data for client.
 type SuperAgent struct {
-	Url                  string
-	Method               string
-	Header               http.Header
-	TargetType           string
-	ForceType            string
-	Data                 map[string]interface{}
-	SliceData            []interface{}
-	FormData             url.Values
-	QueryData            url.Values
-	FileData             []File
-	BounceToRawString    bool
-	RawString            string
-	Client               *http.Client
-	Transport            *http.Transport
-	Cookies              []*http.Cookie
-	Errors               []error
-	BasicAuth            struct{ Username, Password string }
-	Debug                bool
-	CurlCommand          bool
-	logger               Logger
-	Retryable            superAgentRetryable
-	DoNotClearSuperAgent bool
-	isClone              bool
+	Url                   string
+	Method                string
+	Header                http.Header
+	TargetType            string
+	ForceType             string
+	Data                  map[string]interface{}
+	SliceData             []interface{}
+	FormData              url.Values
+	QueryData             url.Values
+	IsNotSortRawQueryFlag bool // Added Henry Huang
+	FileData              []File
+	BounceToRawString     bool
+	RawString             string
+	Client                *http.Client
+	Transport             *http.Transport
+	Cookies               []*http.Cookie
+	Errors                []error
+	BasicAuth             struct{ Username, Password string }
+	Debug                 bool
+	CurlCommand           bool
+	logger                Logger
+	Retryable             superAgentRetryable
+	DoNotClearSuperAgent  bool
+	isClone               bool
 }
 
 var DisableTransportSwap = false
@@ -828,6 +829,13 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 	return s
 }
 
+// SetIsNotSortRawQueryFlag Added by Henry Huang
+// set flag - raw query data if sorted with superagent's query data
+func (s *SuperAgent) SetIsNotSortRawQueryFlag(flag bool) *SuperAgent {
+	s.IsNotSortRawQueryFlag = flag
+	return s
+}
+
 type File struct {
 	Filename  string
 	Fieldname string
@@ -1393,14 +1401,24 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		req.Header.Set("Content-Type", contentType)
 	}
 
-	// Add all querystring from Query func
-	q := req.URL.Query()
+	// Update by Henry Huang
+	q := url.Values{}
+	if !s.IsNotSortRawQueryFlag {
+		// Add all querystring from Query func
+		q = req.URL.Query()
+		req.URL.RawQuery = ""
+	}
+
 	for k, v := range s.QueryData {
 		for _, vv := range v {
 			q.Add(k, vv)
 		}
 	}
-	req.URL.RawQuery = q.Encode()
+
+	if 0 != len(req.URL.RawQuery) && 0 != len(s.QueryData) {
+		req.URL.RawQuery += "&"
+	}
+	req.URL.RawQuery += q.Encode()
 
 	// Add basic auth
 	if s.BasicAuth != struct{ Username, Password string }{} {
