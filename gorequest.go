@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go"
-	"gitlab.goiot.net/sde-base/golib/tracing"
 
 	"github.com/pkg/errors"
 
@@ -1264,7 +1263,10 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 
 	if s.SpanContext != nil {
 		// fmt.Println("reject header")
-		tracing.InjectTraceID(s.SpanContext, req.Header)
+		opentracing.GlobalTracer().Inject(
+			s.SpanContext,
+			opentracing.HTTPHeaders,
+			opentracing.HTTPHeadersCarrier(req.Header))
 	}
 
 	for k, vals := range s.Header {
