@@ -2585,3 +2585,62 @@ func TestSetDebugByEnvironmentVar(t *testing.T) {
 		t.Fatalf("\nExpected gorequest not to log request and response object if GOREQUEST_DEBUG is not set.")
 	}
 }
+
+func TestSetHeaders(t *testing.T) {
+	text := "hi"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is PATCH before going to check other features
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		if r.Header.Get("Connection") != "keep-Alive" {
+			t.Error("Expected Header Connection -> keep-Alive", "| but got", r.Header.Get("Connection"))
+		}
+		if r.Header.Get("Date") != "Fri, 22 Jan 2010 04:00:00 GMT" {
+			t.Error("Expected Header Date -> Fri, 22 Jan 2010 04:00:00 GMT", "| but got", r.Header.Get("Date"))
+		}
+		expectedAccepts := []string{"application/json", "text/plain"}
+		if strings.Join(r.Header["Accept"], ", ") != strings.Join(expectedAccepts, ", ") {
+			t.Error("Expected Header Accept -> ", expectedAccepts, "| but got", r.Header["Accept"])
+		}
+
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != text {
+			t.Error(`Expected text `, text, "| but got", string(body))
+		}
+	}))
+
+	defer ts.Close()
+
+	type headers struct {
+		Accept     string
+		Connection string
+		Date       string
+	}
+
+	headersStruct := headers{Accept: "application/json", Connection: "keep-Alive", Date: "Fri, 22 Jan 2010 04:00:00 GMT"}
+	headersMap := map[string]string{
+		"Accept":     "application/json",
+		"Connection": "keep-Alive",
+		"Date":       "Fri, 22 Jan 2010 04:00:00 GMT",
+	}
+
+	New().Post(ts.URL).
+		SetHeaders(headersStruct).
+		AppendHeader("Accept", "text/plain").
+		Type("text").
+		Send(text).
+		End()
+
+	New().Post(ts.URL).
+		SetHeaders(headersMap).
+		AppendHeader("Accept", "text/plain").
+		Type("text").
+		Send(text).
+		End()
+}

@@ -385,6 +385,57 @@ func (s *SuperAgent) AppendHeader(param string, value string) *SuperAgent {
 	return s
 }
 
+// SetHeaders is used for setting all your headers with the use of a map or a struct.
+// It uses AppendHeader() method so it allows for multiple values of the same header
+// Example. To set the following struct as headers, simply do
+//
+// headers := apiHeaders{Accept: "application/json", Content-Type: "text/html", X-Frame-Options: "deny"}
+// gorequest.New().
+//  Post("apiEndPoint").
+//  Set(headers).
+//  End()
+func (s *SuperAgent) SetHeaders(headers interface{}) *SuperAgent {
+	switch v := reflect.ValueOf(headers); v.Kind() {
+	case reflect.Struct:
+		s.setHeadersStruct(v.Interface())
+	case reflect.Map:
+		s.setHeadersMap(v.Interface())
+	default:
+	}
+	return s
+}
+
+func (s *SuperAgent) setHeadersStruct(content interface{}) *SuperAgent {
+	if marshalContent, err := json.Marshal(content); err != nil {
+		s.Errors = append(s.Errors, err)
+	} else {
+		var val map[string]interface{}
+		if err := json.Unmarshal(marshalContent, &val); err != nil {
+			s.Errors = append(s.Errors, err)
+		} else {
+			for k, v := range val {
+				var headerVal string
+				switch t := v.(type) {
+				case string:
+					headerVal = t
+				default:
+					j, err := json.Marshal(v)
+					if err != nil {
+						continue
+					}
+					headerVal = string(j)
+				}
+				s.AppendHeader(k, headerVal)
+			}
+		}
+	}
+	return s
+}
+
+func (s *SuperAgent) setHeadersMap(content interface{}) *SuperAgent {
+	return s.setHeadersStruct(content)
+}
+
 // Retryable is used for setting a Retryer policy
 // Example. To set Retryer policy with 5 seconds between each attempt.
 //          3 max attempt.
