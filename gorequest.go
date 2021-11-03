@@ -392,7 +392,7 @@ func (s *SuperAgent) AppendHeader(param string, value string) *SuperAgent {
 
 //    gorequest.New().
 //      Post("/gamelist").
-//      Retry(3, 5 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
+//      Retry(3, 5 * time.Second, http.StatusBadRequest, http.StatusInternalServerError).
 //      End()
 func (s *SuperAgent) Retry(retryerCount int, retryerTime time.Duration, statusCode ...int) *SuperAgent {
 	for _, code := range statusCode {
