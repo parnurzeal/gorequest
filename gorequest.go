@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"golang.org/x/net/publicsuffix"
 	"moul.io/http2curl"
 )
@@ -149,9 +148,10 @@ func shallowCopyDataSlice(old []interface{}) []interface{} {
 		return nil
 	}
 	newData := make([]interface{}, len(old))
-	for i := range old {
-		newData[i] = old[i]
-	}
+	copy(newData, old)
+	// for i := range old {
+	// 	newData[i] = old[i]
+	// }
 	return newData
 }
 func shallowCopyFileArray(old []File) []File {
@@ -159,9 +159,10 @@ func shallowCopyFileArray(old []File) []File {
 		return nil
 	}
 	newData := make([]File, len(old))
-	for i := range old {
-		newData[i] = old[i]
-	}
+	copy(newData, old)
+	// for i := range old {
+	// 	newData[i] = old[i]
+	// }
 	return newData
 }
 func shallowCopyCookies(old []*http.Cookie) []*http.Cookie {
@@ -169,9 +170,10 @@ func shallowCopyCookies(old []*http.Cookie) []*http.Cookie {
 		return nil
 	}
 	newData := make([]*http.Cookie, len(old))
-	for i := range old {
-		newData[i] = old[i]
-	}
+	copy(newData, old)
+	// for i := range old {
+	// 	newData[i] = old[i]
+	// }
 	return newData
 }
 func shallowCopyErrors(old []error) []error {
@@ -179,9 +181,10 @@ func shallowCopyErrors(old []error) []error {
 		return nil
 	}
 	newData := make([]error, len(old))
-	for i := range old {
-		newData[i] = old[i]
-	}
+	copy(newData, old)
+	// for i := range old {
+	// 	newData[i] = old[i]
+	// }
 	return newData
 }
 
@@ -399,7 +402,7 @@ func (s *SuperAgent) Retry(retryerCount int, retryerTime time.Duration, statusCo
 	for _, code := range statusCode {
 		statusText := http.StatusText(code)
 		if len(statusText) == 0 {
-			s.Errors = append(s.Errors, errors.New("StatusCode '"+strconv.Itoa(code)+"' doesn't exist in http package"))
+			s.Errors = append(s.Errors, fmt.Errorf("StatusCode '%d' doesn't exist in http package", code))
 		}
 	}
 
@@ -477,7 +480,7 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 	if _, ok := Types[typeStr]; ok {
 		s.ForceType = typeStr
 	} else {
-		s.Errors = append(s.Errors, errors.New("Type func: incorrect type \""+typeStr+"\""))
+		s.Errors = append(s.Errors, fmt.Errorf("type func: incorrect type \"%s\"", typeStr))
 	}
 	return s
 }
@@ -978,7 +981,7 @@ func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent
 			return s
 		}
 
-		s.Errors = append(s.Errors, errors.New("sendFile currently only supports either a string (path/to/file), a slice of bytes (file content itself), or a os.File"))
+		s.Errors = append(s.Errors, fmt.Errorf("sendFile currently only supports either a string (path/to/file), a slice of bytes (file content itself), or a os.File"))
 	}
 
 	return s
@@ -1254,7 +1257,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	)
 
 	if s.Method == "" {
-		return nil, errors.New("No method specified")
+		return nil, fmt.Errorf("no method specified")
 	}
 
 	// !!! Important Note !!!
@@ -1371,7 +1374,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		}
 	default:
 		// let's return an error instead of an nil pointer exception here
-		return nil, errors.New("TargetType '" + s.TargetType + "' could not be determined")
+		return nil, fmt.Errorf("TargetType '%s' could not be determined", s.TargetType)
 	}
 
 	if req, err = http.NewRequest(s.Method, s.Url, contentReader); err != nil {
