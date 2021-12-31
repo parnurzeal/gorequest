@@ -22,36 +22,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"golang.org/x/net/publicsuffix"
 	"moul.io/http2curl"
 )
 
 type Request *http.Request
 type Response *http.Response
-
-// HTTP methods we support
-const (
-	POST    = "POST"
-	GET     = "GET"
-	HEAD    = "HEAD"
-	PUT     = "PUT"
-	DELETE  = "DELETE"
-	PATCH   = "PATCH"
-	OPTIONS = "OPTIONS"
-)
-
-// Types we support.
-const (
-	TypeJSON       = "json"
-	TypeXML        = "xml"
-	TypeUrlencoded = "urlencoded"
-	TypeForm       = "form"
-	TypeFormData   = "form-data"
-	TypeHTML       = "html"
-	TypeText       = "text"
-	TypeMultipart  = "multipart"
-)
 
 type superAgentRetryable struct {
 	RetryableStatus []int
@@ -122,67 +98,6 @@ func New() *SuperAgent {
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
 	return s
-}
-
-func cloneMapArray(old map[string][]string) map[string][]string {
-	newMap := make(map[string][]string, len(old))
-	for k, vals := range old {
-		newMap[k] = make([]string, len(vals))
-		for i := range vals {
-			newMap[k][i] = vals[i]
-		}
-	}
-	return newMap
-}
-func shallowCopyData(old map[string]interface{}) map[string]interface{} {
-	if old == nil {
-		return nil
-	}
-	newData := make(map[string]interface{})
-	for k, val := range old {
-		newData[k] = val
-	}
-	return newData
-}
-func shallowCopyDataSlice(old []interface{}) []interface{} {
-	if old == nil {
-		return nil
-	}
-	newData := make([]interface{}, len(old))
-	for i := range old {
-		newData[i] = old[i]
-	}
-	return newData
-}
-func shallowCopyFileArray(old []File) []File {
-	if old == nil {
-		return nil
-	}
-	newData := make([]File, len(old))
-	for i := range old {
-		newData[i] = old[i]
-	}
-	return newData
-}
-func shallowCopyCookies(old []*http.Cookie) []*http.Cookie {
-	if old == nil {
-		return nil
-	}
-	newData := make([]*http.Cookie, len(old))
-	for i := range old {
-		newData[i] = old[i]
-	}
-	return newData
-}
-func shallowCopyErrors(old []error) []error {
-	if old == nil {
-		return nil
-	}
-	newData := make([]error, len(old))
-	for i := range old {
-		newData[i] = old[i]
-	}
-	return newData
 }
 
 // just need to change the array pointer?
@@ -399,7 +314,7 @@ func (s *SuperAgent) Retry(retryerCount int, retryerTime time.Duration, statusCo
 	for _, code := range statusCode {
 		statusText := http.StatusText(code)
 		if len(statusText) == 0 {
-			s.Errors = append(s.Errors, errors.New("StatusCode '"+strconv.Itoa(code)+"' doesn't exist in http package"))
+			s.Errors = append(s.Errors, fmt.Errorf("StatusCode '%d' doesn't exist in http package", code))
 		}
 	}
 
@@ -443,17 +358,6 @@ func (s *SuperAgent) AddCookies(cookies []*http.Cookie) *SuperAgent {
 	return s
 }
 
-var Types = map[string]string{
-	TypeJSON:       "application/json",
-	TypeXML:        "application/xml",
-	TypeForm:       "application/x-www-form-urlencoded",
-	TypeFormData:   "application/x-www-form-urlencoded",
-	TypeUrlencoded: "application/x-www-form-urlencoded",
-	TypeHTML:       "text/html",
-	TypeText:       "text/plain",
-	TypeMultipart:  "multipart/form-data",
-}
-
 // Type is a convenience function to specify the data type to send.
 // For example, to send data as `application/x-www-form-urlencoded` :
 //
@@ -477,7 +381,7 @@ func (s *SuperAgent) Type(typeStr string) *SuperAgent {
 	if _, ok := Types[typeStr]; ok {
 		s.ForceType = typeStr
 	} else {
-		s.Errors = append(s.Errors, errors.New("Type func: incorrect type \""+typeStr+"\""))
+		s.Errors = append(s.Errors, fmt.Errorf("type func: incorrect type \"%s\"", typeStr))
 	}
 	return s
 }
@@ -978,7 +882,7 @@ func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent
 			return s
 		}
 
-		s.Errors = append(s.Errors, errors.New("sendFile currently only supports either a string (path/to/file), a slice of bytes (file content itself), or a os.File"))
+		s.Errors = append(s.Errors, fmt.Errorf("sendFile currently only supports either a string (path/to/file), a slice of bytes (file content itself), or a os.File"))
 	}
 
 	return s
@@ -1119,21 +1023,12 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 }
 
 func (s *SuperAgent) isRetryableRequest(resp Response) bool {
-	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && contains(resp.StatusCode, s.Retryable.RetryableStatus) {
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && statusesContains(s.Retryable.RetryableStatus, resp.StatusCode) {
 		time.Sleep(s.Retryable.RetryerTime)
 		s.Retryable.Attempt++
 		return false
 	}
 	return true
-}
-
-func contains(respStatus int, statuses []int) bool {
-	for _, status := range statuses {
-		if status == respStatus {
-			return true
-		}
-	}
-	return false
 }
 
 // EndStruct should be used when you want the body as a struct. The callbacks work the same way as with `End`, except that a struct is used instead of a string.
@@ -1254,7 +1149,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	)
 
 	if s.Method == "" {
-		return nil, errors.New("No method specified")
+		return nil, fmt.Errorf("no method specified")
 	}
 
 	// !!! Important Note !!!
@@ -1363,7 +1258,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			contentReader = buf
 		}
 
-		// close before call to FormDataContentType ! otherwise its not valid multipart
+		// close before call to FormDataContentType ! otherwise, it's not valid multipart
 		mw.Close()
 
 		if contentReader != nil {
@@ -1371,7 +1266,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		}
 	default:
 		// let's return an error instead of an nil pointer exception here
-		return nil, errors.New("TargetType '" + s.TargetType + "' could not be determined")
+		return nil, fmt.Errorf("TargetType '%s' could not be determined", s.TargetType)
 	}
 
 	if req, err = http.NewRequest(s.Method, s.Url, contentReader); err != nil {
@@ -1389,7 +1284,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	}
 
 	// https://github.com/parnurzeal/gorequest/issues/164
-	// Don't infer the content type header if an overrride is already provided.
+	// Don't infer the content type header if an override is already provided.
 	if len(contentType) != 0 && req.Header.Get("Content-Type") == "" {
 		req.Header.Set("Content-Type", contentType)
 	}
@@ -1431,7 +1326,7 @@ func (s *SuperAgent) AsCurlCommand() (string, error) {
 }
 
 // we don't want to mess up other clones when we modify the client..
-// so unfortantely we need to create a new client
+// so unfortunately we need to create a new client
 func (s *SuperAgent) safeModifyHttpClient() {
 	if !s.isClone {
 		return
