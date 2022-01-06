@@ -7,19 +7,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	"mime/multipart"
-
-	"os"
 
 	"github.com/elazarl/goproxy"
 )
@@ -557,7 +555,7 @@ func TestRetryGet(t *testing.T) {
 			t.Errorf("Expected method %q; got %q", GET, r.Method)
 		}
 
-		//set return status
+		// set return status
 
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
@@ -884,12 +882,12 @@ func TestPost(t *testing.T) {
 	type Upper struct {
 		Color string
 		Size  int
-		note  string
+		// note  string
 	}
 	type Lower struct {
 		Color string
 		Size  float64
-		note  string
+		// note  string
 	}
 	type Style struct {
 		Upper Upper
@@ -1048,12 +1046,12 @@ func TestPostCloneSuperAgent(t *testing.T) {
 	type Upper struct {
 		Color string
 		Size  int
-		note  string
+		// note  string
 	}
 	type Lower struct {
 		Color string
 		Size  float64
-		note  string
+		// note  string
 	}
 	type Style struct {
 		Upper Upper
@@ -1811,7 +1809,7 @@ func checkQuery(t *testing.T, q map[string][]string, key string, want string) {
 	} else if v[0] != want {
 		t.Errorf("Expected %v:%v | but got %v", key, want, v[0])
 	}
-	return
+	// return
 }
 
 // TODO: more check on url query (all testcases)
@@ -2206,7 +2204,7 @@ func TestGetSetCookies(t *testing.T) {
 }
 
 func TestErrorTypeWrongKey(t *testing.T) {
-	//defer afterTest(t)
+	// defer afterTest(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Hello, checkTypeWrongKey")
 	}))
@@ -2228,7 +2226,7 @@ func TestErrorTypeWrongKey(t *testing.T) {
 // expect the first clone to result in an erro
 // the second clone should succeed
 func TestErrorThenReUseBase(t *testing.T) {
-	//defer afterTest(t)
+	// defer afterTest(t)
 	requestCount := 0
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestCount++
@@ -2447,7 +2445,7 @@ func TestPlainText(t *testing.T) {
 func TestContentTypeInference(t *testing.T) {
 	var tests = []struct {
 		customContentType string
-		//type is reserved keyword
+		// type is reserved keyword
 		Type           string
 		expectedHeader string
 		body           string

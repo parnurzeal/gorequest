@@ -22,3 +22,6 @@ _testmain.go
 
 *.exe
 tags
+.envrc
+vendor
+.coverage.cov
