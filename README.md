@@ -25,7 +25,7 @@ Sending request has never been as fun nor easier than this. It comes with lots o
 ## Installation
 
 ```bash
-$ go get github.com/parnurzeal/gorequest
+$ go get github.com/wklken/gorequest
 ```
 
 ## Documentation
@@ -116,7 +116,7 @@ Compared to our GoRequest version, JSON is for sure a default. So, it turns out 
 ```go
 request := gorequest.New()
 resp, body, errs := request.Post("http://example.com").
-  Set("Notes","gorequst is coming!").
+  Set("Notes","gorequest is coming!").
   Send(`{"name":"backy", "species":"dog"}`).
   End()
 ```
