@@ -1833,9 +1833,11 @@ func TestQueryFunc(t *testing.T) {
 		case case1_send_string, case2_send_struct:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
+			checkQuery(t, v, "int64", "6673221165400540161")
 		case case3_send_string_with_duplicates:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
+			checkQuery(t, v, "int64", "6673221165400540161")
 
 			if len(v["param"]) != 4 {
 				t.Errorf("Expected Body with 4 params | but got %q", len(v["param"]))
@@ -1846,6 +1848,7 @@ func TestQueryFunc(t *testing.T) {
 		case case4_send_map:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
+			checkQuery(t, v, "int64", "6673221165400540161")
 			checkQuery(t, v, "query3", "3.1415926")
 			checkQuery(t, v, "query4", "true")
 		}
@@ -1855,14 +1858,17 @@ func TestQueryFunc(t *testing.T) {
 	New().Post(ts.URL + case1_send_string).
 		Query("query1=test1").
 		Query("query2=test2").
+		Query("int64=6673221165400540161").
 		End()
 
 	qq := struct {
 		Query1 string
 		Query2 string
+		Int64  int64 `json:"int64"`
 	}{
 		Query1: "test1",
 		Query2: "test2",
+		Int64:  6673221165400540161,
 	}
 	New().Post(ts.URL + case2_send_struct).
 		Query(qq).
@@ -1871,6 +1877,7 @@ func TestQueryFunc(t *testing.T) {
 	New().Post(ts.URL + case3_send_string_with_duplicates).
 		Query("query1=test1").
 		Query("query2=test2").
+		Query("int64=6673221165400540161").
 		Query("param=1").
 		Query("param=2").
 		Query("param=3&param=4").
@@ -1880,6 +1887,7 @@ func TestQueryFunc(t *testing.T) {
 		Query(map[string]interface{}{
 			"query1": "test1",
 			"query2": "test2",
+			"int64":  6673221165400540161,
 			"query3": 3.1415926,
 			"query4": true,
 		}).
