@@ -441,7 +441,7 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 			s.Errors = append(s.Errors, err)
 		} else {
 			for k, v := range val {
-				k = strings.ToLower(k)
+				// k = strings.ToLower(k)
 				var queryVal string
 				switch t := v.(type) {
 				case string:
