@@ -695,6 +695,10 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 				for k, v := range val.(map[string]interface{}) {
 					s.Data[k] = v
 				}
+				// NOTE: if SendString(`{}`), will come into this case, but set nothing into s.Data
+				if len(s.Data) == 0 {
+					s.BounceToRawString = true
+				}
 			// add to SliceData
 			case reflect.Slice:
 				s.SendSlice(val.([]interface{}))

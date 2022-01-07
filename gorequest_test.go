@@ -2215,7 +2215,7 @@ func TestErrorTypeWrongKey(t *testing.T) {
 		Type("wrongtype").
 		End()
 	if len(err) != 0 {
-		if err[0].Error() != "Type func: incorrect type \"wrongtype\"" {
+		if err[0].Error() != "type func: incorrect type \"wrongtype\"" {
 			t.Errorf("Wrong error message: " + err[0].Error())
 		}
 	} else {
@@ -2244,7 +2244,7 @@ func TestErrorThenReUseBase(t *testing.T) {
 		Type("wrongtype").
 		End()
 	if len(err) != 0 {
-		if err[0].Error() != "Type func: incorrect type \"wrongtype\"" {
+		if err[0].Error() != "type func: incorrect type \"wrongtype\"" {
 			t.Errorf("Wrong error message: " + err[0].Error())
 		}
 	} else {
@@ -2451,8 +2451,10 @@ func TestContentTypeInference(t *testing.T) {
 		body           string
 	}{
 		{"application/json", "json", "application/json", "{}"},
+		// if customContentType is "" and Type("json"), `` will unmarshal fail, no change to the content-type
 		{"", "json", "", ""},
-		{"", "json", "", "{}"},
+		// if customContentType is "" and Type("json"), `{}` will unmarshal success, set content-type to application/json
+		{"", "json", "application/json", "{}"},
 		{"text/json", "json", "text/json", "{}"},
 		{"text/xml", "json", "text/xml", "<a />"},
 	}
