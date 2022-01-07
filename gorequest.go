@@ -1037,9 +1037,16 @@ func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response
 	if errs != nil {
 		return nil, body, errs
 	}
+
 	err := json.Unmarshal(body, &v)
 	if err != nil {
-		s.Errors = append(s.Errors, err)
+		respContentType := filterFlags(resp.Header.Get("Content-Type"))
+		if respContentType != MIMEJSON {
+			s.Errors = append(s.Errors, fmt.Errorf("response content-type is %s not application/json, so can't be json decoded: %w", respContentType, err))
+		} else {
+			s.Errors = append(s.Errors, fmt.Errorf("response body json decode fail: %w", err))
+		}
+
 		return resp, body, s.Errors
 	}
 	respCallback := *resp
