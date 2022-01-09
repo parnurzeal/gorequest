@@ -308,7 +308,7 @@ func (s *SuperAgent) AppendHeader(param string, value string) *SuperAgent {
 //
 //    gorequest.New().
 //      Post("https://httpbin.org/post").
-//      Retry(3, 5 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
+//      Retry(3, 5 * time.Second, http.StatusBadRequest, http.StatusInternalServerError).
 //      End()
 func (s *SuperAgent) Retry(retryerCount int, retryerTime time.Duration, statusCode ...int) *SuperAgent {
 	for _, code := range statusCode {
@@ -455,7 +455,7 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 					if err != nil {
 						continue
 					}
-					queryVal = string(j)
+					queryVal = BytesToString(j)
 				}
 				s.QueryData.Add(k, queryVal)
 			}
@@ -466,7 +466,7 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 
 func (s *SuperAgent) queryString(content string) *SuperAgent {
 	var val map[string]string
-	if err := json.Unmarshal([]byte(content), &val); err == nil {
+	if err := json.Unmarshal(StringToBytes(content), &val); err == nil {
 		for k, v := range val {
 			s.QueryData.Add(k, v)
 		}
@@ -474,7 +474,7 @@ func (s *SuperAgent) queryString(content string) *SuperAgent {
 		if queryData, err := url.ParseQuery(content); err == nil {
 			for k, queryValues := range queryData {
 				for _, queryValue := range queryValues {
-					s.QueryData.Add(k, string(queryValue))
+					s.QueryData.Add(k, queryValue)
 				}
 			}
 		} else {
@@ -708,7 +708,7 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 					// make it array if already have key
 					if val, ok := s.Data[k]; ok {
 						var strArray []string
-						strArray = append(strArray, string(formValue))
+						strArray = append(strArray, formValue)
 						// check if previous data is one string or array
 						switch oldValue := val.(type) {
 						case []string:
@@ -901,7 +901,7 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 		// which always converts number to float64.
 		// This type is caused by using Decoder.UseNumber()
 		case json.Number:
-			newUrlValues.Add(k, string(val))
+			newUrlValues.Add(k, val.String())
 		case int:
 			newUrlValues.Add(k, strconv.FormatInt(int64(val), 10))
 		// TODO add all other int-Types (int8, int16, ...)
@@ -948,7 +948,7 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 				}
 			case json.Number:
 				for _, element := range val {
-					newUrlValues.Add(k, string(element.(json.Number)))
+					newUrlValues.Add(k, element.(json.Number).String())
 				}
 			}
 		default:
@@ -985,13 +985,13 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	if len(callback) > 0 {
 		bytesCallback = []func(response Response, body []byte, errs []error){
 			func(response Response, body []byte, errs []error) {
-				callback[0](response, string(body), errs)
+				callback[0](response, BytesToString(body), errs)
 			},
 		}
 	}
 
 	resp, body, errs := s.EndBytes(bytesCallback...)
-	bodyString := string(body)
+	bodyString := BytesToString(body)
 
 	return resp, bodyString, errs
 }
@@ -1098,7 +1098,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		if err != nil {
 			s.logger.Println("Error:", err)
 		} else {
-			s.logger.Printf("HTTP Request: %s", string(dump))
+			s.logger.Printf("HTTP Request: %s", BytesToString(dump))
 		}
 	}
 
@@ -1127,7 +1127,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		if nil != err {
 			s.logger.Println("Error:", err)
 		} else {
-			s.logger.Printf("HTTP Response: %s", string(dump))
+			s.logger.Printf("HTTP Response: %s", BytesToString(dump))
 		}
 	}
 
@@ -1171,7 +1171,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		// 2) Array or Mix of map & array or others: send it as rawstring from s.RawString
 		var contentJson []byte
 		if s.BounceToRawString {
-			contentJson = []byte(s.RawString)
+			contentJson = StringToBytes(s.RawString)
 		} else if len(s.Data) != 0 {
 			contentJson, _ = json.Marshal(s.Data)
 		} else if len(s.SliceData) != 0 {
@@ -1184,10 +1184,10 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	case TypeForm, TypeFormData, TypeUrlencoded:
 		var contentForm []byte
 		if s.BounceToRawString || len(s.SliceData) != 0 {
-			contentForm = []byte(s.RawString)
+			contentForm = StringToBytes(s.RawString)
 		} else {
 			formData := changeMapToURLValues(s.Data)
-			contentForm = []byte(formData.Encode())
+			contentForm = StringToBytes(formData.Encode())
 		}
 		if len(contentForm) != 0 {
 			contentReader = bytes.NewReader(contentForm)
@@ -1215,7 +1215,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 				fieldName = "data"
 			}
 			fw, _ := mw.CreateFormField(fieldName)
-			fw.Write([]byte(s.RawString))
+			fw.Write(StringToBytes(s.RawString))
 			contentReader = buf
 		}
 
@@ -1224,7 +1224,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			for key, values := range formData {
 				for _, value := range values {
 					fw, _ := mw.CreateFormField(key)
-					fw.Write([]byte(value))
+					fw.Write(StringToBytes(value))
 				}
 			}
 			contentReader = buf
