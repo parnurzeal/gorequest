@@ -224,6 +224,7 @@ func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 	s.Method = GET
 	s.Url = targetUrl
 	s.Errors = nil
+	s.TargetType = ""
 	return s
 }
 
@@ -1264,6 +1265,9 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		if contentReader != nil {
 			contentType = mw.FormDataContentType()
 		}
+	case "":
+		contentType = ""
+		contentReader = nil
 	default:
 		// let's return an error instead of an nil pointer exception here
 		return nil, fmt.Errorf("TargetType '%s' could not be determined", s.TargetType)
