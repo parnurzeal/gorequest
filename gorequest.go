@@ -1025,29 +1025,38 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 
 	for {
 		resp, body, errs = s.getResponseBytes()
-		if errs != nil {
-			return nil, nil, errs
-		}
-		if s.isRetryableRequest(resp) {
-			resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
+		// if errs != nil {
+		// 	return nil, nil, errs
+		// }
+		if !s.shouldRetry(resp, len(errs) > 0) {
+			if resp != nil {
+				resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
+			}
 			break
 		}
+
+		s.Errors = nil
 	}
 
-	respCallback := *resp
 	if len(callback) != 0 {
-		callback[0](&respCallback, body, s.Errors)
+		if resp == nil {
+			callback[0](nil, body, s.Errors)
+		} else {
+			respCallback := *resp
+			callback[0](&respCallback, body, s.Errors)
+		}
+
 	}
-	return resp, body, nil
+	return resp, body, errs
 }
 
-func (s *SuperAgent) isRetryableRequest(resp Response) bool {
-	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && statusesContains(s.Retryable.RetryableStatus, resp.StatusCode) {
+func (s *SuperAgent) shouldRetry(resp Response, hasError bool) bool {
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && (hasError || statusesContains(s.Retryable.RetryableStatus, resp.StatusCode)) {
 		time.Sleep(s.Retryable.RetryerTime)
 		s.Retryable.Attempt++
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 // EndStruct should be used when you want the body as a struct. The callbacks work the same way as with `End`, except that a struct is used instead of a string.
