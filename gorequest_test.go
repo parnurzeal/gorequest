@@ -2,6 +2,7 @@ package gorequest
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -1833,9 +1834,13 @@ func TestQueryFunc(t *testing.T) {
 		case case1_send_string, case2_send_struct:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
+			checkQuery(t, v, "int64", "6673221165400540161")
 		case case3_send_string_with_duplicates:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
+			checkQuery(t, v, "int64", "6673221165400540161")
+			checkQuery(t, v, "Querya", "testa")
+			checkQuery(t, v, "Queryb", "testb")
 
 			if len(v["param"]) != 4 {
 				t.Errorf("Expected Body with 4 params | but got %q", len(v["param"]))
@@ -1846,6 +1851,9 @@ func TestQueryFunc(t *testing.T) {
 		case case4_send_map:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
+			checkQuery(t, v, "int64", "6673221165400540161")
+			checkQuery(t, v, "Querya", "testa")
+			checkQuery(t, v, "Queryb", "testb")
 			checkQuery(t, v, "query3", "3.1415926")
 			checkQuery(t, v, "query4", "true")
 		}
@@ -1855,14 +1863,23 @@ func TestQueryFunc(t *testing.T) {
 	New().Post(ts.URL + case1_send_string).
 		Query("query1=test1").
 		Query("query2=test2").
+		Query("int64=6673221165400540161").
+  	Query("Querya=testa").
+		Query("Queryb=testb").
 		End()
 
 	qq := struct {
 		Query1 string
 		Query2 string
+		Int64  int64 `json:"int64"`
+		Querya string `json:"Querya"`
+		Queryb string
 	}{
 		Query1: "test1",
 		Query2: "test2",
+		Int64:  6673221165400540161,
+		Querya: "testa",
+		Queryb: "testb",
 	}
 	New().Post(ts.URL + case2_send_struct).
 		Query(qq).
@@ -1871,6 +1888,9 @@ func TestQueryFunc(t *testing.T) {
 	New().Post(ts.URL + case3_send_string_with_duplicates).
 		Query("query1=test1").
 		Query("query2=test2").
+		Query("int64=6673221165400540161").
+		Query("Querya=testa").
+		Query("Queryb=testb").
 		Query("param=1").
 		Query("param=2").
 		Query("param=3&param=4").
@@ -1880,6 +1900,9 @@ func TestQueryFunc(t *testing.T) {
 		Query(map[string]interface{}{
 			"query1": "test1",
 			"query2": "test2",
+			"int64":  6673221165400540161,
+			"Querya": "testa",
+			"Queryb": "testb",
 			"query3": 3.1415926,
 			"query4": true,
 		}).
@@ -2215,7 +2238,7 @@ func TestErrorTypeWrongKey(t *testing.T) {
 		Type("wrongtype").
 		End()
 	if len(err) != 0 {
-		if err[0].Error() != "Type func: incorrect type \"wrongtype\"" {
+		if err[0].Error() != "type func: incorrect type \"wrongtype\"" {
 			t.Errorf("Wrong error message: " + err[0].Error())
 		}
 	} else {
@@ -2244,7 +2267,7 @@ func TestErrorThenReUseBase(t *testing.T) {
 		Type("wrongtype").
 		End()
 	if len(err) != 0 {
-		if err[0].Error() != "Type func: incorrect type \"wrongtype\"" {
+		if err[0].Error() != "type func: incorrect type \"wrongtype\"" {
 			t.Errorf("Wrong error message: " + err[0].Error())
 		}
 	} else {
@@ -2451,8 +2474,10 @@ func TestContentTypeInference(t *testing.T) {
 		body           string
 	}{
 		{"application/json", "json", "application/json", "{}"},
+		// if customContentType is "" and Type("json"), `` will unmarshal fail, no change to the content-type
 		{"", "json", "", ""},
-		{"", "json", "", "{}"},
+		// if customContentType is "" and Type("json"), `{}` will unmarshal success, set content-type to application/json
+		{"", "json", "application/json", "{}"},
 		{"text/json", "json", "text/json", "{}"},
 		{"text/xml", "json", "text/xml", "<a />"},
 	}
@@ -2641,4 +2666,24 @@ func TestSetHeaders(t *testing.T) {
 		Type("text").
 		Send(text).
 		End()
+
+func TestContext(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is GET before going to check other features
+		time.Sleep(1 * time.Second)
+
+		fmt.Fprintln(w, "Hello, client")
+	}))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer cancel()
+
+	_, _, errs := New().Get(ts.URL).Context(ctx).EndBytes()
+	if len(errs) == 0 {
+		t.Fatalf("Expected error, got no error")
+	}
+
+	if !strings.HasSuffix(errs[0].Error(), "context deadline exceeded") {
+		t.Fatalf("Expected context deadline exceeded error, got %v", errs[0].Error())
+	}
 }

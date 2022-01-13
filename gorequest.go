@@ -3,6 +3,7 @@ package gorequest
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -63,6 +64,7 @@ type SuperAgent struct {
 	Retryable            superAgentRetryable
 	DoNotClearSuperAgent bool
 	isClone              bool
+	ctx                  context.Context
 }
 
 var DisableTransportSwap = false
@@ -95,6 +97,7 @@ func New() *SuperAgent {
 		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 		isClone:           false,
+		ctx:               nil,
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
@@ -145,8 +148,14 @@ func (s *SuperAgent) Clone() *SuperAgent {
 		Retryable:            copyRetryable(s.Retryable),
 		DoNotClearSuperAgent: true,
 		isClone:              true,
+		ctx:                  s.ctx,
 	}
 	return clone
+}
+
+func (s *SuperAgent) Context(ctx context.Context) *SuperAgent {
+	s.ctx = ctx
+	return s
 }
 
 // SetDebug enable the debug mode which logs request/response detail.
@@ -192,6 +201,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.TargetType = TypeJSON
 	s.Cookies = make([]*http.Cookie, 0)
 	s.Errors = nil
+	s.ctx = nil
 }
 
 // CustomMethod is just a wrapper to initialize SuperAgent instance by method string.
@@ -225,6 +235,7 @@ func (s *SuperAgent) Get(targetUrl string) *SuperAgent {
 	s.Method = GET
 	s.Url = targetUrl
 	s.Errors = nil
+	s.TargetType = ""
 	return s
 }
 
@@ -361,7 +372,7 @@ func (s *SuperAgent) AppendHeader(param string, value string) *SuperAgent {
 //
 //    gorequest.New().
 //      Post("https://httpbin.org/post").
-//      Retry(3, 5 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
+//      Retry(3, 5 * time.Second, http.StatusBadRequest, http.StatusInternalServerError).
 //      End()
 func (s *SuperAgent) Retry(retryerCount int, retryerTime time.Duration, statusCode ...int) *SuperAgent {
 	for _, code := range statusCode {
@@ -490,11 +501,13 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 		s.Errors = append(s.Errors, err)
 	} else {
 		var val map[string]interface{}
-		if err := json.Unmarshal(marshalContent, &val); err != nil {
+		d := json.NewDecoder(bytes.NewBuffer(marshalContent))
+		d.UseNumber()
+		if err := d.Decode(&val); err != nil {
 			s.Errors = append(s.Errors, err)
 		} else {
 			for k, v := range val {
-				k = strings.ToLower(k)
+				// k = strings.ToLower(k)
 				var queryVal string
 				switch t := v.(type) {
 				case string:
@@ -503,12 +516,14 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 					queryVal = strconv.FormatFloat(t, 'f', -1, 64)
 				case time.Time:
 					queryVal = t.Format(time.RFC3339)
+				case json.Number:
+					queryVal = string(t)
 				default:
 					j, err := json.Marshal(v)
 					if err != nil {
 						continue
 					}
-					queryVal = string(j)
+					queryVal = BytesToString(j)
 				}
 				s.QueryData.Add(k, queryVal)
 			}
@@ -519,7 +534,7 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 
 func (s *SuperAgent) queryString(content string) *SuperAgent {
 	var val map[string]string
-	if err := json.Unmarshal([]byte(content), &val); err == nil {
+	if err := json.Unmarshal(StringToBytes(content), &val); err == nil {
 		for k, v := range val {
 			s.QueryData.Add(k, v)
 		}
@@ -527,7 +542,7 @@ func (s *SuperAgent) queryString(content string) *SuperAgent {
 		if queryData, err := url.ParseQuery(content); err == nil {
 			for k, queryValues := range queryData {
 				for _, queryValue := range queryValues {
-					s.QueryData.Add(k, string(queryValue))
+					s.QueryData.Add(k, queryValue)
 				}
 			}
 		} else {
@@ -748,6 +763,10 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 				for k, v := range val.(map[string]interface{}) {
 					s.Data[k] = v
 				}
+				// NOTE: if SendString(`{}`), will come into this case, but set nothing into s.Data
+				if len(s.Data) == 0 {
+					s.BounceToRawString = true
+				}
 			// add to SliceData
 			case reflect.Slice:
 				s.SendSlice(val.([]interface{}))
@@ -761,7 +780,7 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 					// make it array if already have key
 					if val, ok := s.Data[k]; ok {
 						var strArray []string
-						strArray = append(strArray, string(formValue))
+						strArray = append(strArray, formValue)
 						// check if previous data is one string or array
 						switch oldValue := val.(type) {
 						case []string:
@@ -954,7 +973,7 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 		// which always converts number to float64.
 		// This type is caused by using Decoder.UseNumber()
 		case json.Number:
-			newUrlValues.Add(k, string(val))
+			newUrlValues.Add(k, val.String())
 		case int:
 			newUrlValues.Add(k, strconv.FormatInt(int64(val), 10))
 		// TODO add all other int-Types (int8, int16, ...)
@@ -1001,7 +1020,7 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 				}
 			case json.Number:
 				for _, element := range val {
-					newUrlValues.Add(k, string(element.(json.Number)))
+					newUrlValues.Add(k, element.(json.Number).String())
 				}
 			}
 		default:
@@ -1038,13 +1057,13 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 	if len(callback) > 0 {
 		bytesCallback = []func(response Response, body []byte, errs []error){
 			func(response Response, body []byte, errs []error) {
-				callback[0](response, string(body), errs)
+				callback[0](response, BytesToString(body), errs)
 			},
 		}
 	}
 
 	resp, body, errs := s.EndBytes(bytesCallback...)
-	bodyString := string(body)
+	bodyString := BytesToString(body)
 
 	return resp, bodyString, errs
 }
@@ -1059,29 +1078,38 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 
 	for {
 		resp, body, errs = s.getResponseBytes()
-		if errs != nil {
-			return nil, nil, errs
-		}
-		if s.isRetryableRequest(resp) {
-			resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
+		// if errs != nil {
+		// 	return nil, nil, errs
+		// }
+		if !s.shouldRetry(resp, len(errs) > 0) {
+			if resp != nil {
+				resp.Header.Set("Retry-Count", strconv.Itoa(s.Retryable.Attempt))
+			}
 			break
 		}
+
+		s.Errors = nil
 	}
 
-	respCallback := *resp
 	if len(callback) != 0 {
-		callback[0](&respCallback, body, s.Errors)
+		if resp == nil {
+			callback[0](nil, body, s.Errors)
+		} else {
+			respCallback := *resp
+			callback[0](&respCallback, body, s.Errors)
+		}
+
 	}
-	return resp, body, nil
+	return resp, body, errs
 }
 
-func (s *SuperAgent) isRetryableRequest(resp Response) bool {
-	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && statusesContains(s.Retryable.RetryableStatus, resp.StatusCode) {
+func (s *SuperAgent) shouldRetry(resp Response, hasError bool) bool {
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && (hasError || statusesContains(s.Retryable.RetryableStatus, resp.StatusCode)) {
 		time.Sleep(s.Retryable.RetryerTime)
 		s.Retryable.Attempt++
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 // EndStruct should be used when you want the body as a struct. The callbacks work the same way as with `End`, except that a struct is used instead of a string.
@@ -1090,9 +1118,16 @@ func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response
 	if errs != nil {
 		return nil, body, errs
 	}
+
 	err := json.Unmarshal(body, &v)
 	if err != nil {
-		s.Errors = append(s.Errors, err)
+		respContentType := filterFlags(resp.Header.Get("Content-Type"))
+		if respContentType != MIMEJSON {
+			s.Errors = append(s.Errors, fmt.Errorf("response content-type is %s not application/json, so can't be json decoded: %w", respContentType, err))
+		} else {
+			s.Errors = append(s.Errors, fmt.Errorf("response body json decode fail: %w", err))
+		}
+
 		return resp, body, s.Errors
 	}
 	respCallback := *resp
@@ -1151,7 +1186,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		if err != nil {
 			s.logger.Println("Error:", err)
 		} else {
-			s.logger.Printf("HTTP Request: %s", string(dump))
+			s.logger.Printf("HTTP Request: %s", BytesToString(dump))
 		}
 	}
 
@@ -1180,7 +1215,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		if nil != err {
 			s.logger.Println("Error:", err)
 		} else {
-			s.logger.Printf("HTTP Response: %s", string(dump))
+			s.logger.Printf("HTTP Response: %s", BytesToString(dump))
 		}
 	}
 
@@ -1224,7 +1259,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		// 2) Array or Mix of map & array or others: send it as rawstring from s.RawString
 		var contentJson []byte
 		if s.BounceToRawString {
-			contentJson = []byte(s.RawString)
+			contentJson = StringToBytes(s.RawString)
 		} else if len(s.Data) != 0 {
 			contentJson, _ = json.Marshal(s.Data)
 		} else if len(s.SliceData) != 0 {
@@ -1237,10 +1272,10 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	case TypeForm, TypeFormData, TypeUrlencoded:
 		var contentForm []byte
 		if s.BounceToRawString || len(s.SliceData) != 0 {
-			contentForm = []byte(s.RawString)
+			contentForm = StringToBytes(s.RawString)
 		} else {
 			formData := changeMapToURLValues(s.Data)
-			contentForm = []byte(formData.Encode())
+			contentForm = StringToBytes(formData.Encode())
 		}
 		if len(contentForm) != 0 {
 			contentReader = bytes.NewReader(contentForm)
@@ -1268,7 +1303,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 				fieldName = "data"
 			}
 			fw, _ := mw.CreateFormField(fieldName)
-			fw.Write([]byte(s.RawString))
+			fw.Write(StringToBytes(s.RawString))
 			contentReader = buf
 		}
 
@@ -1277,7 +1312,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			for key, values := range formData {
 				for _, value := range values {
 					fw, _ := mw.CreateFormField(key)
-					fw.Write([]byte(value))
+					fw.Write(StringToBytes(value))
 				}
 			}
 			contentReader = buf
@@ -1317,6 +1352,9 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		if contentReader != nil {
 			contentType = mw.FormDataContentType()
 		}
+	case "":
+		contentType = ""
+		contentReader = nil
 	default:
 		// let's return an error instead of an nil pointer exception here
 		return nil, fmt.Errorf("TargetType '%s' could not be determined", s.TargetType)
@@ -1325,6 +1363,11 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	if req, err = http.NewRequest(s.Method, s.Url, contentReader); err != nil {
 		return nil, err
 	}
+
+	if s.ctx != nil {
+		req = req.WithContext(s.ctx)
+	}
+
 	for k, vals := range s.Header {
 		for _, v := range vals {
 			req.Header.Add(k, v)
