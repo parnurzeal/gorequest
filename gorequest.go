@@ -437,11 +437,13 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 		s.Errors = append(s.Errors, err)
 	} else {
 		var val map[string]interface{}
-		if err := json.Unmarshal(marshalContent, &val); err != nil {
+		d := json.NewDecoder(bytes.NewBuffer(marshalContent))
+		d.UseNumber()
+		if err := d.Decode(&val); err != nil {
 			s.Errors = append(s.Errors, err)
 		} else {
 			for k, v := range val {
-				k = strings.ToLower(k)
+				// k = strings.ToLower(k)
 				var queryVal string
 				switch t := v.(type) {
 				case string:
@@ -450,6 +452,8 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 					queryVal = strconv.FormatFloat(t, 'f', -1, 64)
 				case time.Time:
 					queryVal = t.Format(time.RFC3339)
+				case json.Number:
+					queryVal = string(t)
 				default:
 					j, err := json.Marshal(v)
 					if err != nil {
@@ -694,6 +698,10 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 			case reflect.Map:
 				for k, v := range val.(map[string]interface{}) {
 					s.Data[k] = v
+				}
+				// NOTE: if SendString(`{}`), will come into this case, but set nothing into s.Data
+				if len(s.Data) == 0 {
+					s.BounceToRawString = true
 				}
 			// add to SliceData
 			case reflect.Slice:
@@ -1037,9 +1045,16 @@ func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response
 	if errs != nil {
 		return nil, body, errs
 	}
+
 	err := json.Unmarshal(body, &v)
 	if err != nil {
-		s.Errors = append(s.Errors, err)
+		respContentType := filterFlags(resp.Header.Get("Content-Type"))
+		if respContentType != MIMEJSON {
+			s.Errors = append(s.Errors, fmt.Errorf("response content-type is %s not application/json, so can't be json decoded: %w", respContentType, err))
+		} else {
+			s.Errors = append(s.Errors, fmt.Errorf("response body json decode fail: %w", err))
+		}
+
 		return resp, body, s.Errors
 	}
 	respCallback := *resp

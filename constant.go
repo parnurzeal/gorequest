@@ -33,3 +33,7 @@ var Types = map[string]string{
 	TypeText:       "text/plain",
 	TypeMultipart:  "multipart/form-data",
 }
+
+const (
+	MIMEJSON = "application/json"
+)

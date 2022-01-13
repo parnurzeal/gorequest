@@ -1,6 +1,7 @@
 GoRequest
 =========
 
+
 GoRequest -- Simplified HTTP client ( inspired by famous SuperAgent lib in Node.js )
 
 ![GopherGoRequest](https://raw.githubusercontent.com/parnurzeal/gorequest/gh-pages/images/Gopher_GoRequest_400x300.jpg)
@@ -25,7 +26,7 @@ Sending request has never been as fun nor easier than this. It comes with lots o
 ## Installation
 
 ```bash
-$ go get github.com/parnurzeal/gorequest
+$ go get github.com/wklken/gorequest
 ```
 
 ## Documentation

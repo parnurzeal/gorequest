@@ -94,3 +94,13 @@ func BytesToString(b []byte) string {
 }
 
 // ===========================================================
+// copy from gin/util.go of https://github.com/gin-gonic/gin
+// MIT License
+func filterFlags(content string) string {
+	for i, char := range content {
+		if char == ' ' || char == ';' {
+			return content[:i]
+		}
+	}
+	return content
+}
