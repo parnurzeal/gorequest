@@ -1838,6 +1838,8 @@ func TestQueryFunc(t *testing.T) {
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
 			checkQuery(t, v, "int64", "6673221165400540161")
+			checkQuery(t, v, "Querya", "testa")
+			checkQuery(t, v, "Queryb", "testb")
 
 			if len(v["param"]) != 4 {
 				t.Errorf("Expected Body with 4 params | but got %q", len(v["param"]))
@@ -1849,6 +1851,8 @@ func TestQueryFunc(t *testing.T) {
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
 			checkQuery(t, v, "int64", "6673221165400540161")
+			checkQuery(t, v, "Querya", "testa")
+			checkQuery(t, v, "Queryb", "testb")
 			checkQuery(t, v, "query3", "3.1415926")
 			checkQuery(t, v, "query4", "true")
 		}
@@ -1859,16 +1863,22 @@ func TestQueryFunc(t *testing.T) {
 		Query("query1=test1").
 		Query("query2=test2").
 		Query("int64=6673221165400540161").
+  	Query("Querya=testa").
+		Query("Queryb=testb").
 		End()
 
 	qq := struct {
 		Query1 string
 		Query2 string
 		Int64  int64 `json:"int64"`
+		Querya string `json:"Querya"`
+		Queryb string
 	}{
 		Query1: "test1",
 		Query2: "test2",
 		Int64:  6673221165400540161,
+		Querya: "testa",
+		Queryb: "testb",
 	}
 	New().Post(ts.URL + case2_send_struct).
 		Query(qq).
@@ -1878,6 +1888,8 @@ func TestQueryFunc(t *testing.T) {
 		Query("query1=test1").
 		Query("query2=test2").
 		Query("int64=6673221165400540161").
+		Query("Querya=testa").
+		Query("Queryb=testb").
 		Query("param=1").
 		Query("param=2").
 		Query("param=3&param=4").
@@ -1888,6 +1900,8 @@ func TestQueryFunc(t *testing.T) {
 			"query1": "test1",
 			"query2": "test2",
 			"int64":  6673221165400540161,
+			"Querya": "testa",
+			"Queryb": "testb",
 			"query3": 3.1415926,
 			"query4": true,
 		}).
@@ -2223,7 +2237,7 @@ func TestErrorTypeWrongKey(t *testing.T) {
 		Type("wrongtype").
 		End()
 	if len(err) != 0 {
-		if err[0].Error() != "Type func: incorrect type \"wrongtype\"" {
+		if err[0].Error() != "type func: incorrect type \"wrongtype\"" {
 			t.Errorf("Wrong error message: " + err[0].Error())
 		}
 	} else {
@@ -2252,7 +2266,7 @@ func TestErrorThenReUseBase(t *testing.T) {
 		Type("wrongtype").
 		End()
 	if len(err) != 0 {
-		if err[0].Error() != "Type func: incorrect type \"wrongtype\"" {
+		if err[0].Error() != "type func: incorrect type \"wrongtype\"" {
 			t.Errorf("Wrong error message: " + err[0].Error())
 		}
 	} else {
@@ -2459,8 +2473,10 @@ func TestContentTypeInference(t *testing.T) {
 		body           string
 	}{
 		{"application/json", "json", "application/json", "{}"},
+		// if customContentType is "" and Type("json"), `` will unmarshal fail, no change to the content-type
 		{"", "json", "", ""},
-		{"", "json", "", "{}"},
+		// if customContentType is "" and Type("json"), `{}` will unmarshal success, set content-type to application/json
+		{"", "json", "application/json", "{}"},
 		{"text/json", "json", "text/json", "{}"},
 		{"text/xml", "json", "text/xml", "<a />"},
 	}
