@@ -1833,11 +1833,11 @@ func TestQueryFunc(t *testing.T) {
 		case case1_send_string, case2_send_struct:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
-			checkQuery(t, v, "Querya", "testa")
-			checkQuery(t, v, "Queryb", "testb")
+			checkQuery(t, v, "int64", "6673221165400540161")
 		case case3_send_string_with_duplicates:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
+			checkQuery(t, v, "int64", "6673221165400540161")
 			checkQuery(t, v, "Querya", "testa")
 			checkQuery(t, v, "Queryb", "testb")
 
@@ -1850,6 +1850,7 @@ func TestQueryFunc(t *testing.T) {
 		case case4_send_map:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
+			checkQuery(t, v, "int64", "6673221165400540161")
 			checkQuery(t, v, "Querya", "testa")
 			checkQuery(t, v, "Queryb", "testb")
 			checkQuery(t, v, "query3", "3.1415926")
@@ -1861,18 +1862,21 @@ func TestQueryFunc(t *testing.T) {
 	New().Post(ts.URL + case1_send_string).
 		Query("query1=test1").
 		Query("query2=test2").
-		Query("Querya=testa").
+		Query("int64=6673221165400540161").
+  	Query("Querya=testa").
 		Query("Queryb=testb").
 		End()
 
 	qq := struct {
-		Query1 string `json:"query1"`
-		Query2 string `json:"query2"`
+		Query1 string
+		Query2 string
+		Int64  int64 `json:"int64"`
 		Querya string `json:"Querya"`
 		Queryb string
 	}{
 		Query1: "test1",
 		Query2: "test2",
+		Int64:  6673221165400540161,
 		Querya: "testa",
 		Queryb: "testb",
 	}
@@ -1883,6 +1887,7 @@ func TestQueryFunc(t *testing.T) {
 	New().Post(ts.URL + case3_send_string_with_duplicates).
 		Query("query1=test1").
 		Query("query2=test2").
+		Query("int64=6673221165400540161").
 		Query("Querya=testa").
 		Query("Queryb=testb").
 		Query("param=1").
@@ -1894,6 +1899,7 @@ func TestQueryFunc(t *testing.T) {
 		Query(map[string]interface{}{
 			"query1": "test1",
 			"query2": "test2",
+			"int64":  6673221165400540161,
 			"Querya": "testa",
 			"Queryb": "testb",
 			"query3": 3.1415926,

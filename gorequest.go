@@ -437,7 +437,9 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 		s.Errors = append(s.Errors, err)
 	} else {
 		var val map[string]interface{}
-		if err := json.Unmarshal(marshalContent, &val); err != nil {
+		d := json.NewDecoder(bytes.NewBuffer(marshalContent))
+		d.UseNumber()
+		if err := d.Decode(&val); err != nil {
 			s.Errors = append(s.Errors, err)
 		} else {
 			for k, v := range val {
@@ -450,6 +452,8 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 					queryVal = strconv.FormatFloat(t, 'f', -1, 64)
 				case time.Time:
 					queryVal = t.Format(time.RFC3339)
+				case json.Number:
+					queryVal = string(t)
 				default:
 					j, err := json.Marshal(v)
 					if err != nil {
