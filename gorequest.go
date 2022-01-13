@@ -3,6 +3,7 @@ package gorequest
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -62,6 +63,7 @@ type SuperAgent struct {
 	Retryable            superAgentRetryable
 	DoNotClearSuperAgent bool
 	isClone              bool
+	ctx                  context.Context
 }
 
 var DisableTransportSwap = false
@@ -94,6 +96,7 @@ func New() *SuperAgent {
 		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 		isClone:           false,
+		ctx:               nil,
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
@@ -144,8 +147,14 @@ func (s *SuperAgent) Clone() *SuperAgent {
 		Retryable:            copyRetryable(s.Retryable),
 		DoNotClearSuperAgent: true,
 		isClone:              true,
+		ctx:                  s.ctx,
 	}
 	return clone
+}
+
+func (s *SuperAgent) Context(ctx context.Context) *SuperAgent {
+	s.ctx = ctx
+	return s
 }
 
 // SetDebug enable the debug mode which logs request/response detail.
@@ -191,6 +200,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.TargetType = TypeJSON
 	s.Cookies = make([]*http.Cookie, 0)
 	s.Errors = nil
+	s.ctx = nil
 }
 
 // CustomMethod is just a wrapper to initialize SuperAgent instance by method string.
@@ -1291,6 +1301,11 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	if req, err = http.NewRequest(s.Method, s.Url, contentReader); err != nil {
 		return nil, err
 	}
+
+	if s.ctx != nil {
+		req = req.WithContext(s.ctx)
+	}
+
 	for k, vals := range s.Header {
 		for _, v := range vals {
 			req.Header.Add(k, v)

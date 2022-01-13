@@ -2,6 +2,7 @@ package gorequest
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -2605,5 +2606,26 @@ func TestSetDebugByEnvironmentVar(t *testing.T) {
 
 	if len(buf.String()) > 0 {
 		t.Fatalf("\nExpected gorequest not to log request and response object if GOREQUEST_DEBUG is not set.")
+	}
+}
+
+func TestContext(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is GET before going to check other features
+		time.Sleep(1 * time.Second)
+
+		fmt.Fprintln(w, "Hello, client")
+	}))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer cancel()
+
+	_, _, errs := New().Get(ts.URL).Context(ctx).EndBytes()
+	if len(errs) == 0 {
+		t.Fatalf("Expected error, got no error")
+	}
+
+	if !strings.HasSuffix(errs[0].Error(), "context deadline exceeded") {
+		t.Fatalf("Expected context deadline exceeded error, got %v", errs[0].Error())
 	}
 }
