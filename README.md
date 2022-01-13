@@ -177,6 +177,31 @@ gorequest.New().Post("http://example.com/").
 
 Check the docs for `SendFile` to get more information about the types of arguments.
 
+## Headers
+
+When setting one header to the request, the `Set` method can be used:
+
+```go
+gorequest.New().
+      Post("/gamelist").
+      Set("Accept", "application/json").
+      End()
+```
+
+This will clear all headers currently attached to a request and add the specified header.
+
+If there are multiple headers that must be appended to the request before sending, use `AppendHeader`. These can be chained together to add additional headers to the request:
+
+```go
+gorequest.New().
+      Post("/gamelist").
+      AppendHeader("Accept", "application/json").
+      AppendHeader("Accept", "text/plain").
+      End()
+```
+
+See the docs for the `Set` and `AppendHeader` methods for information about parameter and return types.
+
 ## Proxy
 
 In the case when you are behind proxy, GoRequest can handle it easily with Proxy func:
