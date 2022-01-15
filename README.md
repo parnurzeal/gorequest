@@ -30,7 +30,7 @@ $ go get github.com/wklken/gorequest
 ```
 
 ## Documentation
-See [Go Doc](http://godoc.org/github.com/parnurzeal/gorequest) or [Go Walker](http://gowalker.org/github.com/parnurzeal/gorequest) for usage and details.
+See [Go Doc](http://godoc.org/github.com/wklken/gorequest) or [Go Walker](http://gowalker.org/github.com/wklken/gorequest) for usage and details.
 
 ## Status
 
