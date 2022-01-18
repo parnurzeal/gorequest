@@ -1864,14 +1864,14 @@ func TestQueryFunc(t *testing.T) {
 		Query("query1=test1").
 		Query("query2=test2").
 		Query("int64=6673221165400540161").
-  	Query("Querya=testa").
+		Query("Querya=testa").
 		Query("Queryb=testb").
 		End()
 
 	qq := struct {
-		Query1 string
-		Query2 string
-		Int64  int64 `json:"int64"`
+		Query1 string `json:"query1"`
+		Query2 string `json:"query2"`
+		Int64  int64  `json:"int64"`
 		Querya string `json:"Querya"`
 		Queryb string
 	}{
@@ -2666,6 +2666,7 @@ func TestSetHeaders(t *testing.T) {
 		Type("text").
 		Send(text).
 		End()
+}
 
 func TestContext(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

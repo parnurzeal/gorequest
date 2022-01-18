@@ -12,8 +12,9 @@ import (
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-var testString = "Albert Einstein: Logic will get you from A to B. Imagination will take you everywhere."
-var testBytes = []byte(testString)
+// var testString = "Albert Einstein: Logic will get you from A to B. Imagination will take you everywhere."
+
+// var testBytes = []byte(testString)
 
 func rawBytesToStr(b []byte) string {
 	return string(b)
