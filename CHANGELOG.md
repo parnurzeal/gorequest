@@ -1,5 +1,31 @@
-Changelog
+GoRequest Changelog
 =========
+
+## GoRequest v1.0.0 (2022-01-19)
+
+### BUGFIXES
+
+- send `{}`: https://github.com/wklken/gorequest/pull/6
+- converting query keys to lower case: https://ggithub.com/wklken/gorequest/pull/7
+- query with int64 will lose accuracy: https://github.com/wklken/gorequest/pull/8
+- HTTP Get not set s.TargetType to "json" https://github.com/wklken/gorequest/pull/11
+- fix retry if errors: https://github.com/wklken/gorequest/pull/13
+
+### ENHANCEMENTS
+
+- add: wrap the EndStruct error if json decode fail: https://github.com/wklken/gorequest/pull/9
+- add docs, string bytes conv: https://github.com/wklken/gorequest/pull/10
+- add context support: https://github.com/wklken/gorequest/pull/12
+- add: SetHeaders: https://github.com/wklken/gorequest/pull/14
+
+### OTHERS
+
+- upgrade go to 1.16
+- add go mod support
+
+=====================================
+
+previous changelog of origin repo
 
 v0.2.15 (2016-08-30)
 
