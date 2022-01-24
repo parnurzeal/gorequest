@@ -65,6 +65,7 @@ type SuperAgent struct {
 	DoNotClearSuperAgent bool
 	isClone              bool
 	ctx                  context.Context
+	Stats                Stats
 }
 
 var DisableTransportSwap = false
@@ -98,20 +99,11 @@ func New() *SuperAgent {
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 		isClone:           false,
 		ctx:               nil,
+		Stats:             Stats{},
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
 	return s
-}
-
-// just need to change the array pointer?
-func copyRetryable(old superAgentRetryable) superAgentRetryable {
-	newRetryable := old
-	newRetryable.RetryableStatus = make([]int, len(old.RetryableStatus))
-	for i := range old.RetryableStatus {
-		newRetryable.RetryableStatus[i] = old.RetryableStatus[i]
-	}
-	return newRetryable
 }
 
 // Clone returns a copy of this superagent. Useful if you want to reuse the client/settings
@@ -149,6 +141,7 @@ func (s *SuperAgent) Clone() *SuperAgent {
 		DoNotClearSuperAgent: true,
 		isClone:              true,
 		ctx:                  s.ctx,
+		Stats:                copyStats(s.Stats),
 	}
 	return clone
 }
@@ -202,6 +195,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.Cookies = make([]*http.Cookie, 0)
 	s.Errors = nil
 	s.ctx = nil
+	s.Stats = Stats{}
 }
 
 // CustomMethod is just a wrapper to initialize SuperAgent instance by method string.
@@ -1201,6 +1195,10 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		}
 	}
 
+	startTime := time.Now()
+	// stats collect the requestBytes
+	s.Stats.RequestBytes = req.ContentLength
+
 	// Send request
 	resp, err = s.Client.Do(req)
 	if err != nil {
@@ -1208,6 +1206,9 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		return nil, nil, s.Errors
 	}
 	defer resp.Body.Close()
+
+	// stats collect the RequestDuration
+	s.Stats.RequestDuration = time.Since(startTime)
 
 	// Log details of this response
 	if s.Debug {
@@ -1225,6 +1226,9 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	if err != nil {
 		return nil, nil, []error{err}
 	}
+
+	// stats collect the responseBytes
+	s.Stats.ResponseBytes = int64(len(body))
 	return resp, body, nil
 }
 
