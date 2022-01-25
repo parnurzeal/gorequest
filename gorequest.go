@@ -182,6 +182,12 @@ func (s *SuperAgent) SetLogger(logger Logger) *SuperAgent {
 	return s
 }
 
+// DisableCompression disable the compression of http.Client.
+func (s *SuperAgent) DisableCompression() *SuperAgent {
+	s.Transport.DisableCompression = true
+	return s
+}
+
 // ClearSuperAgent clear SuperAgent data for another new request.
 func (s *SuperAgent) ClearSuperAgent() {
 	if s.DoNotClearSuperAgent {
