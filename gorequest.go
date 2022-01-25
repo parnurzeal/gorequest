@@ -1147,25 +1147,6 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	if len(s.Errors) != 0 {
 		return nil, nil, s.Errors
 	}
-	// check if there is forced type
-	switch s.ForceType {
-	case TypeJSON, TypeForm, TypeXML, TypeText, TypeMultipart:
-		s.TargetType = s.ForceType
-		// If forcetype is not set, check whether user set Content-Type header.
-		// If yes, also bounce to the correct supported TargetType automatically.
-	default:
-		contentType := s.Header.Get("Content-Type")
-		for k, v := range Types {
-			if contentType == v {
-				s.TargetType = k
-			}
-		}
-	}
-
-	// if slice and map get mixed, let's bounce to rawstring
-	if len(s.Data) != 0 && len(s.SliceData) != 0 {
-		s.BounceToRawString = true
-	}
 
 	// Make Request
 	req, err = s.MakeRequest()
@@ -1235,6 +1216,26 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		contentReader io.Reader
 		err           error
 	)
+
+	// check if there is forced type
+	switch s.ForceType {
+	case TypeJSON, TypeForm, TypeXML, TypeText, TypeMultipart:
+		s.TargetType = s.ForceType
+		// If forcetype is not set, check whether user set Content-Type header.
+		// If yes, also bounce to the correct supported TargetType automatically.
+	default:
+		contentType := s.Header.Get("Content-Type")
+		for k, v := range Types {
+			if contentType == v {
+				s.TargetType = k
+			}
+		}
+	}
+
+	// if slice and map get mixed, let's bounce to rawstring
+	if len(s.Data) != 0 && len(s.SliceData) != 0 {
+		s.BounceToRawString = true
+	}
 
 	if s.Method == "" {
 		return nil, fmt.Errorf("no method specified")
