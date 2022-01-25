@@ -25,6 +25,7 @@ import (
 
 	"github.com/spf13/cast"
 	"golang.org/x/net/publicsuffix"
+	"gopkg.in/h2non/gock.v1"
 	"moul.io/http2curl"
 )
 
@@ -65,6 +66,7 @@ type SuperAgent struct {
 	DoNotClearSuperAgent bool
 	isClone              bool
 	ctx                  context.Context
+	isMock               bool
 }
 
 var DisableTransportSwap = false
@@ -98,6 +100,7 @@ func New() *SuperAgent {
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 		isClone:           false,
 		ctx:               nil,
+		isMock:            false,
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
@@ -149,12 +152,20 @@ func (s *SuperAgent) Clone() *SuperAgent {
 		DoNotClearSuperAgent: true,
 		isClone:              true,
 		ctx:                  s.ctx,
+		isMock:               s.isMock,
 	}
 	return clone
 }
 
 func (s *SuperAgent) Context(ctx context.Context) *SuperAgent {
 	s.ctx = ctx
+	return s
+}
+
+// Mock will enable gock, http mocking for net/http
+func (s *SuperAgent) Mock() *SuperAgent {
+	gock.InterceptClient(s.Client)
+	s.isMock = true
 	return s
 }
 
@@ -1175,7 +1186,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 
 	// Set Transport
-	if !DisableTransportSwap {
+	if !DisableTransportSwap && !s.isMock {
 		s.Client.Transport = s.Transport
 	}
 
