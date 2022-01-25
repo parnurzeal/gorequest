@@ -1448,22 +1448,30 @@ func (s *SuperAgent) safeModifyTransport() {
 	}
 	oldTransport := s.Transport
 	s.Transport = &http.Transport{
-		Proxy:                  oldTransport.Proxy,
-		DialContext:            oldTransport.DialContext,
-		Dial:                   oldTransport.Dial,
-		DialTLS:                oldTransport.DialTLS,
-		TLSClientConfig:        oldTransport.TLSClientConfig,
-		TLSHandshakeTimeout:    oldTransport.TLSHandshakeTimeout,
-		DisableKeepAlives:      oldTransport.DisableKeepAlives,
-		DisableCompression:     oldTransport.DisableCompression,
-		MaxIdleConns:           oldTransport.MaxIdleConns,
-		MaxIdleConnsPerHost:    oldTransport.MaxIdleConnsPerHost,
-		IdleConnTimeout:        oldTransport.IdleConnTimeout,
-		ResponseHeaderTimeout:  oldTransport.ResponseHeaderTimeout,
-		ExpectContinueTimeout:  oldTransport.ExpectContinueTimeout,
-		TLSNextProto:           oldTransport.TLSNextProto,
+		Proxy:                 oldTransport.Proxy,
+		DialContext:           oldTransport.DialContext,
+		Dial:                  oldTransport.Dial,
+		DialTLSContext:        oldTransport.DialTLSContext,
+		DialTLS:               oldTransport.DialTLS,
+		TLSClientConfig:       oldTransport.TLSClientConfig,
+		TLSHandshakeTimeout:   oldTransport.TLSHandshakeTimeout,
+		DisableKeepAlives:     oldTransport.DisableKeepAlives,
+		DisableCompression:    oldTransport.DisableCompression,
+		MaxIdleConns:          oldTransport.MaxIdleConns,
+		MaxIdleConnsPerHost:   oldTransport.MaxIdleConnsPerHost,
+		MaxConnsPerHost:       oldTransport.MaxConnsPerHost,
+		IdleConnTimeout:       oldTransport.IdleConnTimeout,
+		ResponseHeaderTimeout: oldTransport.ResponseHeaderTimeout,
+		ExpectContinueTimeout: oldTransport.ExpectContinueTimeout,
+		TLSNextProto:          oldTransport.TLSNextProto,
+		ProxyConnectHeader:    oldTransport.ProxyConnectHeader,
+
+		// new from go 1.16
+		GetProxyConnectHeader: oldTransport.GetProxyConnectHeader,
+
 		MaxResponseHeaderBytes: oldTransport.MaxResponseHeaderBytes,
-		// new in go1.8
-		ProxyConnectHeader: oldTransport.ProxyConnectHeader,
+		WriteBufferSize:        oldTransport.WriteBufferSize,
+		ReadBufferSize:         oldTransport.ReadBufferSize,
+		ForceAttemptHTTP2:      oldTransport.ForceAttemptHTTP2,
 	}
 }
