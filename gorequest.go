@@ -6,11 +6,13 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
@@ -25,6 +27,7 @@ import (
 
 	"github.com/spf13/cast"
 	"golang.org/x/net/publicsuffix"
+	"gopkg.in/h2non/gock.v1"
 	"moul.io/http2curl"
 )
 
@@ -66,6 +69,7 @@ type SuperAgent struct {
 	isClone              bool
 	ctx                  context.Context
 	Stats                Stats
+	isMock               bool
 }
 
 var DisableTransportSwap = false
@@ -100,6 +104,7 @@ func New() *SuperAgent {
 		isClone:           false,
 		ctx:               nil,
 		Stats:             Stats{},
+		isMock:            false,
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
@@ -142,12 +147,20 @@ func (s *SuperAgent) Clone() *SuperAgent {
 		isClone:              true,
 		ctx:                  s.ctx,
 		Stats:                copyStats(s.Stats),
+		isMock:               s.isMock,
 	}
 	return clone
 }
 
 func (s *SuperAgent) Context(ctx context.Context) *SuperAgent {
 	s.ctx = ctx
+	return s
+}
+
+// Mock will enable gock, http mocking for net/http
+func (s *SuperAgent) Mock() *SuperAgent {
+	gock.InterceptClient(s.Client)
+	s.isMock = true
 	return s
 }
 
@@ -172,6 +185,12 @@ func (s *SuperAgent) SetDoNotClearSuperAgent(enable bool) *SuperAgent {
 // SetLogger set the logger which is the default logger to the SuperAgent instance.
 func (s *SuperAgent) SetLogger(logger Logger) *SuperAgent {
 	s.logger = logger
+	return s
+}
+
+// DisableCompression disable the compression of http.Client.
+func (s *SuperAgent) DisableCompression() *SuperAgent {
+	s.Transport.DisableCompression = true
 	return s
 }
 
@@ -356,6 +375,18 @@ func (s *SuperAgent) setHeadersStruct(content interface{}) *SuperAgent {
 //      End()
 func (s *SuperAgent) AppendHeader(param string, value string) *SuperAgent {
 	s.Header.Add(param, value)
+	return s
+}
+
+// UserAgent is used for setting User-Agent into headers
+// Example. To set `User-Agent` as `Custom user agent`
+//
+//    gorequest.New().
+//      Post("https://httpbin.org/post").
+//      UserAgent("Custom user agent").
+//      End()
+func (s *SuperAgent) UserAgent(ua string) *SuperAgent {
+	s.Header.Add("User-Agent", ua)
 	return s
 }
 
@@ -802,10 +833,11 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 type File struct {
 	Filename  string
 	Fieldname string
+	MimeType  string
 	Data      []byte
 }
 
-// SendFile function works only with type "multipart". The function accepts one mandatory and up to two optional arguments. The mandatory (first) argument is the file.
+// SendFile function works only with type "multipart". The function accepts one mandatory and up to three optional arguments. The mandatory (first) argument is the file.
 // The function accepts a path to a file as string:
 //
 //      gorequest.New().
@@ -853,11 +885,32 @@ type File struct {
 //        SendFile(b, "", "my_custom_fieldname"). // filename left blank, will become "example_file.ext"
 //        End()
 //
+// The third optional argument (fourth argument overall) is a bool value skipFileNumbering. It defaults to "false",
+// if fieldname is "file" and skipFileNumbering is set to "false", the fieldname will be automatically set to
+// fileNUMBER, where number is the greatest existing number+1.
+//
+//      b, _ := ioutil.ReadFile("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(b, "filename", "my_custom_fieldname", false).
+//        End()
+//
+// The fourth optional argument (fifth argument overall) is the mimetype request form-data part. It defaults to "application/octet-stream".
+//
+//      b, _ := ioutil.ReadFile("./example_file.ext")
+//      gorequest.New().
+//        Post("http://example.com").
+//        Type("multipart").
+//        SendFile(b, "filename", "my_custom_fieldname", false, "mime_type").
+//        End()
+//
 func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent {
 
 	filename := ""
 	fieldname := "file"
 	skipFileNumbering := false
+	fileType := "application/octet-stream"
 
 	if len(args) >= 1 {
 		argFilename := fmt.Sprintf("%v", args[0])
@@ -877,6 +930,17 @@ func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent
 		argSkipFileNumbering := reflect.ValueOf(args[2])
 		if argSkipFileNumbering.Type().Name() == "bool" {
 			skipFileNumbering = argSkipFileNumbering.Interface().(bool)
+		}
+	}
+
+	if len(args) >= 4 {
+		argFileType := fmt.Sprintf("%v", args[3])
+		if len(argFileType) > 0 {
+			fileType = strings.TrimSpace(argFileType)
+		}
+		if fileType == "" {
+			s.Errors = append(s.Errors, errors.New("the fifth SendFile method argument for MIME type cannot be an empty string"))
+			return s
 		}
 	}
 
@@ -902,6 +966,7 @@ func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent
 		s.FileData = append(s.FileData, File{
 			Filename:  filename,
 			Fieldname: fieldname,
+			MimeType:  fileType,
 			Data:      data,
 		})
 	case reflect.Slice:
@@ -912,6 +977,7 @@ func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent
 		f := File{
 			Filename:  filename,
 			Fieldname: fieldname,
+			MimeType:  fileType,
 			Data:      make([]byte, len(slice)),
 		}
 		for i := range slice {
@@ -928,6 +994,9 @@ func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent
 		if len(args) == 3 {
 			return s.SendFile(v.Elem().Interface(), args[0], args[1], args[2])
 		}
+		if len(args) == 4 {
+			return s.SendFile(v.Elem().Interface(), args[0], args[1], args[2], args[3])
+		}
 		return s.SendFile(v.Elem().Interface())
 	default:
 		if v.Type() == reflect.TypeOf(os.File{}) {
@@ -943,6 +1012,7 @@ func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent
 			s.FileData = append(s.FileData, File{
 				Filename:  filename,
 				Fieldname: fieldname,
+				MimeType:  fileType,
 				Data:      data,
 			})
 			return s
@@ -1141,25 +1211,6 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	if len(s.Errors) != 0 {
 		return nil, nil, s.Errors
 	}
-	// check if there is forced type
-	switch s.ForceType {
-	case TypeJSON, TypeForm, TypeXML, TypeText, TypeMultipart:
-		s.TargetType = s.ForceType
-		// If forcetype is not set, check whether user set Content-Type header.
-		// If yes, also bounce to the correct supported TargetType automatically.
-	default:
-		contentType := s.Header.Get("Content-Type")
-		for k, v := range Types {
-			if contentType == v {
-				s.TargetType = k
-			}
-		}
-	}
-
-	// if slice and map get mixed, let's bounce to rawstring
-	if len(s.Data) != 0 && len(s.SliceData) != 0 {
-		s.BounceToRawString = true
-	}
 
 	// Make Request
 	req, err = s.MakeRequest()
@@ -1169,7 +1220,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 
 	// Set Transport
-	if !DisableTransportSwap {
+	if !DisableTransportSwap && !s.isMock {
 		s.Client.Transport = s.Transport
 	}
 
@@ -1239,6 +1290,26 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		contentReader io.Reader
 		err           error
 	)
+
+	// check if there is forced type
+	switch s.ForceType {
+	case TypeJSON, TypeForm, TypeXML, TypeText, TypeMultipart:
+		s.TargetType = s.ForceType
+		// If forcetype is not set, check whether user set Content-Type header.
+		// If yes, also bounce to the correct supported TargetType automatically.
+	default:
+		contentType := s.Header.Get("Content-Type")
+		for k, v := range Types {
+			if contentType == v {
+				s.TargetType = k
+			}
+		}
+	}
+
+	// if slice and map get mixed, let's bounce to rawstring
+	if len(s.Data) != 0 && len(s.SliceData) != 0 {
+		s.BounceToRawString = true
+	}
 
 	if s.Method == "" {
 		return nil, fmt.Errorf("no method specified")
@@ -1344,7 +1415,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		// add the files
 		if len(s.FileData) != 0 {
 			for _, file := range s.FileData {
-				fw, _ := mw.CreateFormFile(file.Fieldname, file.Filename)
+				fw, _ := CreateFormFile(mw, file.Fieldname, file.Filename, file.MimeType)
 				fw.Write(file.Data)
 			}
 			contentReader = buf
@@ -1445,6 +1516,39 @@ func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 	return s
 }
 
+type Timeouts struct {
+	Dial      time.Duration
+	KeepAlive time.Duration
+
+	TlsHandshake   time.Duration
+	ResponseHeader time.Duration
+	ExpectContinue time.Duration
+	IdleConn       time.Duration
+}
+
+func (s *SuperAgent) Timeouts(timeouts *Timeouts) *SuperAgent {
+	s.safeModifyHttpClient()
+
+	transport, ok := s.Client.Transport.(*http.Transport)
+	if !ok {
+		return s
+	}
+
+	transport.DialContext = (&net.Dialer{
+		Timeout:   timeouts.Dial,
+		KeepAlive: timeouts.KeepAlive,
+	}).DialContext
+
+	transport.TLSHandshakeTimeout = timeouts.TlsHandshake
+	transport.ResponseHeaderTimeout = timeouts.ResponseHeader
+	transport.ExpectContinueTimeout = timeouts.ExpectContinue
+	transport.ExpectContinueTimeout = timeouts.IdleConn
+
+	s.Client.Transport = transport
+
+	return s
+}
+
 // does a shallow clone of the transport
 func (s *SuperAgent) safeModifyTransport() {
 	if !s.isClone {
@@ -1452,22 +1556,30 @@ func (s *SuperAgent) safeModifyTransport() {
 	}
 	oldTransport := s.Transport
 	s.Transport = &http.Transport{
-		Proxy:                  oldTransport.Proxy,
-		DialContext:            oldTransport.DialContext,
-		Dial:                   oldTransport.Dial,
-		DialTLS:                oldTransport.DialTLS,
-		TLSClientConfig:        oldTransport.TLSClientConfig,
-		TLSHandshakeTimeout:    oldTransport.TLSHandshakeTimeout,
-		DisableKeepAlives:      oldTransport.DisableKeepAlives,
-		DisableCompression:     oldTransport.DisableCompression,
-		MaxIdleConns:           oldTransport.MaxIdleConns,
-		MaxIdleConnsPerHost:    oldTransport.MaxIdleConnsPerHost,
-		IdleConnTimeout:        oldTransport.IdleConnTimeout,
-		ResponseHeaderTimeout:  oldTransport.ResponseHeaderTimeout,
-		ExpectContinueTimeout:  oldTransport.ExpectContinueTimeout,
-		TLSNextProto:           oldTransport.TLSNextProto,
+		Proxy:                 oldTransport.Proxy,
+		DialContext:           oldTransport.DialContext,
+		Dial:                  oldTransport.Dial,
+		DialTLSContext:        oldTransport.DialTLSContext,
+		DialTLS:               oldTransport.DialTLS,
+		TLSClientConfig:       oldTransport.TLSClientConfig,
+		TLSHandshakeTimeout:   oldTransport.TLSHandshakeTimeout,
+		DisableKeepAlives:     oldTransport.DisableKeepAlives,
+		DisableCompression:    oldTransport.DisableCompression,
+		MaxIdleConns:          oldTransport.MaxIdleConns,
+		MaxIdleConnsPerHost:   oldTransport.MaxIdleConnsPerHost,
+		MaxConnsPerHost:       oldTransport.MaxConnsPerHost,
+		IdleConnTimeout:       oldTransport.IdleConnTimeout,
+		ResponseHeaderTimeout: oldTransport.ResponseHeaderTimeout,
+		ExpectContinueTimeout: oldTransport.ExpectContinueTimeout,
+		TLSNextProto:          oldTransport.TLSNextProto,
+		ProxyConnectHeader:    oldTransport.ProxyConnectHeader,
+
+		// new from go 1.16
+		GetProxyConnectHeader: oldTransport.GetProxyConnectHeader,
+
 		MaxResponseHeaderBytes: oldTransport.MaxResponseHeaderBytes,
-		// new in go1.8
-		ProxyConnectHeader: oldTransport.ProxyConnectHeader,
+		WriteBufferSize:        oldTransport.WriteBufferSize,
+		ReadBufferSize:         oldTransport.ReadBufferSize,
+		ForceAttemptHTTP2:      oldTransport.ForceAttemptHTTP2,
 	}
 }
