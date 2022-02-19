@@ -1,7 +1,12 @@
 package gorequest
 
 import (
+	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
+	"strings"
 	"unsafe"
 )
 
@@ -103,4 +108,21 @@ func filterFlags(content string) string {
 		}
 	}
 	return content
+}
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
+}
+
+// CreateFormFile is a convenience wrapper around CreatePart. It creates
+// a new form-data header with the provided field name and file name.
+func CreateFormFile(w *multipart.Writer, fieldname, filename string, contenttype string) (io.Writer, error) {
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+			escapeQuotes(fieldname), escapeQuotes(filename)))
+	h.Set("Content-Type", contenttype)
+	return w.CreatePart(h)
 }

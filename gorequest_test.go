@@ -1203,6 +1203,7 @@ func TestMultipartRequest(t *testing.T) {
 	const case10b_send_file_by_path_pointer = "/send_file_by_path_pointer"
 	const case11_send_file_by_path_without_name = "/send_file_by_path_without_name"
 	const case12_send_file_by_path_without_name_but_with_fieldname = "/send_file_by_path_without_name_but_with_fieldname"
+	const case121_send_file_by_path_with_name_and_fieldname_and_mimetype = "/send_file_by_path_with_name_and_fieldname_and_mimetype"
 
 	const case13_send_file_by_content_without_name = "/send_file_by_content_without_name"
 	const case13a_send_file_by_content_without_name_pointer = "/send_file_by_content_without_name_pointer"
@@ -1210,6 +1211,7 @@ func TestMultipartRequest(t *testing.T) {
 
 	const case15_send_file_by_content_without_name_but_with_fieldname = "/send_file_by_content_without_name_but_with_fieldname"
 	const case16_send_file_by_content_with_name_and_with_fieldname = "/send_file_by_content_with_name_and_with_fieldname"
+	const case161_send_file_by_content_with_name_and_fieldname_and_mimetype = "/send_file_by_content_with_name_and_fieldname_and_mimetype"
 
 	const case17_send_file_multiple_by_path_and_content_without_name = "/send_file_multiple_by_path_and_content_without_name"
 	const case18_send_file_multiple_by_path_and_content_with_name = "/send_file_multiple_by_path_and_content_with_name"
@@ -1441,6 +1443,21 @@ func TestMultipartRequest(t *testing.T) {
 				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"])
 			}
 			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
+		case case161_send_file_by_content_with_name_and_fieldname_and_mimetype, case121_send_file_by_path_with_name_and_fieldname_and_mimetype:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if _, ok := r.MultipartForm.File["my_fieldname"]; !ok {
+				keys := reflect.ValueOf(r.MultipartForm.File).MapKeys()
+				t.Error("Expected Fieldname:my_fieldname", "| but got", keys)
+			}
+			if r.MultipartForm.File["my_fieldname"][0].Filename != "MY_LICENSE" {
+				t.Error("Expected Filename:MY_LICENSE", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
+			}
+			if r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"][0] != "application/json" {
+				t.Error("Expected Header:Content-Type:application/json", "| but got", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"])
+			}
+			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
 		case case17_send_file_multiple_by_path_and_content_without_name:
 			if len(r.MultipartForm.File) != 2 {
 				t.Error("Expected length of files:[] == 2", "| but got", len(r.MultipartForm.File))
@@ -1661,6 +1678,11 @@ func TestMultipartRequest(t *testing.T) {
 		SendFile(fileByPath, "", "my_fieldname").
 		End()
 
+	New().Post(ts.URL+case121_send_file_by_path_with_name_and_fieldname_and_mimetype).
+		Type("multipart").
+		SendFile(fileByPath, "MY_LICENSE", "my_fieldname", false, "application/json").
+		End()
+
 	b, _ := ioutil.ReadFile("./LICENSE")
 	New().Post(ts.URL + case13_send_file_by_content_without_name).
 		Type("multipart").
@@ -1685,6 +1707,11 @@ func TestMultipartRequest(t *testing.T) {
 	New().Post(ts.URL+case16_send_file_by_content_with_name_and_with_fieldname).
 		Type("multipart").
 		SendFile(b, "MY_LICENSE", "my_fieldname").
+		End()
+
+	New().Post(ts.URL+case161_send_file_by_content_with_name_and_fieldname_and_mimetype).
+		Type("multipart").
+		SendFile(b, "MY_LICENSE", "my_fieldname", false, "application/json").
 		End()
 
 	New().Post(ts.URL + case17_send_file_multiple_by_path_and_content_without_name).
