@@ -2668,6 +2668,32 @@ func TestSetHeaders(t *testing.T) {
 		End()
 }
 
+func TestUserAgent(t *testing.T) {
+	text := "hi"
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is PATCH before going to check other features
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		if r.Header.Get("User-Agent") != "gorequest" {
+			t.Error("Expected Header User-Agent-> gorequest", "| but got", r.Header.Get("User-Agent"))
+		}
+		return
+	}))
+
+	defer ts.Close()
+
+	New().Post(ts.URL).
+		UserAgent("gorequest").
+		Type("text").
+		Send(text).
+		End()
+}
+
 func TestContext(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is GET before going to check other features

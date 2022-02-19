@@ -365,6 +365,18 @@ func (s *SuperAgent) AppendHeader(param string, value string) *SuperAgent {
 	return s
 }
 
+// UserAgent is used for setting User-Agent into headers
+// Example. To set `User-Agent` as `Custom user agent`
+//
+//    gorequest.New().
+//      Post("https://httpbin.org/post").
+//      UserAgent("Custom user agent").
+//      End()
+func (s *SuperAgent) UserAgent(ua string) *SuperAgent {
+	s.Header.Add("User-Agent", ua)
+	return s
+}
+
 // Retry is used for setting a Retryer policy
 // Example. To set Retryer policy with 5 seconds between each attempt.
 //          3 max attempt.
