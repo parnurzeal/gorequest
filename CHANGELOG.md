@@ -1,6 +1,25 @@
 GoRequest Changelog
 =========
 
+## GoRequest v1.0.1 (2022-02-19)
+
+### BUGFIXES
+
+- forceType not working while it's only be changed in getResponseBytes https://github.com/wklken/gorequest/pull/25
+
+### ENHANCEMENTS
+
+- add: UserAgent(), set user-agent by s.UserAgent("") https://github.com/wklken/gorequest/pull/20
+- add: Stats, collecte statistics for SuperAgent request https://github.com/wklken/gorequest/pull/21
+- add: DisableCompression() https://github.com/wklken/gorequest/pull/22
+- add: Mock() support HTTP mocking https://github.com/wklken/gorequest/pull/23
+- add: Timeouts() support http client timeout details https://github.com/wklken/gorequest/pull/27
+- enable custom Content-Type for SendFile https://github.com/wklken/gorequest/pull/26
+
+### OTHERS
+
+- upgrade safeModifyTransport() copy transport to support go 1.16 https://github.com/wklken/gorequest/pull/24
+
 ## GoRequest v1.0.0 (2022-01-19)
 
 ### BUGFIXES

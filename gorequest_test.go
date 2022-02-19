@@ -2710,7 +2710,6 @@ func TestUserAgent(t *testing.T) {
 		if r.Header.Get("User-Agent") != "gorequest" {
 			t.Error("Expected Header User-Agent-> gorequest", "| but got", r.Header.Get("User-Agent"))
 		}
-		return
 	}))
 
 	defer ts.Close()
