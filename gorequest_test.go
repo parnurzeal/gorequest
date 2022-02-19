@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/elazarl/goproxy"
+	"gopkg.in/h2non/gock.v1"
 )
 
 type (
@@ -2739,5 +2740,26 @@ func TestContext(t *testing.T) {
 
 	if !strings.HasSuffix(errs[0].Error(), "context deadline exceeded") {
 		t.Fatalf("Expected context deadline exceeded error, got %v", errs[0].Error())
+	}
+}
+
+func TestMock(t *testing.T) {
+	defer gock.Off()
+
+	gock.New("http://foo.com").
+		Get("/bar").
+		Reply(200).
+		JSON(map[string]string{"foo": "bar"})
+
+	resp, body, errs := New().Mock().Get("http://foo.com/bar").SetDebug(true).End()
+	if len(errs) != 0 {
+		t.Fatalf("Expected no error, got error")
+	}
+	if resp.StatusCode != 200 {
+		t.Fatalf("Expected status code 200, got %d", resp.StatusCode)
+	}
+
+	if strings.Trim(body, " \n") != `{"foo":"bar"}` {
+		t.Fatalf("Expected body `{\"foo\":\"bar\"}`, got `%s`", body)
 	}
 }
