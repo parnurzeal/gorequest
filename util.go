@@ -21,6 +21,21 @@ func cloneMapArray(old map[string][]string) map[string][]string {
 	return newMap
 }
 
+// just need to change the array pointer?
+func copyRetryable(old superAgentRetryable) superAgentRetryable {
+	newRetryable := old
+	newRetryable.RetryableStatus = make([]int, len(old.RetryableStatus))
+	for i := range old.RetryableStatus {
+		newRetryable.RetryableStatus[i] = old.RetryableStatus[i]
+	}
+	return newRetryable
+}
+
+func copyStats(old Stats) Stats {
+	newStats := old
+	return newStats
+}
+
 func shallowCopyData(old map[string]interface{}) map[string]interface{} {
 	if old == nil {
 		return nil
