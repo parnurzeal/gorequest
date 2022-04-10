@@ -871,7 +871,8 @@ type File struct {
 //        End()
 //
 // The second optional argument (third argument overall) is the fieldname in the multipart/form-data request. It defaults to fileNUMBER (eg. file1), where number is ascending and starts counting at 1.
-// So if you send multiple files, the fieldnames will be file1, file2, ... unless it is overwritten. If fieldname is set to "file" it will be automatically set to fileNUMBER, where number is the greatest exsiting number+1.
+// So if you send multiple files, the fieldnames will be file1, file2, ... unless it is overwritten. If fieldname is set to "file" it will be automatically set to fileNUMBER, where number is the greatest exsiting number+1 unless
+// a third argument skipFileNumbering is provided and true.
 //
 //      b, _ := ioutil.ReadFile("./example_file.ext")
 //      gorequest.New().
@@ -880,18 +881,34 @@ type File struct {
 //        SendFile(b, "", "my_custom_fieldname"). // filename left blank, will become "example_file.ext"
 //        End()
 //
-func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
+func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent {
 
 	filename := ""
 	fieldname := "file"
+	skipFileNumbering := false
 
-	if len(args) >= 1 && len(args[0]) > 0 {
-		filename = strings.TrimSpace(args[0])
+	if len(args) >= 1 {
+		argFilename := fmt.Sprintf("%v", args[0])
+		if len(argFilename) > 0 {
+			filename = strings.TrimSpace(argFilename)
+		}
 	}
-	if len(args) >= 2 && len(args[1]) > 0 {
-		fieldname = strings.TrimSpace(args[1])
+
+	if len(args) >= 2 {
+		argFieldname := fmt.Sprintf("%v", args[1])
+		if len(argFieldname) > 0 {
+			fieldname = strings.TrimSpace(argFieldname)
+		}
 	}
-	if fieldname == "file" || fieldname == "" {
+
+	if len(args) >= 3 {
+		argSkipFileNumbering := reflect.ValueOf(args[2])
+		if argSkipFileNumbering.Type().Name() == "bool" {
+			skipFileNumbering = argSkipFileNumbering.Interface().(bool)
+		}
+	}
+
+	if (fieldname == "file" && !skipFileNumbering) || fieldname == "" {
 		fieldname = "file" + strconv.Itoa(len(s.FileData)+1)
 	}
 
@@ -933,8 +950,11 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 		if len(args) == 1 {
 			return s.SendFile(v.Elem().Interface(), args[0])
 		}
-		if len(args) >= 2 {
+		if len(args) == 2 {
 			return s.SendFile(v.Elem().Interface(), args[0], args[1])
+		}
+		if len(args) == 3 {
+			return s.SendFile(v.Elem().Interface(), args[0], args[1], args[2])
 		}
 		return s.SendFile(v.Elem().Interface())
 	default:

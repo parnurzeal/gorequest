@@ -1225,6 +1225,7 @@ func TestMultipartRequest(t *testing.T) {
 	const case25_send_file_with_name_with_spaces_only = "/send_file_with_name_with_spaces_only"
 	const case26_send_file_with_fieldname_with_spaces = "/send_file_with_fieldname_with_spaces"
 	const case27_send_file_with_fieldname_with_spaces_only = "/send_file_with_fieldname_with_spaces_only"
+	const case28_send_file_with_file_as_fieldname_and_skip_file_numbering_true = "/send_file_with_file_as_fieldname_and_skip_file_numbering_true"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is POST before going to check other features
@@ -1538,6 +1539,16 @@ func TestMultipartRequest(t *testing.T) {
 				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
 			}
 			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
+		case case28_send_file_with_file_as_fieldname_and_skip_file_numbering_true:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if val, ok := r.MultipartForm.File["file"]; !ok {
+				t.Error("Expected file with key: file", "| but got ", val)
+			}
+			if r.MultipartForm.File["file"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file"][0].Filename)
+			}
 		}
 
 	}))
@@ -1735,6 +1746,11 @@ func TestMultipartRequest(t *testing.T) {
 	New().Post(ts.URL+case27_send_file_with_fieldname_with_spaces_only).
 		Type("multipart").
 		SendFile(osFile, "", "   ").
+		End()
+
+	New().Post(ts.URL+case28_send_file_with_file_as_fieldname_and_skip_file_numbering_true).
+		Type("multipart").
+		SendFile(osFile, "", "file", true).
 		End()
 }
 
