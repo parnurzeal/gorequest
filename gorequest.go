@@ -31,8 +31,10 @@ import (
 	"moul.io/http2curl"
 )
 
-type Request *http.Request
-type Response *http.Response
+type (
+	Request  *http.Request
+	Response *http.Response
+)
 
 type superAgentRetryable struct {
 	RetryableStatus []int
@@ -359,7 +361,6 @@ func (s *SuperAgent) setHeadersStruct(content interface{}) *SuperAgent {
 
 				s.AppendHeader(k, strValue)
 			}
-
 		}
 	}
 	return s
@@ -729,7 +730,6 @@ func (s *SuperAgent) Send(content interface{}) *SuperAgent {
 }
 
 func makeSliceOfReflectValue(v reflect.Value) (slice []interface{}) {
-
 	kind := v.Kind()
 	if kind != reflect.Slice && kind != reflect.Array {
 		return slice
@@ -906,7 +906,6 @@ type File struct {
 //        End()
 //
 func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent {
-
 	filename := ""
 	fieldname := "file"
 	skipFileNumbering := false
@@ -939,7 +938,10 @@ func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent
 			fileType = strings.TrimSpace(argFileType)
 		}
 		if fileType == "" {
-			s.Errors = append(s.Errors, errors.New("the fifth SendFile method argument for MIME type cannot be an empty string"))
+			s.Errors = append(
+				s.Errors,
+				errors.New("the fifth SendFile method argument for MIME type cannot be an empty string"),
+			)
 			return s
 		}
 	}
@@ -1018,14 +1020,19 @@ func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent
 			return s
 		}
 
-		s.Errors = append(s.Errors, fmt.Errorf("sendFile currently only supports either a string (path/to/file), a slice of bytes (file content itself), or a os.File"))
+		s.Errors = append(
+			s.Errors,
+			fmt.Errorf(
+				"sendFile currently only supports either a string (path/to/file), a slice of bytes (file content itself), or a os.File",
+			),
+		)
 	}
 
 	return s
 }
 
 func changeMapToURLValues(data map[string]interface{}) url.Values {
-	var newUrlValues = url.Values{}
+	newUrlValues := url.Values{}
 	for k, v := range data {
 		switch val := v.(type) {
 		case string:
@@ -1133,7 +1140,9 @@ func (s *SuperAgent) End(callback ...func(response Response, body string, errs [
 }
 
 // EndBytes should be used when you want the body as bytes. The callbacks work the same way as with `End`, except that a byte array is used instead of a string.
-func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, errs []error)) (Response, []byte, []error) {
+func (s *SuperAgent) EndBytes(
+	callback ...func(response Response, body []byte, errs []error),
+) (Response, []byte, []error) {
 	var (
 		errs []error
 		resp Response
@@ -1162,13 +1171,13 @@ func (s *SuperAgent) EndBytes(callback ...func(response Response, body []byte, e
 			respCallback := *resp
 			callback[0](&respCallback, body, s.Errors)
 		}
-
 	}
 	return resp, body, errs
 }
 
 func (s *SuperAgent) shouldRetry(resp Response, hasError bool) bool {
-	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount && (hasError || statusesContains(s.Retryable.RetryableStatus, resp.StatusCode)) {
+	if s.Retryable.Enable && s.Retryable.Attempt < s.Retryable.RetryerCount &&
+		(hasError || statusesContains(s.Retryable.RetryableStatus, resp.StatusCode)) {
 		time.Sleep(s.Retryable.RetryerTime)
 		s.Retryable.Attempt++
 		return true
@@ -1177,7 +1186,10 @@ func (s *SuperAgent) shouldRetry(resp Response, hasError bool) bool {
 }
 
 // EndStruct should be used when you want the body as a struct. The callbacks work the same way as with `End`, except that a struct is used instead of a string.
-func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response, v interface{}, body []byte, errs []error)) (Response, []byte, []error) {
+func (s *SuperAgent) EndStruct(
+	v interface{},
+	callback ...func(response Response, v interface{}, body []byte, errs []error),
+) (Response, []byte, []error) {
 	resp, body, errs := s.EndBytes()
 	if errs != nil {
 		return nil, body, errs
@@ -1187,7 +1199,14 @@ func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response
 	if err != nil {
 		respContentType := filterFlags(resp.Header.Get("Content-Type"))
 		if respContentType != MIMEJSON {
-			s.Errors = append(s.Errors, fmt.Errorf("response content-type is %s not application/json, so can't be json decoded: %w", respContentType, err))
+			s.Errors = append(
+				s.Errors,
+				fmt.Errorf(
+					"response content-type is %s not application/json, so can't be json decoded: %w",
+					respContentType,
+					err,
+				),
+			)
 		} else {
 			s.Errors = append(s.Errors, fmt.Errorf("response body json decode fail: %w", err))
 		}
