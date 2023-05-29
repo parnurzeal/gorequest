@@ -4,6 +4,7 @@ package gorequest
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -51,6 +52,7 @@ const (
 	TypeHTML       = "html"
 	TypeText       = "text"
 	TypeMultipart  = "multipart"
+	TypeBinary     = "binary"
 )
 
 type superAgentRetryable struct {
@@ -451,6 +453,7 @@ var Types = map[string]string{
 	TypeHTML:       "text/html",
 	TypeText:       "text/plain",
 	TypeMultipart:  "multipart/form-data",
+	TypeBinary:     "application/octet-stream",
 }
 
 // Type is a convenience function to specify the data type to send.
@@ -1165,9 +1168,9 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 	// check if there is forced type
 	switch s.ForceType {
-	case TypeJSON, TypeForm, TypeXML, TypeText, TypeMultipart:
+	case TypeJSON, TypeForm, TypeXML, TypeText, TypeMultipart, TypeBinary:
 		s.TargetType = s.ForceType
-		// If forcetype is not set, check whether user set Content-Type header.
+		// If force type is not set, check whether user set Content-Type header.
 		// If yes, also bounce to the correct supported TargetType automatically.
 	default:
 		contentType := s.Header.Get("Content-Type")
@@ -1368,6 +1371,18 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		if contentReader != nil {
 			contentType = mw.FormDataContentType()
 		}
+	case TypeBinary:
+		var content []byte
+		if len(s.SliceData) != 0 {
+			content = make([]byte, len(s.SliceData))
+			for i, v := range s.SliceData {
+				content[i] = v.(byte)
+			}
+		} else if s.BounceToRawString && s.RawString != "" {
+			// use base64 to describe binary content
+			content, _ = base64.StdEncoding.DecodeString(s.RawString)
+		}
+		contentReader = bytes.NewReader(content)
 	default:
 		// let's return an error instead of an nil pointer exception here
 		return nil, errors.New("TargetType '" + s.TargetType + "' could not be determined")
