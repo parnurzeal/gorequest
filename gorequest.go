@@ -3,33 +3,29 @@ package gorequest
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
-	"net"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
+	"net/textproto"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
-
-	"mime/multipart"
-
-	"net/textproto"
-
-	"fmt"
-
-	"path/filepath"
-
-	"github.com/moul/http2curl"
 	"golang.org/x/net/publicsuffix"
+	"moul.io/http2curl"
 )
 
 type Request *http.Request
@@ -46,35 +42,52 @@ const (
 	OPTIONS = "OPTIONS"
 )
 
+// Types we support.
+const (
+	TypeJSON       = "json"
+	TypeXML        = "xml"
+	TypeUrlencoded = "urlencoded"
+	TypeForm       = "form"
+	TypeFormData   = "form-data"
+	TypeHTML       = "html"
+	TypeText       = "text"
+	TypeMultipart  = "multipart"
+)
+
+type superAgentRetryable struct {
+	RetryableStatus []int
+	RetryerTime     time.Duration
+	RetryerCount    int
+	Attempt         int
+	Enable          bool
+}
+
 // A SuperAgent is a object storing all request data for client.
 type SuperAgent struct {
-	Url               string
-	Method            string
-	Header            map[string]string
-	TargetType        string
-	ForceType         string
-	Data              map[string]interface{}
-	SliceData         []interface{}
-	FormData          url.Values
-	QueryData         url.Values
-	FileData          []File
-	BounceToRawString bool
-	RawString         string
-	Client            *http.Client
-	Transport         *http.Transport
-	Cookies           []*http.Cookie
-	Errors            []error
-	BasicAuth         struct{ Username, Password string }
-	Debug             bool
-	CurlCommand       bool
-	logger            *log.Logger
-	Retryable         struct {
-		RetryableStatus []int
-		RetryerTime     time.Duration
-		RetryerCount    int
-		Attempt         int
-		Enable          bool
-	}
+	Url                  string
+	Method               string
+	Header               http.Header
+	TargetType           string
+	ForceType            string
+	Data                 map[string]interface{}
+	SliceData            []interface{}
+	FormData             url.Values
+	QueryData            url.Values
+	FileData             []File
+	BounceToRawString    bool
+	RawString            string
+	Client               *http.Client
+	Transport            *http.Transport
+	Cookies              []*http.Cookie
+	Errors               []error
+	BasicAuth            struct{ Username, Password string }
+	Debug                bool
+	CurlCommand          bool
+	logger               Logger
+	Retryable            superAgentRetryable
+	DoNotClearSuperAgent bool
+	isClone              bool
+	context				 context.Context
 }
 
 var DisableTransportSwap = false
@@ -89,9 +102,9 @@ func New() *SuperAgent {
 	debug := os.Getenv("GOREQUEST_DEBUG") == "1"
 
 	s := &SuperAgent{
-		TargetType:        "json",
+		TargetType:        TypeJSON,
 		Data:              make(map[string]interface{}),
-		Header:            make(map[string]string),
+		Header:            http.Header{},
 		RawString:         "",
 		SliceData:         []interface{}{},
 		FormData:          url.Values{},
@@ -106,10 +119,122 @@ func New() *SuperAgent {
 		Debug:             debug,
 		CurlCommand:       false,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
+		isClone:           false,
+		context:           nil,
 	}
 	// disable keep alives by default, see this issue https://github.com/parnurzeal/gorequest/issues/75
 	s.Transport.DisableKeepAlives = true
 	return s
+}
+
+func cloneMapArray(old map[string][]string) map[string][]string {
+	newMap := make(map[string][]string, len(old))
+	for k, vals := range old {
+		newMap[k] = make([]string, len(vals))
+		for i := range vals {
+			newMap[k][i] = vals[i]
+		}
+	}
+	return newMap
+}
+func shallowCopyData(old map[string]interface{}) map[string]interface{} {
+	if old == nil {
+		return nil
+	}
+	newData := make(map[string]interface{})
+	for k, val := range old {
+		newData[k] = val
+	}
+	return newData
+}
+func shallowCopyDataSlice(old []interface{}) []interface{} {
+	if old == nil {
+		return nil
+	}
+	newData := make([]interface{}, len(old))
+	for i := range old {
+		newData[i] = old[i]
+	}
+	return newData
+}
+func shallowCopyFileArray(old []File) []File {
+	if old == nil {
+		return nil
+	}
+	newData := make([]File, len(old))
+	for i := range old {
+		newData[i] = old[i]
+	}
+	return newData
+}
+func shallowCopyCookies(old []*http.Cookie) []*http.Cookie {
+	if old == nil {
+		return nil
+	}
+	newData := make([]*http.Cookie, len(old))
+	for i := range old {
+		newData[i] = old[i]
+	}
+	return newData
+}
+func shallowCopyErrors(old []error) []error {
+	if old == nil {
+		return nil
+	}
+	newData := make([]error, len(old))
+	for i := range old {
+		newData[i] = old[i]
+	}
+	return newData
+}
+
+// just need to change the array pointer?
+func copyRetryable(old superAgentRetryable) superAgentRetryable {
+	newRetryable := old
+	newRetryable.RetryableStatus = make([]int, len(old.RetryableStatus))
+	for i := range old.RetryableStatus {
+		newRetryable.RetryableStatus[i] = old.RetryableStatus[i]
+	}
+	return newRetryable
+}
+
+// Returns a copy of this superagent. Useful if you want to reuse the client/settings
+// concurrently.
+// Note: This does a shallow copy of the parent. So you will need to be
+// careful of Data provided
+// Note: It also directly re-uses the client and transport. If you modify the Timeout,
+// or RedirectPolicy on a clone, the clone will have a new http.client. It is recommended
+// that the base request set your timeout and redirect polices, and no modification of
+// the client or transport happen after cloning.
+// Note: DoNotClearSuperAgent is forced to "true" after Clone
+func (s *SuperAgent) Clone() *SuperAgent {
+	clone := &SuperAgent{
+		Url:                  s.Url,
+		Method:               s.Method,
+		Header:               http.Header(cloneMapArray(s.Header)),
+		TargetType:           s.TargetType,
+		ForceType:            s.ForceType,
+		Data:                 shallowCopyData(s.Data),
+		SliceData:            shallowCopyDataSlice(s.SliceData),
+		FormData:             url.Values(cloneMapArray(s.FormData)),
+		QueryData:            url.Values(cloneMapArray(s.QueryData)),
+		FileData:             shallowCopyFileArray(s.FileData),
+		BounceToRawString:    s.BounceToRawString,
+		RawString:            s.RawString,
+		Client:               s.Client,
+		Transport:            s.Transport,
+		Cookies:              shallowCopyCookies(s.Cookies),
+		Errors:               shallowCopyErrors(s.Errors),
+		BasicAuth:            s.BasicAuth,
+		Debug:                s.Debug,
+		CurlCommand:          s.CurlCommand,
+		logger:               s.logger, // thread safe.. anyway
+		Retryable:            copyRetryable(s.Retryable),
+		DoNotClearSuperAgent: true,
+		isClone:              true,
+		context: 			  s.context,
+	}
+	return clone
 }
 
 // Enable the debug mode which logs request/response detail
@@ -124,16 +249,25 @@ func (s *SuperAgent) SetCurlCommand(enable bool) *SuperAgent {
 	return s
 }
 
-func (s *SuperAgent) SetLogger(logger *log.Logger) *SuperAgent {
+// Enable the DoNotClear mode for not clearing super agent and reuse for the next request
+func (s *SuperAgent) SetDoNotClearSuperAgent(enable bool) *SuperAgent {
+	s.DoNotClearSuperAgent = enable
+	return s
+}
+
+func (s *SuperAgent) SetLogger(logger Logger) *SuperAgent {
 	s.logger = logger
 	return s
 }
 
 // Clear SuperAgent data for another new request.
 func (s *SuperAgent) ClearSuperAgent() {
+	if s.DoNotClearSuperAgent {
+		return
+	}
 	s.Url = ""
 	s.Method = ""
-	s.Header = make(map[string]string)
+	s.Header = http.Header{}
 	s.Data = make(map[string]interface{})
 	s.SliceData = []interface{}{}
 	s.FormData = url.Values{}
@@ -142,9 +276,10 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.BounceToRawString = false
 	s.RawString = ""
 	s.ForceType = ""
-	s.TargetType = "json"
+	s.TargetType = TypeJSON
 	s.Cookies = make([]*http.Cookie, 0)
 	s.Errors = nil
+	s.context = nil
 }
 
 // Just a wrapper to initialize SuperAgent instance by method string
@@ -229,7 +364,8 @@ func (s *SuperAgent) Options(targetUrl string) *SuperAgent {
 	return s
 }
 
-// Set is used for setting header fields.
+// Set is used for setting header fields,
+// this will overwrite the existed values of Header through AppendHeader().
 // Example. To set `Accept` as `application/json`
 //
 //    gorequest.New().
@@ -237,7 +373,20 @@ func (s *SuperAgent) Options(targetUrl string) *SuperAgent {
 //      Set("Accept", "application/json").
 //      End()
 func (s *SuperAgent) Set(param string, value string) *SuperAgent {
-	s.Header[param] = value
+	s.Header.Set(param, value)
+	return s
+}
+
+// AppendHeader is used for setting header fileds with multiple values,
+// Example. To set `Accept` as `application/json, text/plain`
+//
+//    gorequest.New().
+//      Post("/gamelist").
+//      AppendHeader("Accept", "application/json").
+//      AppendHeader("Accept", "text/plain").
+//      End()
+func (s *SuperAgent) AppendHeader(param string, value string) *SuperAgent {
+	s.Header.Add(param, value)
 	return s
 }
 
@@ -248,7 +397,7 @@ func (s *SuperAgent) Set(param string, value string) *SuperAgent {
 
 //    gorequest.New().
 //      Post("/gamelist").
-//      Retry(3, 5 * time.seconds, http.StatusBadRequest, http.StatusInternalServerError).
+//      Retry(3, 5 * time.Second, http.StatusBadRequest, http.StatusInternalServerError).
 //      End()
 func (s *SuperAgent) Retry(retryerCount int, retryerTime time.Duration, statusCode ...int) *SuperAgent {
 	for _, code := range statusCode {
@@ -299,14 +448,14 @@ func (s *SuperAgent) AddCookies(cookies []*http.Cookie) *SuperAgent {
 }
 
 var Types = map[string]string{
-	"html":       "text/html",
-	"json":       "application/json",
-	"xml":        "application/xml",
-	"text":       "text/plain",
-	"urlencoded": "application/x-www-form-urlencoded",
-	"form":       "application/x-www-form-urlencoded",
-	"form-data":  "application/x-www-form-urlencoded",
-	"multipart":  "multipart/form-data",
+	TypeJSON:       "application/json",
+	TypeXML:        "application/xml",
+	TypeForm:       "application/x-www-form-urlencoded",
+	TypeFormData:   "application/x-www-form-urlencoded",
+	TypeUrlencoded: "application/x-www-form-urlencoded",
+	TypeHTML:       "text/html",
+	TypeText:       "text/plain",
+	TypeMultipart:  "multipart/form-data",
 }
 
 // Type is a convenience function to specify the data type to send.
@@ -448,19 +597,6 @@ func (s *SuperAgent) Param(key string, value string) *SuperAgent {
 	return s
 }
 
-func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
-	s.Transport.Dial = func(network, addr string) (net.Conn, error) {
-		conn, err := net.DialTimeout(network, addr, timeout)
-		if err != nil {
-			s.Errors = append(s.Errors, err)
-			return nil, err
-		}
-		conn.SetDeadline(time.Now().Add(timeout))
-		return conn, nil
-	}
-	return s
-}
-
 // Set TLSClientConfig for underling Transport.
 // One example is you can use it to disable security check (https):
 //
@@ -469,6 +605,7 @@ func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
 //        End()
 //
 func (s *SuperAgent) TLSClientConfig(config *tls.Config) *SuperAgent {
+	s.safeModifyTransport()
 	s.Transport.TLSClientConfig = config
 	return s
 }
@@ -494,8 +631,10 @@ func (s *SuperAgent) Proxy(proxyUrl string) *SuperAgent {
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 	} else if proxyUrl == "" {
+		s.safeModifyTransport()
 		s.Transport.Proxy = nil
 	} else {
+		s.safeModifyTransport()
 		s.Transport.Proxy = http.ProxyURL(parsedProxyUrl)
 	}
 	return s
@@ -508,6 +647,7 @@ func (s *SuperAgent) Proxy(proxyUrl string) *SuperAgent {
 // The policy function's arguments are the Request about to be made and the
 // past requests in order of oldest first.
 func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) error) *SuperAgent {
+	s.safeModifyHttpClient()
 	s.Client.CheckRedirect = func(r *http.Request, v []*http.Request) error {
 		vv := make([]Request, len(v))
 		for i, r := range v {
@@ -683,7 +823,7 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 					}
 				}
 			}
-			s.TargetType = "form"
+			s.TargetType = TypeForm
 		} else {
 			s.BounceToRawString = true
 		}
@@ -737,7 +877,8 @@ type File struct {
 //        End()
 //
 // The second optional argument (third argument overall) is the fieldname in the multipart/form-data request. It defaults to fileNUMBER (eg. file1), where number is ascending and starts counting at 1.
-// So if you send multiple files, the fieldnames will be file1, file2, ... unless it is overwritten. If fieldname is set to "file" it will be automatically set to fileNUMBER, where number is the greatest exsiting number+1.
+// So if you send multiple files, the fieldnames will be file1, file2, ... unless it is overwritten. If fieldname is set to "file" it will be automatically set to fileNUMBER, where number is the greatest exsiting number+1 unless
+// a third argument skipFileNumbering is provided and true.
 //
 //      b, _ := ioutil.ReadFile("./example_file.ext")
 //      gorequest.New().
@@ -746,18 +887,34 @@ type File struct {
 //        SendFile(b, "", "my_custom_fieldname"). // filename left blank, will become "example_file.ext"
 //        End()
 //
-func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
+func (s *SuperAgent) SendFile(file interface{}, args ...interface{}) *SuperAgent {
 
 	filename := ""
 	fieldname := "file"
+	skipFileNumbering := false
 
-	if len(args) >= 1 && len(args[0]) > 0 {
-		filename = strings.TrimSpace(args[0])
+	if len(args) >= 1 {
+		argFilename := fmt.Sprintf("%v", args[0])
+		if len(argFilename) > 0 {
+			filename = strings.TrimSpace(argFilename)
+		}
 	}
-	if len(args) >= 2 && len(args[1]) > 0 {
-		fieldname = strings.TrimSpace(args[1])
+
+	if len(args) >= 2 {
+		argFieldname := fmt.Sprintf("%v", args[1])
+		if len(argFieldname) > 0 {
+			fieldname = strings.TrimSpace(argFieldname)
+		}
 	}
-	if fieldname == "file" || fieldname == "" {
+
+	if len(args) >= 3 {
+		argSkipFileNumbering := reflect.ValueOf(args[2])
+		if argSkipFileNumbering.Type().Name() == "bool" {
+			skipFileNumbering = argSkipFileNumbering.Interface().(bool)
+		}
+	}
+
+	if (fieldname == "file" && !skipFileNumbering) || fieldname == "" {
 		fieldname = "file" + strconv.Itoa(len(s.FileData)+1)
 	}
 
@@ -799,8 +956,11 @@ func (s *SuperAgent) SendFile(file interface{}, args ...string) *SuperAgent {
 		if len(args) == 1 {
 			return s.SendFile(v.Elem().Interface(), args[0])
 		}
-		if len(args) >= 2 {
+		if len(args) == 2 {
 			return s.SendFile(v.Elem().Interface(), args[0], args[1])
+		}
+		if len(args) == 3 {
+			return s.SendFile(v.Elem().Interface(), args[0], args[1], args[2])
 		}
 		return s.SendFile(v.Elem().Interface())
 	default:
@@ -905,7 +1065,7 @@ func changeMapToURLValues(data map[string]interface{}) url.Values {
 // For example:
 //
 //    resp, body, errs := gorequest.New().Get("http://www.google.com").End()
-//    if (errs != nil) {
+//    if errs != nil {
 //      fmt.Println(errs)
 //    }
 //    fmt.Println(resp, body)
@@ -980,6 +1140,14 @@ func contains(respStatus int, statuses []int) bool {
 	return false
 }
 
+func (s *SuperAgent) Context(ctx context.Context) *SuperAgent{
+	if ctx == nil {
+		panic("context can't be nil")
+	}
+	s.context = ctx
+	return s
+}
+
 // EndStruct should be used when you want the body as a struct. The callbacks work the same way as with `End`, except that a struct is used instead of a string.
 func (s *SuperAgent) EndStruct(v interface{}, callback ...func(response Response, v interface{}, body []byte, errs []error)) (Response, []byte, []error) {
 	resp, body, errs := s.EndBytes()
@@ -1010,13 +1178,14 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 	// check if there is forced type
 	switch s.ForceType {
-	case "json", "form", "xml", "text", "multipart":
+	case TypeJSON, TypeForm, TypeXML, TypeText, TypeMultipart:
 		s.TargetType = s.ForceType
 		// If forcetype is not set, check whether user set Content-Type header.
 		// If yes, also bounce to the correct supported TargetType automatically.
 	default:
+		contentType := s.Header.Get("Content-Type")
 		for k, v := range Types {
-			if s.Header["Content-Type"] == v {
+			if contentType == v {
 				s.TargetType = k
 			}
 		}
@@ -1079,24 +1248,41 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 		}
 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	// Reset resp.Body so it can be use again
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-
+	if err != nil {
+		return nil, nil, []error{err}
+	}
 	return resp, body, nil
 }
 
 func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	var (
-		req *http.Request
-		err error
+		req           *http.Request
+		contentType   string // This is only set when the request body content is non-empty.
+		contentReader io.Reader
+		err           error
 	)
 
 	if s.Method == "" {
 		return nil, errors.New("No method specified")
 	}
 
-	if s.TargetType == "json" {
+	// !!! Important Note !!!
+	//
+	// Throughout this region, contentReader and contentType are only set when
+	// the contents will be non-empty.
+	// This is done avoid ever sending a non-nil request body with nil contents
+	// to http.NewRequest, because it contains logic which dependends on
+	// whether or not the body is "nil".
+	//
+	// See PR #136 for more information:
+	//
+	//     https://github.com/parnurzeal/gorequest/pull/136
+	//
+	switch s.TargetType {
+	case TypeJSON:
 		// If-case to give support to json array. we check if
 		// 1) Map only: send it as json map from s.Data
 		// 2) Array or Mix of map & array or others: send it as rawstring from s.RawString
@@ -1108,13 +1294,11 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		} else if len(s.SliceData) != 0 {
 			contentJson, _ = json.Marshal(s.SliceData)
 		}
-		contentReader := bytes.NewReader(contentJson)
-		req, err = http.NewRequest(s.Method, s.Url, contentReader)
-		if err != nil {
-			return nil, err
+		if contentJson != nil {
+			contentReader = bytes.NewReader(contentJson)
+			contentType = "application/json"
 		}
-		req.Header.Set("Content-Type", "application/json")
-	} else if s.TargetType == "form" || s.TargetType == "form-data" || s.TargetType == "urlencoded" {
+	case TypeForm, TypeFormData, TypeUrlencoded:
 		var contentForm []byte
 		if s.BounceToRawString || len(s.SliceData) != 0 {
 			contentForm = []byte(s.RawString)
@@ -1122,30 +1306,34 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			formData := changeMapToURLValues(s.Data)
 			contentForm = []byte(formData.Encode())
 		}
-		contentReader := bytes.NewReader(contentForm)
-		req, err = http.NewRequest(s.Method, s.Url, contentReader)
-		if err != nil {
-			return nil, err
+		if len(contentForm) != 0 {
+			contentReader = bytes.NewReader(contentForm)
+			contentType = "application/x-www-form-urlencoded"
 		}
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	} else if s.TargetType == "text" {
-		req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
-		req.Header.Set("Content-Type", "text/plain")
-	} else if s.TargetType == "xml" {
-		req, err = http.NewRequest(s.Method, s.Url, strings.NewReader(s.RawString))
-		req.Header.Set("Content-Type", "application/xml")
-	} else if s.TargetType == "multipart" {
-
-		var buf bytes.Buffer
-		mw := multipart.NewWriter(&buf)
+	case TypeText:
+		if len(s.RawString) != 0 {
+			contentReader = strings.NewReader(s.RawString)
+			contentType = "text/plain"
+		}
+	case TypeXML:
+		if len(s.RawString) != 0 {
+			contentReader = strings.NewReader(s.RawString)
+			contentType = "application/xml"
+		}
+	case TypeMultipart:
+		var (
+			buf = &bytes.Buffer{}
+			mw  = multipart.NewWriter(buf)
+		)
 
 		if s.BounceToRawString {
-			fieldName, ok := s.Header["data_fieldname"]
-			if !ok {
+			fieldName := s.Header.Get("data_fieldname")
+			if fieldName == "" {
 				fieldName = "data"
 			}
 			fw, _ := mw.CreateFormField(fieldName)
 			fw.Write([]byte(s.RawString))
+			contentReader = buf
 		}
 
 		if len(s.Data) != 0 {
@@ -1156,11 +1344,12 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 					fw.Write([]byte(value))
 				}
 			}
+			contentReader = buf
 		}
 
 		if len(s.SliceData) != 0 {
-			fieldName, ok := s.Header["json_fieldname"]
-			if !ok {
+			fieldName := s.Header.Get("json_fieldname")
+			if fieldName == "" {
 				fieldName = "data"
 			}
 			// copied from CreateFormField() in mime/multipart/writer.go
@@ -1174,6 +1363,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 				return nil, err
 			}
 			fw.Write(contentJson)
+			contentReader = buf
 		}
 
 		// add the files
@@ -1182,25 +1372,45 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 				fw, _ := mw.CreateFormFile(file.Fieldname, file.Filename)
 				fw.Write(file.Data)
 			}
+			contentReader = buf
 		}
 
 		// close before call to FormDataContentType ! otherwise its not valid multipart
 		mw.Close()
 
-		req, err = http.NewRequest(s.Method, s.Url, &buf)
-		req.Header.Set("Content-Type", mw.FormDataContentType())
-	} else {
+		if contentReader != nil {
+			contentType = mw.FormDataContentType()
+		}
+	default:
 		// let's return an error instead of an nil pointer exception here
 		return nil, errors.New("TargetType '" + s.TargetType + "' could not be determined")
 	}
 
-	for k, v := range s.Header {
-		req.Header.Set(k, v)
-		// Setting the host header is a special case, see this issue: https://github.com/golang/go/issues/7682
-		if strings.EqualFold(k, "host") {
-			req.Host = v
+	if req, err = http.NewRequest(s.Method, s.Url, contentReader); err != nil {
+		return nil, err
+	}
+
+	if s.context != nil {
+		req = req.WithContext(s.context)
+	}
+
+	for k, vals := range s.Header {
+		for _, v := range vals {
+			req.Header.Add(k, v)
+		}
+
+		// Setting the Host header is a special case, see this issue: https://github.com/golang/go/issues/7682
+		if strings.EqualFold(k, "Host") {
+			req.Host = vals[0]
 		}
 	}
+
+	// https://github.com/parnurzeal/gorequest/issues/164
+	// Don't infer the content type header if an overrride is already provided.
+	if len(contentType) != 0 && req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+
 	// Add all querystring from Query func
 	q := req.URL.Query()
 	for k, v := range s.QueryData {

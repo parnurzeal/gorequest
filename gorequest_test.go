@@ -2,6 +2,7 @@ package gorequest
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -39,6 +41,76 @@ type (
 		FloatArray  []float64
 	}
 )
+
+// Test for type constants.
+func TestTypeConstants(t *testing.T) {
+	if TypeJSON != "json" {
+		t.Errorf("Expected TypeJSON -> json | but got %s", TypeJSON)
+	}
+
+	if TypeXML != "xml" {
+		t.Errorf("Expected TypeXML -> xml | but got %s", TypeXML)
+	}
+
+	if TypeForm != "form" {
+		t.Errorf("Expected TypeForm -> form | but got %s", TypeForm)
+	}
+
+	if TypeFormData != "form-data" {
+		t.Errorf("Expected TypeFormData -> form-data | but got %s", TypeFormData)
+	}
+
+	if TypeUrlencoded != "urlencoded" {
+		t.Errorf("Expected TypeUrlencoded -> urlencoded | but got %s", TypeUrlencoded)
+	}
+
+	if TypeHTML != "html" {
+		t.Errorf("Expected TypeHTML -> html | but got %s", TypeHTML)
+	}
+
+	if TypeText != "text" {
+		t.Errorf("Expected TypeText -> text | but got %s", TypeText)
+	}
+
+	if TypeMultipart != "multipart" {
+		t.Errorf("Expected TypeMultipart -> multipart | but got %s", TypeMultipart)
+	}
+}
+
+// Test for Types map.
+func TestTypesMap(t *testing.T) {
+	if Types[TypeJSON] != "application/json" {
+		t.Errorf(`Expected Types["json"] -> "application/json" | but got %s`, Types[TypeJSON])
+	}
+
+	if Types[TypeXML] != "application/xml" {
+		t.Errorf(`Expected Types["xml"] -> "applicaion/xml" | but got %s`, Types[TypeXML])
+	}
+
+	if Types[TypeForm] != "application/x-www-form-urlencoded" {
+		t.Errorf(`Expected Types["form"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeForm])
+	}
+
+	if Types[TypeFormData] != "application/x-www-form-urlencoded" {
+		t.Errorf(`Expected Types["form-data"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeFormData])
+	}
+
+	if Types[TypeUrlencoded] != "application/x-www-form-urlencoded" {
+		t.Errorf(`Expected Types["urlencoded"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeUrlencoded])
+	}
+
+	if Types[TypeHTML] != "text/html" {
+		t.Errorf(`Expected Types["html"] -> "text/html" | but got %s`, Types[TypeHTML])
+	}
+
+	if Types[TypeText] != "text/plain" {
+		t.Errorf(`Expected Types["text"] -> "text/plain" | but got %s`, Types[TypeText])
+	}
+
+	if Types[TypeMultipart] != "multipart/form-data" {
+		t.Errorf(`Expected Types["multipart"] -> "multipart/form-data" | but got %s`, Types[TypeMultipart])
+	}
+}
 
 // Test for changeMapToURLValues
 func TestChangeMapToURLValues(t *testing.T) {
@@ -200,6 +272,276 @@ func TestGet(t *testing.T) {
 		End()
 }
 
+// testing for Get method.. but clone our base.
+func TestGetWithClone(t *testing.T) {
+	const case1_empty = "/"
+	const case2_set_header = "/set_header"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is GET before going to check other features
+		if r.Method != GET {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		switch r.URL.Path {
+		default:
+			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case1_empty:
+			t.Logf("case %v ", case1_empty)
+		case case2_set_header:
+			t.Logf("case %v ", case2_set_header)
+			if r.Header.Get("API-Key") != "fookey" {
+				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+			}
+		}
+	}))
+
+	defer ts.Close()
+	reqBase := New()
+	reqBase.Clone().Get(ts.URL + case1_empty).
+		End()
+
+	reqBase.Clone().Get(ts.URL+case2_set_header).
+		Set("API-Key", "fookey").
+		End()
+}
+
+// testing for Get method.. but clone our base.
+func TestGetWithCloneRequestAfterMake(t *testing.T) {
+	const case1_empty = "/"
+	const case2_set_header = "/set_header"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is GET before going to check other features
+		if r.Method != GET {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		switch r.URL.Path {
+		default:
+			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case1_empty:
+			t.Logf("case %v ", case1_empty)
+		case case2_set_header:
+			t.Logf("case %v ", case2_set_header)
+			if r.Header.Get("API-Key") != "fookey" {
+				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+			}
+		}
+	}))
+
+	defer ts.Close()
+	reqBase := New()
+	// define the two request
+	req1 := reqBase.Clone().Get(ts.URL + case1_empty)
+	req2 := reqBase.Clone().Get(ts.URL+case2_set_header).
+		Set("API-Key", "fookey")
+	// now they have different bases, so make the requests
+	req1.End()
+	req2.End()
+}
+
+// testing for Get method.. but clone our base.
+func TestGetWithCloneWithHeadersAndQuery(t *testing.T) {
+	const case1_empty = "/"
+	const case2_set_header = "/set_header"
+	const case3_set_query = "/set_query"
+	const case4_set_both = "/set_both"
+	const case5_empty = "/empty"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is GET before going to check other features
+		if r.Method != GET {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		t.Logf("header %v", r.Header)
+		if r.Header.Get("base") != "header" {
+			t.Errorf("Expected base header: %s", r.Header.Get("base"))
+		}
+		if r.URL.Query().Get("queryBase") != "yep" {
+			t.Errorf("Expected queryBase queryParam: %s", r.URL.Query().Get("queryBase"))
+		}
+		switch r.URL.Path {
+		default:
+			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case1_empty, case5_empty:
+			t.Logf("case %v ", case1_empty)
+			if r.Header.Get("API-Key") != "base" {
+				t.Errorf("Expected 'API-Key' == %q; got %q", "base", r.Header.Get("API-Key"))
+			}
+			if r.URL.Query().Get("newQuery") != "" {
+				t.Errorf("Expected 'newQuery' == %q; got %q", "", r.URL.Query().Get("newQuery"))
+			}
+			if r.Header.Get("FOURTH") != "" {
+				t.Errorf("Expected 'FOURTH' == %q; got %q", "", r.Header.Get("FOURTH"))
+			}
+		case case2_set_header:
+			t.Logf("case %v ", case2_set_header)
+			if r.Header.Get("API-Key") != "fookey" {
+				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+			}
+		case case3_set_query:
+			t.Logf("case %v ", case3_set_query)
+			if r.URL.Query().Get("newQuery") != "newVal" {
+				t.Errorf("Expected 'newQuery' == %q; got %q", "newVal", r.URL.Query().Get("newQuery"))
+			}
+		case case4_set_both:
+			t.Logf("case %v ", case3_set_query)
+			if r.URL.Query().Get("fourth") != "4val" {
+				t.Errorf("Expected 'fourth' == %q; got %q", "4val", r.URL.Query().Get("fourth"))
+			}
+			if r.Header.Get("FOURTH") != "fourkey" {
+				t.Errorf("Expected 'FOURTH' == %q; got %q", "fourkey", r.Header.Get("FOURTH"))
+			}
+		}
+	}))
+
+	defer ts.Close()
+	reqBase := New().
+		Set("base", "header").
+		Set("API-KEY", "base").
+		Param("queryBase", "yep")
+
+	// define the two request
+	req1 := reqBase.Clone().Get(ts.URL + case1_empty)
+	req2 := reqBase.Clone().Get(ts.URL+case2_set_header).
+		Set("API-Key", "fookey")
+	req3 := reqBase.Clone().Get(ts.URL+case3_set_query).
+		Param("newQuery", "newVal")
+	req4 := reqBase.Clone().Get(ts.URL+case4_set_both).
+		Param("fourth", "4val").
+		Set("FOURTH", "fourkey")
+	req5 := reqBase.Clone().Get(ts.URL + case5_empty)
+	// now they have different bases, so make the requests
+	req1.End()
+	req2.End()
+	req3.End()
+	req4.End()
+	req5.End()
+}
+
+// testing for Get method.. but clone our base.
+func TestConcurrently(t *testing.T) {
+	const case1_empty = "/"
+	const case2_set_header = "/set_header"
+	const case3_set_query = "/set_query"
+	const case4_set_both = "/set_both"
+	const case5_post = "/post"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is GET before going to check other features
+		if r.Method != GET && r.URL.Path != case5_post {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
+		} else if r.Method != POST && r.URL.Path == case5_post {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		t.Logf("header %v", r.Header)
+		if r.Header.Get("base") != "header" {
+			t.Errorf("Expected base header: %s", r.Header.Get("base"))
+		}
+		if r.URL.Query().Get("queryBase") != "yep" {
+			t.Errorf("Expected queryBase queryParam: %s", r.URL.Query().Get("queryBase"))
+		}
+		switch r.URL.Path {
+		default:
+			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case1_empty:
+			t.Logf("case %v ", case1_empty)
+			if r.Header.Get("API-Key") != "base" {
+				t.Errorf("Expected 'API-Key' == %q; got %q", "base", r.Header.Get("API-Key"))
+			}
+			if r.URL.Query().Get("newQuery") != "" {
+				t.Errorf("Expected 'newQuery' == %q; got %q", "", r.URL.Query().Get("newQuery"))
+			}
+			if r.Header.Get("FOURTH") != "" {
+				t.Errorf("Expected 'FOURTH' == %q; got %q", "", r.Header.Get("FOURTH"))
+			}
+		case case2_set_header:
+			t.Logf("case %v ", case2_set_header)
+			if r.Header.Get("API-Key") != "fookey" {
+				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+			}
+		case case3_set_query:
+			t.Logf("case %v ", case3_set_query)
+			if r.URL.Query().Get("newQuery") != "newVal" {
+				t.Errorf("Expected 'newQuery' == %q; got %q", "newVal", r.URL.Query().Get("newQuery"))
+			}
+		case case4_set_both:
+			t.Logf("case %v ", case3_set_query)
+			if r.URL.Query().Get("fourth") != "4val" {
+				t.Errorf("Expected 'fourth' == %q; got %q", "4val", r.URL.Query().Get("fourth"))
+			}
+			if r.Header.Get("FOURTH") != "fourkey" {
+				t.Errorf("Expected 'FOURTH' == %q; got %q", "fourkey", r.Header.Get("FOURTH"))
+			}
+		case case5_post:
+			t.Logf("case %v ", case5_post)
+			if r.URL.Query().Get("iteration") == "" {
+				t.Errorf("Expected 'fourth' != %q; got %q", "", r.URL.Query().Get("iteration"))
+			}
+			r.ParseForm()
+			if r.Form.Get("form_iteration") == "" {
+				t.Errorf("Expected 'form_iteration' != %q; got %q", "", r.Form.Get("form_iteration"))
+			}
+			if r.Form.Get("form_iteration") != r.URL.Query().Get("iteration") {
+				t.Errorf("Expected 'form_iteration' == %q; got %q", r.URL.Query().Get("iteration"), r.Form.Get("form_iteration"))
+			}
+		}
+	}))
+
+	defer ts.Close()
+	reqBase := New().
+		Set("base", "header").
+		Set("API-KEY", "base").
+		Param("queryBase", "yep")
+
+	var waitForCompletion sync.WaitGroup
+
+	// define the two request
+	for i := 0; i < 1000; i++ {
+		waitForCompletion.Add(5)
+		go func() {
+			reqBase.Clone().Get(ts.URL + case1_empty).End()
+			waitForCompletion.Done()
+		}()
+		go func() {
+			reqBase.Clone().Get(ts.URL+case2_set_header).
+				Set("API-Key", "fookey").
+				End()
+			waitForCompletion.Done()
+		}()
+		go func() {
+			reqBase.Clone().Get(ts.URL+case3_set_query).
+				Param("newQuery", "newVal").
+				End()
+			waitForCompletion.Done()
+		}()
+		go func() {
+			reqBase.Clone().Get(ts.URL+case4_set_both).
+				Param("fourth", "4val").
+				Set("FOURTH", "fourkey").
+				End()
+			waitForCompletion.Done()
+		}()
+		go func(iter int) {
+			iterStr := fmt.Sprintf("%d", iter)
+			reqBase.Clone().Post(ts.URL+case5_post).
+				Param("iteration", iterStr).
+				Type("form").
+				Send(fmt.Sprintf(`{"form_iteration": "%s"}`, iterStr)).
+				End()
+			waitForCompletion.Done()
+		}(i)
+	}
+	waitForCompletion.Wait()
+}
+
 // testing for Get method with retry option
 func TestRetryGet(t *testing.T) {
 	const (
@@ -321,34 +663,37 @@ func TestParam(t *testing.T) {
 		Param("fields", paramFields)
 }
 
-// testing for POST method
-func TestPost(t *testing.T) {
-	const case1_empty = "/"
-	const case2_set_header = "/set_header"
-	const case3_send_json = "/send_json"
-	const case4_send_string = "/send_string"
-	const case5_integration_send_json_string = "/integration_send_json_string"
-	const case6_set_query = "/set_query"
-	const case7_integration_send_json_struct = "/integration_send_json_struct"
+const (
+	test_post_case1_empty                        = "/"
+	test_post_case2_set_header                   = "/set_header"
+	test_post_case3_send_json                    = "/send_json"
+	test_post_case4_send_string                  = "/send_string"
+	test_post_case5_integration_send_json_string = "/integration_send_json_string"
+	test_post_case6_set_query                    = "/set_query"
+	test_post_case7_integration_send_json_struct = "/integration_send_json_struct"
 	// Check that the number conversion should be converted as string not float64
-	const case8_send_json_with_long_id_number = "/send_json_with_long_id_number"
-	const case9_send_json_string_with_long_id_number_as_form_result = "/send_json_string_with_long_id_number_as_form_result"
-	const case10_send_struct_pointer = "/send_struct_pointer"
-	const case11_send_string_pointer = "/send_string_pointer"
-	const case12_send_slice_string = "/send_slice_string"
-	const case13_send_slice_string_pointer = "/send_slice_string_pointer"
-	const case14_send_int_pointer = "/send_int_pointer"
-	const case15_send_float_pointer = "/send_float_pointer"
-	const case16_send_bool_pointer = "/send_bool_pointer"
-	const case17_send_string_array = "/send_string_array"
-	const case18_send_string_array_pointer = "/send_string_array_pointer"
-	const case19_send_struct = "/send_struct"
-	const case20_send_byte_char = "/send_byte_char"
-	const case21_send_byte_char_pointer = "/send_byte_char_pointer"
-	const case22_send_byte_int = "/send_byte_int"
-	const case22_send_byte_int_pointer = "/send_byte_int_pointer"
-	const case23_send_duplicate_query_params = "/send_duplicate_query_params"
-	const case24_send_query_and_request_body = "/send_query_and_request_body"
+	test_post_case8_send_json_with_long_id_number                       = "/send_json_with_long_id_number"
+	test_post_case9_send_json_string_with_long_id_number_as_form_result = "/send_json_string_with_long_id_number_as_form_result"
+	test_post_case10_send_struct_pointer                                = "/send_struct_pointer"
+	test_post_case11_send_string_pointer                                = "/send_string_pointer"
+	test_post_case12_send_slice_string                                  = "/send_slice_string"
+	test_post_case13_send_slice_string_pointer                          = "/send_slice_string_pointer"
+	test_post_case14_send_int_pointer                                   = "/send_int_pointer"
+	test_post_case15_send_float_pointer                                 = "/send_float_pointer"
+	test_post_case16_send_bool_pointer                                  = "/send_bool_pointer"
+	test_post_case17_send_string_array                                  = "/send_string_array"
+	test_post_case18_send_string_array_pointer                          = "/send_string_array_pointer"
+	test_post_case19_send_struct                                        = "/send_struct"
+	test_post_case20_send_byte_char                                     = "/send_byte_char"
+	test_post_case21_send_byte_char_pointer                             = "/send_byte_char_pointer"
+	test_post_case22_send_byte_int                                      = "/send_byte_int"
+	test_post_case22_send_byte_int_pointer                              = "/send_byte_int_pointer"
+	test_post_case23_send_duplicate_query_params                        = "/send_duplicate_query_params"
+	test_post_case24_send_query_and_request_body                        = "/send_query_and_request_body"
+)
+
+// testing for POST method
+func testPostServer(t *testing.T) *httptest.Server {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is POST before going to check other features
@@ -361,21 +706,21 @@ func TestPost(t *testing.T) {
 		switch r.URL.Path {
 		default:
 			t.Errorf("No testing for this case yet : %q", r.URL.Path)
-		case case1_empty:
-			t.Logf("case %v ", case1_empty)
-		case case2_set_header:
-			t.Logf("case %v ", case2_set_header)
+		case test_post_case1_empty:
+			t.Logf("case %v ", test_post_case1_empty)
+		case test_post_case2_set_header:
+			t.Logf("case %v ", test_post_case2_set_header)
 			if r.Header.Get("API-Key") != "fookey" {
 				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
 			}
-		case case3_send_json:
-			t.Logf("case %v ", case3_send_json)
+		case test_post_case3_send_json:
+			t.Logf("case %v ", test_post_case3_send_json)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != `{"query1":"test","query2":"test"}` {
 				t.Error(`Expected Body with {"query1":"test","query2":"test"}`, "| but got", string(body))
 			}
-		case case4_send_string, case11_send_string_pointer:
+		case test_post_case4_send_string, test_post_case11_send_string_pointer:
 			t.Logf("case %v ", r.URL.Path)
 			if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
 				t.Error("Expected Header Content-Type -> application/x-www-form-urlencoded", "| but got", r.Header.Get("Content-Type"))
@@ -385,15 +730,15 @@ func TestPost(t *testing.T) {
 			if string(body) != "query1=test&query2=test" {
 				t.Error("Expected Body with \"query1=test&query2=test\"", "| but got", string(body))
 			}
-		case case5_integration_send_json_string:
-			t.Logf("case %v ", case5_integration_send_json_string)
+		case test_post_case5_integration_send_json_string:
+			t.Logf("case %v ", test_post_case5_integration_send_json_string)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "query1=test&query2=test" {
 				t.Error("Expected Body with \"query1=test&query2=test\"", "| but got", string(body))
 			}
-		case case6_set_query:
-			t.Logf("case %v ", case6_set_query)
+		case test_post_case6_set_query:
+			t.Logf("case %v ", test_post_case6_set_query)
 			v := r.URL.Query()
 			if v["query1"][0] != "test" {
 				t.Error("Expected query1:test", "| but got", v["query1"][0])
@@ -401,29 +746,29 @@ func TestPost(t *testing.T) {
 			if v["query2"][0] != "test" {
 				t.Error("Expected query2:test", "| but got", v["query2"][0])
 			}
-		case case7_integration_send_json_struct:
-			t.Logf("case %v ", case7_integration_send_json_struct)
+		case test_post_case7_integration_send_json_struct:
+			t.Logf("case %v ", test_post_case7_integration_send_json_struct)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			comparedBody := []byte(`{"Lower":{"Color":"green","Size":1.7},"Upper":{"Color":"red","Size":0},"a":"a","name":"Cindy"}`)
 			if !bytes.Equal(body, comparedBody) {
 				t.Errorf(`Expected correct json but got ` + string(body))
 			}
-		case case8_send_json_with_long_id_number:
-			t.Logf("case %v ", case8_send_json_with_long_id_number)
+		case test_post_case8_send_json_with_long_id_number:
+			t.Logf("case %v ", test_post_case8_send_json_with_long_id_number)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != `{"id":123456789,"name":"nemo"}` {
 				t.Error(`Expected Body with {"id":123456789,"name":"nemo"}`, "| but got", string(body))
 			}
-		case case9_send_json_string_with_long_id_number_as_form_result:
-			t.Logf("case %v ", case9_send_json_string_with_long_id_number_as_form_result)
+		case test_post_case9_send_json_string_with_long_id_number_as_form_result:
+			t.Logf("case %v ", test_post_case9_send_json_string_with_long_id_number_as_form_result)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != `id=123456789&name=nemo` {
 				t.Error(`Expected Body with "id=123456789&name=nemo"`, `| but got`, string(body))
 			}
-		case case19_send_struct, case10_send_struct_pointer:
+		case test_post_case19_send_struct, test_post_case10_send_struct_pointer:
 			t.Logf("case %v ", r.URL.Path)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
@@ -431,7 +776,7 @@ func TestPost(t *testing.T) {
 			if !bytes.Equal(body, comparedBody) {
 				t.Errorf(`Expected correct json but got ` + string(body))
 			}
-		case case12_send_slice_string, case13_send_slice_string_pointer, case17_send_string_array, case18_send_string_array_pointer:
+		case test_post_case12_send_slice_string, test_post_case13_send_slice_string_pointer, test_post_case17_send_string_array, test_post_case18_send_string_array_pointer:
 			t.Logf("case %v ", r.URL.Path)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
@@ -439,36 +784,36 @@ func TestPost(t *testing.T) {
 			if !bytes.Equal(body, comparedBody) {
 				t.Errorf(`Expected correct json but got ` + string(body))
 			}
-		case case14_send_int_pointer:
-			t.Logf("case %v ", case14_send_int_pointer)
+		case test_post_case14_send_int_pointer:
+			t.Logf("case %v ", test_post_case14_send_int_pointer)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "42" {
 				t.Error("Expected Body with \"42\"", "| but got", string(body))
 			}
-		case case15_send_float_pointer:
-			t.Logf("case %v ", case15_send_float_pointer)
+		case test_post_case15_send_float_pointer:
+			t.Logf("case %v ", test_post_case15_send_float_pointer)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "12.345" {
 				t.Error("Expected Body with \"12.345\"", "| but got", string(body))
 			}
-		case case16_send_bool_pointer:
-			t.Logf("case %v ", case16_send_bool_pointer)
+		case test_post_case16_send_bool_pointer:
+			t.Logf("case %v ", test_post_case16_send_bool_pointer)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "true" {
 				t.Error("Expected Body with \"true\"", "| but got", string(body))
 			}
-		case case20_send_byte_char, case21_send_byte_char_pointer, case22_send_byte_int, case22_send_byte_int_pointer:
+		case test_post_case20_send_byte_char, test_post_case21_send_byte_char_pointer, test_post_case22_send_byte_int, test_post_case22_send_byte_int_pointer:
 			t.Logf("case %v ", r.URL.Path)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "71" {
 				t.Error("Expected Body with \"71\"", "| but got", string(body))
 			}
-		case case23_send_duplicate_query_params:
-			t.Logf("case %v ", case23_send_duplicate_query_params)
+		case test_post_case23_send_duplicate_query_params:
+			t.Logf("case %v ", test_post_case23_send_duplicate_query_params)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			sbody := string(body)
@@ -482,8 +827,8 @@ func TestPost(t *testing.T) {
 			if values["param"][0] != "4" || values["param"][1] != "3" || values["param"][2] != "2" || values["param"][3] != "1" {
 				t.Error("Expected Body with 4 params and values", "| but got", sbody)
 			}
-		case case24_send_query_and_request_body:
-			t.Logf("case %v ", case24_send_query_and_request_body)
+		case test_post_case24_send_query_and_request_body:
+			t.Logf("case %v ", test_post_case24_send_query_and_request_body)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			sbody := string(body)
@@ -497,26 +842,31 @@ func TestPost(t *testing.T) {
 			}
 		}
 	}))
+	return ts
+}
+
+func TestPost(t *testing.T) {
+	ts := testPostServer(t)
 	defer ts.Close()
 
-	New().Post(ts.URL + case1_empty).
+	New().Post(ts.URL + test_post_case1_empty).
 		End()
 
-	New().Post(ts.URL+case2_set_header).
+	New().Post(ts.URL+test_post_case2_set_header).
 		Set("API-Key", "fookey").
 		End()
 
-	New().Post(ts.URL + case3_send_json).
+	New().Post(ts.URL + test_post_case3_send_json).
 		Send(`{"query1":"test"}`).
 		Send(`{"query2":"test"}`).
 		End()
 
-	New().Post(ts.URL + case4_send_string).
+	New().Post(ts.URL + test_post_case4_send_string).
 		Send("query1=test").
 		Send("query2=test").
 		End()
 
-	New().Post(ts.URL + case5_integration_send_json_string).
+	New().Post(ts.URL + test_post_case5_integration_send_json_string).
 		Send("query1=test").
 		Send(`{"query2":"test"}`).
 		End()
@@ -524,7 +874,7 @@ func TestPost(t *testing.T) {
 	/* TODO: More testing post for application/x-www-form-urlencoded
 	   post.query(json), post.query(string), post.send(json), post.send(string), post.query(both).send(both)
 	*/
-	New().Post(ts.URL + case6_set_query).
+	New().Post(ts.URL + test_post_case6_set_query).
 		Query("query1=test").
 		Query("query2=test").
 		End()
@@ -548,16 +898,16 @@ func TestPost(t *testing.T) {
 		Name  string `json:"name"`
 	}
 	myStyle := Style{Upper: Upper{Color: "red"}, Name: "Cindy", Lower: Lower{Color: "green", Size: 1.7}}
-	New().Post(ts.URL + case7_integration_send_json_struct).
+	New().Post(ts.URL + test_post_case7_integration_send_json_struct).
 		Send(`{"a":"a"}`).
 		Send(myStyle).
 		End()
 
-	New().Post(ts.URL + case8_send_json_with_long_id_number).
+	New().Post(ts.URL + test_post_case8_send_json_with_long_id_number).
 		Send(`{"id":123456789, "name":"nemo"}`).
 		End()
 
-	New().Post(ts.URL + case9_send_json_string_with_long_id_number_as_form_result).
+	New().Post(ts.URL + test_post_case9_send_json_string_with_long_id_number_as_form_result).
 		Type("form").
 		Send(`{"id":123456789, "name":"nemo"}`).
 		End()
@@ -574,74 +924,74 @@ func TestPost(t *testing.T) {
 		FloatArray:  []float64{1.23, 4.56, 7.89},
 	}
 
-	New().Post(ts.URL + case10_send_struct_pointer).
+	New().Post(ts.URL + test_post_case10_send_struct_pointer).
 		Send(&payload).
 		End()
 
-	New().Post(ts.URL + case19_send_struct).
+	New().Post(ts.URL + test_post_case19_send_struct).
 		Send(payload).
 		End()
 
 	s1 := "query1=test"
 	s2 := "query2=test"
-	New().Post(ts.URL + case11_send_string_pointer).
+	New().Post(ts.URL + test_post_case11_send_string_pointer).
 		Send(&s1).
 		Send(&s2).
 		End()
 
-	New().Post(ts.URL + case12_send_slice_string).
+	New().Post(ts.URL + test_post_case12_send_slice_string).
 		Send([]string{"string1", "string2"}).
 		End()
 
-	New().Post(ts.URL + case13_send_slice_string_pointer).
+	New().Post(ts.URL + test_post_case13_send_slice_string_pointer).
 		Send(&[]string{"string1", "string2"}).
 		End()
 
 	i := 42
-	New().Post(ts.URL + case14_send_int_pointer).
+	New().Post(ts.URL + test_post_case14_send_int_pointer).
 		Send(&i).
 		End()
 
 	f := 12.345
-	New().Post(ts.URL + case15_send_float_pointer).
+	New().Post(ts.URL + test_post_case15_send_float_pointer).
 		Send(&f).
 		End()
 
 	b := true
-	New().Post(ts.URL + case16_send_bool_pointer).
+	New().Post(ts.URL + test_post_case16_send_bool_pointer).
 		Send(&b).
 		End()
 
 	var a [2]string
 	a[0] = "string1"
 	a[1] = "string2"
-	New().Post(ts.URL + case17_send_string_array).
+	New().Post(ts.URL + test_post_case17_send_string_array).
 		Send(a).
 		End()
 
-	New().Post(ts.URL + case18_send_string_array_pointer).
+	New().Post(ts.URL + test_post_case18_send_string_array_pointer).
 		Send(&a).
 		End()
 
 	aByte := byte('G') // = 71 dec
-	New().Post(ts.URL + case20_send_byte_char).
+	New().Post(ts.URL + test_post_case20_send_byte_char).
 		Send(aByte).
 		End()
 
-	New().Post(ts.URL + case21_send_byte_char_pointer).
+	New().Post(ts.URL + test_post_case21_send_byte_char_pointer).
 		Send(&aByte).
 		End()
 
 	iByte := byte(71) // = 'G'
-	New().Post(ts.URL + case22_send_byte_int).
+	New().Post(ts.URL + test_post_case22_send_byte_int).
 		Send(iByte).
 		End()
 
-	New().Post(ts.URL + case22_send_byte_int_pointer).
+	New().Post(ts.URL + test_post_case22_send_byte_int_pointer).
 		Send(&iByte).
 		End()
 
-	New().Post(ts.URL + case23_send_duplicate_query_params).
+	New().Post(ts.URL + test_post_case23_send_duplicate_query_params).
 		Send("param=1").
 		Send("param=2").
 		Send("param=3&param=4").
@@ -650,7 +1000,171 @@ func TestPost(t *testing.T) {
 	data24 := struct {
 		Name string `json:"name"`
 	}{"jkbbwr"}
-	New().Post(ts.URL + case24_send_query_and_request_body).
+	New().Post(ts.URL + test_post_case24_send_query_and_request_body).
+		Query("test=true").
+		Send(data24).
+		End()
+}
+
+// clone the super agent instead of calling New each time
+func TestPostCloneSuperAgent(t *testing.T) {
+	ts := testPostServer(t)
+	defer ts.Close()
+
+	baseRequest := New()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case1_empty).
+		End()
+
+	baseRequest.Clone().Post(ts.URL+test_post_case2_set_header).
+		Set("API-Key", "fookey").
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case3_send_json).
+		Send(`{"query1":"test"}`).
+		Send(`{"query2":"test"}`).
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case4_send_string).
+		Send("query1=test").
+		Send("query2=test").
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case5_integration_send_json_string).
+		Send("query1=test").
+		Send(`{"query2":"test"}`).
+		End()
+
+	/* TODO: More testing post for application/x-www-form-urlencoded
+	   post.query(json), post.query(string), post.send(json), post.send(string), post.query(both).send(both)
+	*/
+	baseRequest.Clone().Post(ts.URL + test_post_case6_set_query).
+		Query("query1=test").
+		Query("query2=test").
+		End()
+	// TODO:
+	// 1. test 2nd layer nested struct
+	// 2. test lowercase won't be export to json
+	// 3. test field tag change to json field name
+	type Upper struct {
+		Color string
+		Size  int
+		note  string
+	}
+	type Lower struct {
+		Color string
+		Size  float64
+		note  string
+	}
+	type Style struct {
+		Upper Upper
+		Lower Lower
+		Name  string `json:"name"`
+	}
+	myStyle := Style{Upper: Upper{Color: "red"}, Name: "Cindy", Lower: Lower{Color: "green", Size: 1.7}}
+	baseRequest.Clone().Post(ts.URL + test_post_case7_integration_send_json_struct).
+		Send(`{"a":"a"}`).
+		Send(myStyle).
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case8_send_json_with_long_id_number).
+		Send(`{"id":123456789, "name":"nemo"}`).
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case9_send_json_string_with_long_id_number_as_form_result).
+		Type("form").
+		Send(`{"id":123456789, "name":"nemo"}`).
+		End()
+
+	payload := testStruct{
+		String:      "a string",
+		Int:         42,
+		Btrue:       true,
+		Bfalse:      false,
+		Float:       12.345,
+		StringArray: []string{"string1", "string2"},
+		IntArray:    []int{1, 2},
+		BoolArray:   []bool{true, false},
+		FloatArray:  []float64{1.23, 4.56, 7.89},
+	}
+
+	baseRequest.Clone().Post(ts.URL + test_post_case10_send_struct_pointer).
+		Send(&payload).
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case19_send_struct).
+		Send(payload).
+		End()
+
+	s1 := "query1=test"
+	s2 := "query2=test"
+	baseRequest.Clone().Post(ts.URL + test_post_case11_send_string_pointer).
+		Send(&s1).
+		Send(&s2).
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case12_send_slice_string).
+		Send([]string{"string1", "string2"}).
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case13_send_slice_string_pointer).
+		Send(&[]string{"string1", "string2"}).
+		End()
+
+	i := 42
+	baseRequest.Clone().Post(ts.URL + test_post_case14_send_int_pointer).
+		Send(&i).
+		End()
+
+	f := 12.345
+	baseRequest.Clone().Post(ts.URL + test_post_case15_send_float_pointer).
+		Send(&f).
+		End()
+
+	b := true
+	baseRequest.Clone().Post(ts.URL + test_post_case16_send_bool_pointer).
+		Send(&b).
+		End()
+
+	var a [2]string
+	a[0] = "string1"
+	a[1] = "string2"
+	baseRequest.Clone().Post(ts.URL + test_post_case17_send_string_array).
+		Send(a).
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case18_send_string_array_pointer).
+		Send(&a).
+		End()
+
+	aByte := byte('G') // = 71 dec
+	baseRequest.Clone().Post(ts.URL + test_post_case20_send_byte_char).
+		Send(aByte).
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case21_send_byte_char_pointer).
+		Send(&aByte).
+		End()
+
+	iByte := byte(71) // = 'G'
+	baseRequest.Clone().Post(ts.URL + test_post_case22_send_byte_int).
+		Send(iByte).
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case22_send_byte_int_pointer).
+		Send(&iByte).
+		End()
+
+	baseRequest.Clone().Post(ts.URL + test_post_case23_send_duplicate_query_params).
+		Send("param=1").
+		Send("param=2").
+		Send("param=3&param=4").
+		End()
+
+	data24 := struct {
+		Name string `json:"name"`
+	}{"jkbbwr"}
+	baseRequest.Clone().Post(ts.URL + test_post_case24_send_query_and_request_body).
 		Query("test=true").
 		Send(data24).
 		End()
@@ -712,6 +1226,7 @@ func TestMultipartRequest(t *testing.T) {
 	const case25_send_file_with_name_with_spaces_only = "/send_file_with_name_with_spaces_only"
 	const case26_send_file_with_fieldname_with_spaces = "/send_file_with_fieldname_with_spaces"
 	const case27_send_file_with_fieldname_with_spaces_only = "/send_file_with_fieldname_with_spaces_only"
+	const case28_send_file_with_file_as_fieldname_and_skip_file_numbering_true = "/send_file_with_file_as_fieldname_and_skip_file_numbering_true"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is POST before going to check other features
@@ -1025,6 +1540,16 @@ func TestMultipartRequest(t *testing.T) {
 				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
 			}
 			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
+		case case28_send_file_with_file_as_fieldname_and_skip_file_numbering_true:
+			if len(r.MultipartForm.File) != 1 {
+				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+			}
+			if val, ok := r.MultipartForm.File["file"]; !ok {
+				t.Error("Expected file with key: file", "| but got ", val)
+			}
+			if r.MultipartForm.File["file"][0].Filename != "LICENSE" {
+				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file"][0].Filename)
+			}
 		}
 
 	}))
@@ -1063,6 +1588,7 @@ func TestMultipartRequest(t *testing.T) {
 		Type("multipart").
 		Query("query1=test").
 		Query("query2=test").
+		Send("foo").
 		End()
 
 	New().Post(ts.URL + case5_send_struct).
@@ -1221,6 +1747,11 @@ func TestMultipartRequest(t *testing.T) {
 	New().Post(ts.URL+case27_send_file_with_fieldname_with_spaces_only).
 		Type("multipart").
 		SendFile(osFile, "", "   ").
+		End()
+
+	New().Post(ts.URL+case28_send_file_with_file_as_fieldname_and_skip_file_numbering_true).
+		Type("multipart").
+		SendFile(osFile, "", "file", true).
 		End()
 }
 
@@ -1514,6 +2045,57 @@ func TestProxyFunc(t *testing.T) {
 	}
 }
 
+func TestProxyFuncPostClone(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/proxy1" {
+			fmt.Fprint(w, "proxy1 passed")
+			return
+		}
+		if r.URL.Path == "/proxy2" {
+			fmt.Fprint(w, "proxy2 passed")
+			return
+		}
+		fmt.Fprint(w, "proxy failed")
+	}))
+	defer ts.Close()
+	// start proxy
+	proxy := goproxy.NewProxyHttpServer()
+	proxy.OnRequest().DoFunc(
+		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+			r.URL.Path = "/proxy1"
+			return r, nil
+		})
+	proxyTs := httptest.NewServer(proxy)
+	defer proxyTs.Close()
+
+	proxy2 := goproxy.NewProxyHttpServer()
+	proxy2.OnRequest().DoFunc(
+		func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+			r.URL.Path = "/proxy2"
+			return r, nil
+		})
+	proxy2Ts := httptest.NewServer(proxy2)
+	defer proxy2Ts.Close()
+
+	baseRequest := New().Proxy(proxyTs.URL)
+	// sending request via Proxy
+	resp1, body1, _ := baseRequest.Clone().Proxy(proxy2Ts.URL).Get(ts.URL).End()
+	if resp1.StatusCode != 200 {
+		t.Error("Expected 200 Status code")
+	}
+	if body1 != "proxy2 passed" {
+		t.Error("Expected 'proxy2 passed' body1 string")
+	}
+	// sending request via Proxy
+	resp2, body2, _ := baseRequest.Clone().Get(ts.URL).End()
+	if resp2.StatusCode != 200 {
+		t.Error("Expected 200 Status code")
+	}
+	if body2 != "proxy1 passed" {
+		t.Error("Expected 'proxy1 passed' body2 string")
+	}
+}
+
 func TestTimeoutFunc(t *testing.T) {
 	// 1st case, dial timeout
 	startTime := time.Now()
@@ -1644,6 +2226,42 @@ func TestErrorTypeWrongKey(t *testing.T) {
 	}
 }
 
+// expect the first clone to result in an erro
+// the second clone should succeed
+func TestErrorThenReUseBase(t *testing.T) {
+	//defer afterTest(t)
+	requestCount := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		if requestCount == 1 {
+			fmt.Fprintln(w, "Hello, checkTypeWrongKey")
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	baseRequest := New()
+	_, _, err := baseRequest.Clone().
+		Get(ts.URL).
+		Type("wrongtype").
+		End()
+	if len(err) != 0 {
+		if err[0].Error() != "Type func: incorrect type \"wrongtype\"" {
+			t.Errorf("Wrong error message: " + err[0].Error())
+		}
+	} else {
+		t.Error("Should have error")
+	}
+
+	_, _, err = baseRequest.Clone().
+		Get(ts.URL).
+		End()
+	if len(err) != 0 {
+		t.Errorf("Expected No error %v", err)
+	}
+}
+
 func TestBasicAuth(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := strings.SplitN(r.Header["Authorization"][0], " ", 2)
@@ -1659,6 +2277,96 @@ func TestBasicAuth(t *testing.T) {
 	defer ts.Close()
 	New().Post(ts.URL).
 		SetBasicAuth("myusername", "mypassword").
+		End()
+}
+
+func TestBasicAuthCloneToDifferentAuths(t *testing.T) {
+	requestCount := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		auth := strings.SplitN(r.Header["Authorization"][0], " ", 2)
+		if len(auth) != 2 || auth[0] != "Basic" {
+			t.Error("bad syntax")
+		}
+		payload, _ := base64.StdEncoding.DecodeString(auth[1])
+		pair := strings.SplitN(string(payload), ":", 2)
+		if requestCount == 1 {
+			if pair[0] != "myusername" || pair[1] != "mypassword" {
+				t.Error("Wrong username/password")
+			}
+		} else {
+			if pair[0] != "request2" || pair[1] != "request2passowrd" {
+				t.Error("Wrong username/password")
+			}
+		}
+	}))
+	defer ts.Close()
+	baseRequest := New()
+	baseRequest.Clone().
+		Post(ts.URL).
+		SetBasicAuth("myusername", "mypassword").
+		End()
+
+	baseRequest.Clone().
+		Post(ts.URL).
+		SetBasicAuth("request2", "request2passowrd").
+		End()
+}
+
+func TestBasicAuthCloneReuseAuth(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := strings.SplitN(r.Header["Authorization"][0], " ", 2)
+		if len(auth) != 2 || auth[0] != "Basic" {
+			t.Error("bad syntax")
+		}
+		payload, _ := base64.StdEncoding.DecodeString(auth[1])
+		pair := strings.SplitN(string(payload), ":", 2)
+		if pair[0] != "myusername" || pair[1] != "mypassword" {
+			t.Error("Wrong username/password")
+		}
+	}))
+	defer ts.Close()
+	baseRequest := New().
+		SetBasicAuth("myusername", "mypassword")
+	baseRequest.Clone().
+		Post(ts.URL).
+		End()
+
+	baseRequest.Clone().
+		Post(ts.URL).
+		End()
+}
+
+func TestBasicAuthCloneOverrideAuth(t *testing.T) {
+	requestCount := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		auth := strings.SplitN(r.Header["Authorization"][0], " ", 2)
+		if len(auth) != 2 || auth[0] != "Basic" {
+			t.Error("bad syntax")
+		}
+		payload, _ := base64.StdEncoding.DecodeString(auth[1])
+		pair := strings.SplitN(string(payload), ":", 2)
+		if requestCount == 1 {
+			if pair[0] != "request1" || pair[1] != "request1passowrd" {
+				t.Error("Wrong username/password")
+			}
+		} else {
+			if pair[0] != "myusername" || pair[1] != "mypassword" {
+				t.Error("Wrong username/password")
+			}
+		}
+	}))
+	defer ts.Close()
+	baseRequest := New().
+		SetBasicAuth("myusername", "mypassword")
+	baseRequest.Clone().
+		Post(ts.URL).
+		SetBasicAuth("request1", "request1passowrd").
+		End()
+
+	baseRequest.Clone().
+		Post(ts.URL).
 		End()
 }
 
@@ -1733,6 +2441,110 @@ func TestPlainText(t *testing.T) {
 		End()
 }
 
+// TestContentTypeInference tests that the ContentType header is set
+// properly when a custom override is provided using AppendHeader
+// or Set methods.
+// https://github.com/parnurzeal/gorequest/issues/164
+func TestContentTypeInference(t *testing.T) {
+	var tests = []struct {
+		customContentType string
+		//type is reserved keyword
+		Type           string
+		expectedHeader string
+		body           string
+	}{
+		{"application/json", "json", "application/json", "{}"},
+		{"", "json", "", ""},
+		{"", "json", "", "{}"},
+		{"text/json", "json", "text/json", "{}"},
+		{"text/xml", "json", "text/xml", "<a />"},
+	}
+	for _, test := range tests {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// check method is PATCH before going to check other features
+			if r.Method != POST {
+				t.Errorf("Expected method %q; got %q", POST, r.Method)
+			}
+			if r.Header == nil {
+				t.Error("Expected non-nil request Header")
+			}
+			if r.Header.Get("Content-Type") != test.expectedHeader {
+				t.Errorf("Expected Header Content-Type -> %q | but got %q", test.expectedHeader, r.Header.Get("Content-Type"))
+			}
+		}))
+
+		New().Post(ts.URL).
+			Set("Content-Type", test.customContentType).
+			Type(test.Type).
+			Send(test.body).
+			End()
+		New().Post(ts.URL).
+			Set("cOnTent-tYpE", test.customContentType).
+			Type(test.Type).
+			Send(test.body).
+			End()
+		New().Post(ts.URL).
+			AppendHeader("Content-Type", test.customContentType).
+			Type(test.Type).
+			Send(test.body).
+			End()
+		ts.Close()
+	}
+}
+
+// Test for request can accept multiple types.
+func TestAcceptMultipleTypes(t *testing.T) {
+	text := `hello world \r\n I am GoRequest`
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is PATCH before going to check other features
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		if r.Header.Get("Content-Type") != "text/plain" {
+			t.Error("Expected Header Content-Type -> text/plain", "| but got", r.Header.Get("Content-Type"))
+		}
+
+		expectedAccepts := []string{"text/plain", "application/json"}
+		if strings.Join(r.Header["Accept"], ", ") != strings.Join(expectedAccepts, ", ") {
+			t.Error("Expected Header Accept -> ", expectedAccepts, "| but got", r.Header["Accept"])
+		}
+
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != text {
+			t.Error(`Expected text `, text, "| but got", string(body))
+		}
+	}))
+
+	defer ts.Close()
+
+	New().Post(ts.URL).
+		AppendHeader("Accept", "text/plain").
+		AppendHeader("Accept", "application/json").
+		Type("text").
+		Send(text).
+		End()
+
+	New().Post(ts.URL).
+		Set("Accept", "text/plain").
+		AppendHeader("Accept", "application/json").
+		Set("Content-Type", "text/plain").
+		Send(text).
+		End()
+
+	New().Post(ts.URL).
+		AppendHeader("Accept", "texxt/html"). // This will be overwritten by Set("Accept")
+		Set("Accept", "text/plain").
+		AppendHeader("Accept", "application/json").
+		Type("text").
+		Send(text).
+		End()
+}
+
 func TestAsCurlCommand(t *testing.T) {
 	var (
 		endpoint = "http://github.com/parnurzeal/gorequest"
@@ -1772,5 +2584,25 @@ func TestSetDebugByEnvironmentVar(t *testing.T) {
 
 	if len(buf.String()) > 0 {
 		t.Fatalf("\nExpected gorequest not to log request and response object if GOREQUEST_DEBUG is not set.")
+	}
+}
+
+func TestContenxt(t *testing.T) {
+	// requesting a long connection which block this requst for a time,
+	// but 2 seconds later we unable to hold ourself back and force close it
+	ctx, cancel := context.WithCancel(context.Background())
+	go New().Context(ctx).Get("http://127.0.0.1:8080/foo").EndBytes(func(response Response, body []byte, errs []error) {
+
+
+		if len(errs) > 0 {
+			fmt.Printf("%+v\n", errs[0])
+		}
+		fmt.Println(string(body))
+	})
+
+	select {
+	case <-time.After(2 * time.Second):
+		fmt.Println("cancel...")
+		cancel()
 	}
 }
