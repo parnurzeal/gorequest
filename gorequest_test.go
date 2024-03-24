@@ -608,6 +608,72 @@ func TestRetryGet(t *testing.T) {
 	}
 }
 
+// testing for Get method with retryRev option
+func TestRetryRevGet(t *testing.T) {
+	const (
+		case1_empty                         = "/"
+		case24_after_3_attempt_return_valid = "/retry_3_attempt_then_valid"
+		retry_count_expected                = "3"
+	)
+
+	var attempt int
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check method is GET before going to check other features
+		if r.Method != GET {
+			t.Errorf("Expected method %q; got %q", GET, r.Method)
+		}
+
+		//set return status
+
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		switch r.URL.Path {
+		default:
+			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+		case case1_empty:
+			w.WriteHeader(http.StatusForbidden)
+			t.Logf("case %v ", case1_empty)
+		case case24_after_3_attempt_return_valid:
+			if attempt == 3 {
+				w.WriteHeader(200)
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				t.Logf("case %v ", case24_after_3_attempt_return_valid)
+			}
+			attempt++
+		}
+
+	}))
+
+	defer ts.Close()
+
+	resp, _, errs := New().Get(ts.URL+case1_empty).
+		RetryRev(3, 1*time.Nanosecond, http.StatusOK).
+		End()
+	if errs != nil {
+		t.Errorf("No testing for this case yet : %q", errs)
+	}
+
+	retryCountReturn := resp.Header.Get("Retry-Count")
+	if retryCountReturn != retry_count_expected {
+		t.Errorf("Expected [%s] retry but was [%s]", retry_count_expected, retryCountReturn)
+	}
+
+	resp, _, errs = New().Get(ts.URL+case24_after_3_attempt_return_valid).
+		RetryRev(4, 1*time.Nanosecond, http.StatusOK).
+		End()
+	if errs != nil {
+		t.Errorf("No testing for this case yet : %q", errs)
+	}
+
+	retryCountReturn = resp.Header.Get("Retry-Count")
+	if retryCountReturn != retry_count_expected {
+		t.Errorf("Expected [%s] retry but was [%s]", retry_count_expected, retryCountReturn)
+	}
+}
+
 // testing for Options method
 func TestOptions(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2592,7 +2658,6 @@ func TestContenxt(t *testing.T) {
 	// but 2 seconds later we unable to hold ourself back and force close it
 	ctx, cancel := context.WithCancel(context.Background())
 	go New().Context(ctx).Get("http://127.0.0.1:8080/foo").EndBytes(func(response Response, body []byte, errs []error) {
-
 
 		if len(errs) > 0 {
 			fmt.Printf("%+v\n", errs[0])
