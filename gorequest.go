@@ -24,7 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	"golang.org/x/net/publicsuffix"
-	"moul.io/http2curl"
+	"moul.io/http2curl/v2"
 )
 
 type Request *http.Request
