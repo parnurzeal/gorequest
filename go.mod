@@ -1,6 +1,6 @@
 module parnurzeal/gorequest
 
-go 1.22.0
+go 1.24.3
 
 require (
 	github.com/elazarl/goproxy v0.0.0-20231117061959-7cc037d33fb5
