@@ -45,70 +45,70 @@ type (
 // Test for type constants.
 func TestTypeConstants(t *testing.T) {
 	if TypeJSON != "json" {
-		t.Errorf("Expected TypeJSON -> json | but got %s", TypeJSON)
+		t.Error(fmt.Sprintf("Expected TypeJSON -> json | but got %s", TypeJSON))
 	}
 
 	if TypeXML != "xml" {
-		t.Errorf("Expected TypeXML -> xml | but got %s", TypeXML)
+		t.Error(fmt.Sprintf("Expected TypeXML -> xml | but got %s", TypeXML))
 	}
 
 	if TypeForm != "form" {
-		t.Errorf("Expected TypeForm -> form | but got %s", TypeForm)
+		t.Error(fmt.Sprintf("Expected TypeForm -> form | but got %s", TypeForm))
 	}
 
 	if TypeFormData != "form-data" {
-		t.Errorf("Expected TypeFormData -> form-data | but got %s", TypeFormData)
+		t.Error(fmt.Sprintf("Expected TypeFormData -> form-data | but got %s", TypeFormData))
 	}
 
 	if TypeUrlencoded != "urlencoded" {
-		t.Errorf("Expected TypeUrlencoded -> urlencoded | but got %s", TypeUrlencoded)
+		t.Error(fmt.Sprintf("Expected TypeUrlencoded -> urlencoded | but got %s", TypeUrlencoded))
 	}
 
 	if TypeHTML != "html" {
-		t.Errorf("Expected TypeHTML -> html | but got %s", TypeHTML)
+		t.Error(fmt.Sprintf("Expected TypeHTML -> html | but got %s", TypeHTML))
 	}
 
 	if TypeText != "text" {
-		t.Errorf("Expected TypeText -> text | but got %s", TypeText)
+		t.Error(fmt.Sprintf("Expected TypeText -> text | but got %s", TypeText))
 	}
 
 	if TypeMultipart != "multipart" {
-		t.Errorf("Expected TypeMultipart -> multipart | but got %s", TypeMultipart)
+		t.Error(fmt.Sprintf("Expected TypeMultipart -> multipart | but got %s", TypeMultipart))
 	}
 }
 
 // Test for Types map.
 func TestTypesMap(t *testing.T) {
 	if Types[TypeJSON] != "application/json" {
-		t.Errorf(`Expected Types["json"] -> "application/json" | but got %s`, Types[TypeJSON])
+		t.Error(fmt.Sprintf(`Expected Types["json"] -> "application/json" | but got %s`, Types[TypeJSON]))
 	}
 
 	if Types[TypeXML] != "application/xml" {
-		t.Errorf(`Expected Types["xml"] -> "applicaion/xml" | but got %s`, Types[TypeXML])
+		t.Error(fmt.Sprintf(`Expected Types["xml"] -> "applicaion/xml" | but got %s`, Types[TypeXML]))
 	}
 
 	if Types[TypeForm] != "application/x-www-form-urlencoded" {
-		t.Errorf(`Expected Types["form"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeForm])
+		t.Error(fmt.Sprintf(`Expected Types["form"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeForm]))
 	}
 
 	if Types[TypeFormData] != "application/x-www-form-urlencoded" {
-		t.Errorf(`Expected Types["form-data"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeFormData])
+		t.Error(fmt.Sprintf(`Expected Types["form-data"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeFormData]))
 	}
 
 	if Types[TypeUrlencoded] != "application/x-www-form-urlencoded" {
-		t.Errorf(`Expected Types["urlencoded"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeUrlencoded])
+		t.Error(fmt.Sprintf(`Expected Types["urlencoded"] -> "application/x-www-form-urlencoded" | but got %s`, Types[TypeUrlencoded]))
 	}
 
 	if Types[TypeHTML] != "text/html" {
-		t.Errorf(`Expected Types["html"] -> "text/html" | but got %s`, Types[TypeHTML])
+		t.Error(fmt.Sprintf(`Expected Types["html"] -> "text/html" | but got %s`, Types[TypeHTML]))
 	}
 
 	if Types[TypeText] != "text/plain" {
-		t.Errorf(`Expected Types["text"] -> "text/plain" | but got %s`, Types[TypeText])
+		t.Error(fmt.Sprintf(`Expected Types["text"] -> "text/plain" | but got %s`, Types[TypeText]))
 	}
 
 	if Types[TypeMultipart] != "multipart/form-data" {
-		t.Errorf(`Expected Types["multipart"] -> "multipart/form-data" | but got %s`, Types[TypeMultipart])
+		t.Error(fmt.Sprintf(`Expected Types["multipart"] -> "multipart/form-data" | but got %s`, Types[TypeMultipart]))
 	}
 }
 
@@ -135,74 +135,74 @@ func TestChangeMapToURLValues(t *testing.T) {
 	)
 
 	if s := urlValues.Get("s"); s != data["s"] {
-		t.Errorf("Expected string %v, got %v", data["s"], s)
+		t.Error(fmt.Sprintf("Expected string %v, got %v", data["s"], s))
 	}
 
 	s = urlValues.Get("i")
 	sd = strconv.Itoa(data["i"].(int))
 	if s != sd {
-		t.Errorf("Expected int %v, got %v", sd, s)
+		t.Error(fmt.Sprintf("Expected int %v, got %v", sd, s))
 	}
 
 	s = urlValues.Get("bt")
 	sd = strconv.FormatBool(data["bt"].(bool))
 	if s != sd {
-		t.Errorf("Expected boolean %v, got %v", sd, s)
+		t.Error(fmt.Sprintf("Expected boolean %v, got %v", sd, s))
 	}
 
 	s = urlValues.Get("bf")
 	sd = strconv.FormatBool(data["bf"].(bool))
 	if s != sd {
-		t.Errorf("Expected boolean %v, got %v", sd, s)
+		t.Error(fmt.Sprintf("Expected boolean %v, got %v", sd, s))
 	}
 
 	s = urlValues.Get("f")
 	sd = strconv.FormatFloat(data["f"].(float64), 'f', -1, 64)
 	if s != sd {
-		t.Errorf("Expected float %v, got %v", data["f"], s)
+		t.Error(fmt.Sprintf("Expected float %v, got %v", data["f"], s))
 	}
 
 	// array cases
 	// "To access multiple values, use the map directly."
 
 	if size := len(urlValues["sa"]); size != 2 {
-		t.Fatalf("Expected length %v, got %v", 2, size)
+		t.Fatal(fmt.Sprintf("Expected length %v, got %v", 2, size))
 	}
 	if urlValues["sa"][0] != "s1" {
-		t.Errorf("Expected string %v, got %v", "s1", urlValues["sa"][0])
+		t.Error(fmt.Sprintf("Expected string %v, got %v", "s1", urlValues["sa"][0]))
 	}
 	if urlValues["sa"][1] != "s2" {
-		t.Errorf("Expected string %v, got %v", "s2", urlValues["sa"][1])
+		t.Error(fmt.Sprintf("Expected string %v, got %v", "s2", urlValues["sa"][1]))
 	}
 
 	if size := len(urlValues["ia"]); size != 2 {
-		t.Fatalf("Expected length %v, got %v", 2, size)
+		t.Fatal(fmt.Sprintf("Expected length %v, got %v", 2, size))
 	}
 	if urlValues["ia"][0] != "47" {
-		t.Errorf("Expected string %v, got %v", "47", urlValues["ia"][0])
+		t.Error(fmt.Sprintf("Expected string %v, got %v", "47", urlValues["ia"][0]))
 	}
 	if urlValues["ia"][1] != "73" {
-		t.Errorf("Expected string %v, got %v", "73", urlValues["ia"][1])
+		t.Error(fmt.Sprintf("Expected string %v, got %v", "73", urlValues["ia"][1]))
 	}
 
 	if size := len(urlValues["ba"]); size != 2 {
-		t.Fatalf("Expected length %v, got %v", 2, size)
+		t.Fatal(fmt.Sprintf("Expected length %v, got %v", 2, size))
 	}
 	if urlValues["ba"][0] != "true" {
-		t.Errorf("Expected string %v, got %v", "true", urlValues["ba"][0])
+		t.Error(fmt.Sprintf("Expected string %v, got %v", "true", urlValues["ba"][0]))
 	}
 	if urlValues["ba"][1] != "false" {
-		t.Errorf("Expected string %v, got %v", "false", urlValues["ba"][1])
+		t.Error(fmt.Sprintf("Expected string %v, got %v", "false", urlValues["ba"][1]))
 	}
 
 	if size := len(urlValues["fa"]); size != 2 {
-		t.Fatalf("Expected length %v, got %v", 2, size)
+		t.Fatal(fmt.Sprintf("Expected length %v, got %v", 2, size))
 	}
 	if urlValues["fa"][0] != "1.23" {
-		t.Errorf("Expected string %v, got %v", "true", urlValues["fa"][0])
+		t.Error(fmt.Sprintf("Expected string %v, got %v", "true", urlValues["fa"][0]))
 	}
 	if urlValues["fa"][1] != "4.56" {
-		t.Errorf("Expected string %v, got %v", "false", urlValues["fa"][1])
+		t.Error(fmt.Sprintf("Expected string %v, got %v", "false", urlValues["fa"][1]))
 	}
 }
 
@@ -226,14 +226,14 @@ func TestMakeRequest(t *testing.T) {
 	for _, c := range cases {
 		_, err = c.s.MakeRequest()
 		if err != nil {
-			t.Errorf("Expected nil error for method %q; got %q", c.m, err.Error())
+			t.Error(fmt.Sprintf("Expected nil error for method %q; got %q", c.m, err.Error()))
 		}
 	}
 
 	// empty method should fail
 	_, err = New().CustomMethod("", "/").MakeRequest()
 	if err == nil {
-		t.Errorf("Expected non-nil error for empty method; got %q", err.Error())
+		t.Error(fmt.Sprintf("Expected non-nil error for empty method; got %q", err.Error()))
 	}
 }
 
@@ -244,20 +244,20 @@ func TestGet(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is GET before going to check other features
 		if r.Method != GET {
-			t.Errorf("Expected method %q; got %q", GET, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", GET, r.Method))
 		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 		switch r.URL.Path {
 		default:
-			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+			t.Error(fmt.Sprintf("No testing for this case yet : %q", r.URL.Path))
 		case case1_empty:
 			t.Logf("case %v ", case1_empty)
 		case case2_set_header:
 			t.Logf("case %v ", case2_set_header)
 			if r.Header.Get("API-Key") != "fookey" {
-				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+				t.Error(fmt.Sprintf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key")))
 			}
 		}
 	}))
@@ -279,20 +279,20 @@ func TestGetWithClone(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is GET before going to check other features
 		if r.Method != GET {
-			t.Errorf("Expected method %q; got %q", GET, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", GET, r.Method))
 		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 		switch r.URL.Path {
 		default:
-			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+			t.Error(fmt.Sprintf("No testing for this case yet : %q", r.URL.Path))
 		case case1_empty:
 			t.Logf("case %v ", case1_empty)
 		case case2_set_header:
 			t.Logf("case %v ", case2_set_header)
 			if r.Header.Get("API-Key") != "fookey" {
-				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+				t.Error(fmt.Sprintf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key")))
 			}
 		}
 	}))
@@ -314,20 +314,20 @@ func TestGetWithCloneRequestAfterMake(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is GET before going to check other features
 		if r.Method != GET {
-			t.Errorf("Expected method %q; got %q", GET, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", GET, r.Method))
 		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 		switch r.URL.Path {
 		default:
-			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+			t.Error(fmt.Sprintf("No testing for this case yet : %q", r.URL.Path))
 		case case1_empty:
 			t.Logf("case %v ", case1_empty)
 		case case2_set_header:
 			t.Logf("case %v ", case2_set_header)
 			if r.Header.Get("API-Key") != "fookey" {
-				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+				t.Error(fmt.Sprintf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key")))
 			}
 		}
 	}))
@@ -353,49 +353,49 @@ func TestGetWithCloneWithHeadersAndQuery(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is GET before going to check other features
 		if r.Method != GET {
-			t.Errorf("Expected method %q; got %q", GET, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", GET, r.Method))
 		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 		t.Logf("header %v", r.Header)
 		if r.Header.Get("base") != "header" {
-			t.Errorf("Expected base header: %s", r.Header.Get("base"))
+			t.Error(fmt.Sprintf("Expected base header: %s", r.Header.Get("base")))
 		}
 		if r.URL.Query().Get("queryBase") != "yep" {
-			t.Errorf("Expected queryBase queryParam: %s", r.URL.Query().Get("queryBase"))
+			t.Error(fmt.Sprintf("Expected queryBase queryParam: %s", r.URL.Query().Get("queryBase")))
 		}
 		switch r.URL.Path {
 		default:
-			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+			t.Error(fmt.Sprintf("No testing for this case yet : %q", r.URL.Path))
 		case case1_empty, case5_empty:
 			t.Logf("case %v ", case1_empty)
 			if r.Header.Get("API-Key") != "base" {
-				t.Errorf("Expected 'API-Key' == %q; got %q", "base", r.Header.Get("API-Key"))
+				t.Error(fmt.Sprintf("Expected 'API-Key' == %q; got %q", "base", r.Header.Get("API-Key")))
 			}
 			if r.URL.Query().Get("newQuery") != "" {
-				t.Errorf("Expected 'newQuery' == %q; got %q", "", r.URL.Query().Get("newQuery"))
+				t.Error(fmt.Sprintf("Expected 'newQuery' == %q; got %q", "", r.URL.Query().Get("newQuery")))
 			}
 			if r.Header.Get("FOURTH") != "" {
-				t.Errorf("Expected 'FOURTH' == %q; got %q", "", r.Header.Get("FOURTH"))
+				t.Error(fmt.Sprintf("Expected 'FOURTH' == %q; got %q", "", r.Header.Get("FOURTH")))
 			}
 		case case2_set_header:
 			t.Logf("case %v ", case2_set_header)
 			if r.Header.Get("API-Key") != "fookey" {
-				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+				t.Error(fmt.Sprintf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key")))
 			}
 		case case3_set_query:
 			t.Logf("case %v ", case3_set_query)
 			if r.URL.Query().Get("newQuery") != "newVal" {
-				t.Errorf("Expected 'newQuery' == %q; got %q", "newVal", r.URL.Query().Get("newQuery"))
+				t.Error(fmt.Sprintf("Expected 'newQuery' == %q; got %q", "newVal", r.URL.Query().Get("newQuery")))
 			}
 		case case4_set_both:
 			t.Logf("case %v ", case3_set_query)
 			if r.URL.Query().Get("fourth") != "4val" {
-				t.Errorf("Expected 'fourth' == %q; got %q", "4val", r.URL.Query().Get("fourth"))
+				t.Error(fmt.Sprintf("Expected 'fourth' == %q; got %q", "4val", r.URL.Query().Get("fourth")))
 			}
 			if r.Header.Get("FOURTH") != "fourkey" {
-				t.Errorf("Expected 'FOURTH' == %q; got %q", "fourkey", r.Header.Get("FOURTH"))
+				t.Error(fmt.Sprintf("Expected 'FOURTH' == %q; got %q", "fourkey", r.Header.Get("FOURTH")))
 			}
 		}
 	}))
@@ -434,63 +434,63 @@ func TestConcurrently(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is GET before going to check other features
 		if r.Method != GET && r.URL.Path != case5_post {
-			t.Errorf("Expected method %q; got %q", GET, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", GET, r.Method))
 		} else if r.Method != POST && r.URL.Path == case5_post {
-			t.Errorf("Expected method %q; got %q", POST, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", POST, r.Method))
 		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 		t.Logf("header %v", r.Header)
 		if r.Header.Get("base") != "header" {
-			t.Errorf("Expected base header: %s", r.Header.Get("base"))
+			t.Error(fmt.Sprintf("Expected base header: %s", r.Header.Get("base")))
 		}
 		if r.URL.Query().Get("queryBase") != "yep" {
-			t.Errorf("Expected queryBase queryParam: %s", r.URL.Query().Get("queryBase"))
+			t.Error(fmt.Sprintf("Expected queryBase queryParam: %s", r.URL.Query().Get("queryBase")))
 		}
 		switch r.URL.Path {
 		default:
-			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+			t.Error(fmt.Sprintf("No testing for this case yet : %q", r.URL.Path))
 		case case1_empty:
 			t.Logf("case %v ", case1_empty)
 			if r.Header.Get("API-Key") != "base" {
-				t.Errorf("Expected 'API-Key' == %q; got %q", "base", r.Header.Get("API-Key"))
+				t.Error(fmt.Sprintf("Expected 'API-Key' == %q; got %q", "base", r.Header.Get("API-Key")))
 			}
 			if r.URL.Query().Get("newQuery") != "" {
-				t.Errorf("Expected 'newQuery' == %q; got %q", "", r.URL.Query().Get("newQuery"))
+				t.Error(fmt.Sprintf("Expected 'newQuery' == %q; got %q", "", r.URL.Query().Get("newQuery")))
 			}
 			if r.Header.Get("FOURTH") != "" {
-				t.Errorf("Expected 'FOURTH' == %q; got %q", "", r.Header.Get("FOURTH"))
+				t.Error(fmt.Sprintf("Expected 'FOURTH' == %q; got %q", "", r.Header.Get("FOURTH")))
 			}
 		case case2_set_header:
 			t.Logf("case %v ", case2_set_header)
 			if r.Header.Get("API-Key") != "fookey" {
-				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+				t.Error(fmt.Sprintf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key")))
 			}
 		case case3_set_query:
 			t.Logf("case %v ", case3_set_query)
 			if r.URL.Query().Get("newQuery") != "newVal" {
-				t.Errorf("Expected 'newQuery' == %q; got %q", "newVal", r.URL.Query().Get("newQuery"))
+				t.Error(fmt.Sprintf("Expected 'newQuery' == %q; got %q", "newVal", r.URL.Query().Get("newQuery")))
 			}
 		case case4_set_both:
 			t.Logf("case %v ", case3_set_query)
 			if r.URL.Query().Get("fourth") != "4val" {
-				t.Errorf("Expected 'fourth' == %q; got %q", "4val", r.URL.Query().Get("fourth"))
+				t.Error(fmt.Sprintf("Expected 'fourth' == %q; got %q", "4val", r.URL.Query().Get("fourth")))
 			}
 			if r.Header.Get("FOURTH") != "fourkey" {
-				t.Errorf("Expected 'FOURTH' == %q; got %q", "fourkey", r.Header.Get("FOURTH"))
+				t.Error(fmt.Sprintf("Expected 'FOURTH' == %q; got %q", "fourkey", r.Header.Get("FOURTH")))
 			}
 		case case5_post:
 			t.Logf("case %v ", case5_post)
 			if r.URL.Query().Get("iteration") == "" {
-				t.Errorf("Expected 'fourth' != %q; got %q", "", r.URL.Query().Get("iteration"))
+				t.Error(fmt.Sprintf("Expected 'fourth' != %q; got %q", "", r.URL.Query().Get("iteration")))
 			}
 			r.ParseForm()
 			if r.Form.Get("form_iteration") == "" {
-				t.Errorf("Expected 'form_iteration' != %q; got %q", "", r.Form.Get("form_iteration"))
+				t.Error(fmt.Sprintf("Expected 'form_iteration' != %q; got %q", "", r.Form.Get("form_iteration")))
 			}
 			if r.Form.Get("form_iteration") != r.URL.Query().Get("iteration") {
-				t.Errorf("Expected 'form_iteration' == %q; got %q", r.URL.Query().Get("iteration"), r.Form.Get("form_iteration"))
+				t.Error(fmt.Sprintf("Expected 'form_iteration' == %q; got %q", r.URL.Query().Get("iteration"), r.Form.Get("form_iteration")))
 			}
 		}
 	}))
@@ -555,7 +555,7 @@ func TestRetryGet(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is GET before going to check other features
 		if r.Method != GET {
-			t.Errorf("Expected method %q; got %q", GET, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", GET, r.Method))
 		}
 
 		//set return status
@@ -565,7 +565,7 @@ func TestRetryGet(t *testing.T) {
 		}
 		switch r.URL.Path {
 		default:
-			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+			t.Error(fmt.Sprintf("No testing for this case yet : %q", r.URL.Path))
 		case case1_empty:
 			w.WriteHeader(400)
 			t.Logf("case %v ", case1_empty)
@@ -587,24 +587,24 @@ func TestRetryGet(t *testing.T) {
 		Retry(3, 1*time.Nanosecond, http.StatusBadRequest).
 		End()
 	if errs != nil {
-		t.Errorf("No testing for this case yet : %q", errs)
+		t.Error(fmt.Sprintf("No testing for this case yet : %q", errs))
 	}
 
 	retryCountReturn := resp.Header.Get("Retry-Count")
 	if retryCountReturn != retry_count_expected {
-		t.Errorf("Expected [%s] retry but was [%s]", retry_count_expected, retryCountReturn)
+		t.Error(fmt.Sprintf("Expected [%s] retry but was [%s]", retry_count_expected, retryCountReturn))
 	}
 
 	resp, _, errs = New().Get(ts.URL+case24_after_3_attempt_return_valid).
 		Retry(4, 1*time.Nanosecond, http.StatusBadRequest).
 		End()
 	if errs != nil {
-		t.Errorf("No testing for this case yet : %q", errs)
+		t.Error(fmt.Sprintf("No testing for this case yet : %q", errs))
 	}
 
 	retryCountReturn = resp.Header.Get("Retry-Count")
 	if retryCountReturn != retry_count_expected {
-		t.Errorf("Expected [%s] retry but was [%s]", retry_count_expected, retryCountReturn)
+		t.Error(fmt.Sprintf("Expected [%s] retry but was [%s]", retry_count_expected, retryCountReturn))
 	}
 }
 
@@ -613,7 +613,7 @@ func TestOptions(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is OPTIONS before going to check other features
 		if r.Method != OPTIONS {
-			t.Errorf("Expected method %q; got %q", OPTIONS, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", OPTIONS, r.Method))
 		}
 		t.Log("test Options")
 		w.Header().Set("Allow", "HEAD, GET")
@@ -648,11 +648,11 @@ func TestParam(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Form.Get("code") != paramCode {
-			t.Errorf("Expected 'code' == %s; got %v", paramCode, r.Form.Get("code"))
+			t.Error(fmt.Sprintf("Expected 'code' == %s; got %v", paramCode, r.Form.Get("code")))
 		}
 
 		if r.Form.Get("fields") != paramFields {
-			t.Errorf("Expected 'fields' == %s; got %v", paramFields, r.Form.Get("fields"))
+			t.Error(fmt.Sprintf("Expected 'fields' == %s; got %v", paramFields, r.Form.Get("fields")))
 		}
 	}))
 
@@ -698,53 +698,53 @@ func testPostServer(t *testing.T) *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is POST before going to check other features
 		if r.Method != POST {
-			t.Errorf("Expected method %q; got %q", POST, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", POST, r.Method))
 		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 		switch r.URL.Path {
 		default:
-			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+			t.Error(fmt.Sprintf("No testing for this case yet : %q", r.URL.Path))
 		case test_post_case1_empty:
 			t.Logf("case %v ", test_post_case1_empty)
 		case test_post_case2_set_header:
 			t.Logf("case %v ", test_post_case2_set_header)
 			if r.Header.Get("API-Key") != "fookey" {
-				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+				t.Error(fmt.Sprintf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key")))
 			}
 		case test_post_case3_send_json:
 			t.Logf("case %v ", test_post_case3_send_json)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != `{"query1":"test","query2":"test"}` {
-				t.Error(`Expected Body with {"query1":"test","query2":"test"}`, "| but got", string(body))
+				t.Error(fmt.Sprintf(`Expected Body with {"query1":"test","query2":"test"} | but got %s`, string(body)))
 			}
 		case test_post_case4_send_string, test_post_case11_send_string_pointer:
 			t.Logf("case %v ", r.URL.Path)
 			if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
-				t.Error("Expected Header Content-Type -> application/x-www-form-urlencoded", "| but got", r.Header.Get("Content-Type"))
+				t.Error(fmt.Sprintf("Expected Header Content-Type -> application/x-www-form-urlencoded | but got %s", r.Header.Get("Content-Type")))
 			}
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "query1=test&query2=test" {
-				t.Error("Expected Body with \"query1=test&query2=test\"", "| but got", string(body))
+				t.Error(fmt.Sprintf("Expected Body with \"query1=test&query2=test\" | but got %s", string(body)))
 			}
 		case test_post_case5_integration_send_json_string:
 			t.Logf("case %v ", test_post_case5_integration_send_json_string)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "query1=test&query2=test" {
-				t.Error("Expected Body with \"query1=test&query2=test\"", "| but got", string(body))
+				t.Error(fmt.Sprintf("Expected Body with \"query1=test&query2=test\" | but got %s", string(body)))
 			}
 		case test_post_case6_set_query:
 			t.Logf("case %v ", test_post_case6_set_query)
 			v := r.URL.Query()
 			if v["query1"][0] != "test" {
-				t.Error("Expected query1:test", "| but got", v["query1"][0])
+				t.Error(fmt.Sprintf("Expected query1:test | but got %s", v["query1"][0]))
 			}
 			if v["query2"][0] != "test" {
-				t.Error("Expected query2:test", "| but got", v["query2"][0])
+				t.Error(fmt.Sprintf("Expected query2:test | but got %s", v["query2"][0]))
 			}
 		case test_post_case7_integration_send_json_struct:
 			t.Logf("case %v ", test_post_case7_integration_send_json_struct)
@@ -752,21 +752,21 @@ func testPostServer(t *testing.T) *httptest.Server {
 			body, _ := ioutil.ReadAll(r.Body)
 			comparedBody := []byte(`{"Lower":{"Color":"green","Size":1.7},"Upper":{"Color":"red","Size":0},"a":"a","name":"Cindy"}`)
 			if !bytes.Equal(body, comparedBody) {
-				t.Errorf(`Expected correct json but got ` + string(body))
+				t.Error(fmt.Sprintf(`Expected correct json but got %s`, string(body)))
 			}
 		case test_post_case8_send_json_with_long_id_number:
 			t.Logf("case %v ", test_post_case8_send_json_with_long_id_number)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != `{"id":123456789,"name":"nemo"}` {
-				t.Error(`Expected Body with {"id":123456789,"name":"nemo"}`, "| but got", string(body))
+				t.Error(fmt.Sprintf(`Expected Body with {"id":123456789,"name":"nemo"} | but got %s`, string(body)))
 			}
 		case test_post_case9_send_json_string_with_long_id_number_as_form_result:
 			t.Logf("case %v ", test_post_case9_send_json_string_with_long_id_number_as_form_result)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != `id=123456789&name=nemo` {
-				t.Error(`Expected Body with "id=123456789&name=nemo"`, `| but got`, string(body))
+				t.Error(fmt.Sprintf(`Expected Body with "id=123456789&name=nemo" | but got %s`, string(body)))
 			}
 		case test_post_case19_send_struct, test_post_case10_send_struct_pointer:
 			t.Logf("case %v ", r.URL.Path)
@@ -774,7 +774,7 @@ func testPostServer(t *testing.T) *httptest.Server {
 			body, _ := ioutil.ReadAll(r.Body)
 			comparedBody := []byte(`{"Bfalse":false,"BoolArray":[true,false],"Btrue":true,"Float":12.345,"FloatArray":[1.23,4.56,7.89],"Int":42,"IntArray":[1,2],"String":"a string","StringArray":["string1","string2"]}`)
 			if !bytes.Equal(body, comparedBody) {
-				t.Errorf(`Expected correct json but got ` + string(body))
+				t.Error(fmt.Sprintf(`Expected correct json but got %s`, string(body)))
 			}
 		case test_post_case12_send_slice_string, test_post_case13_send_slice_string_pointer, test_post_case17_send_string_array, test_post_case18_send_string_array_pointer:
 			t.Logf("case %v ", r.URL.Path)
@@ -782,35 +782,35 @@ func testPostServer(t *testing.T) *httptest.Server {
 			body, _ := ioutil.ReadAll(r.Body)
 			comparedBody := []byte(`["string1","string2"]`)
 			if !bytes.Equal(body, comparedBody) {
-				t.Errorf(`Expected correct json but got ` + string(body))
+				t.Error(fmt.Sprintf(`Expected correct json but got %s`, string(body)))
 			}
 		case test_post_case14_send_int_pointer:
 			t.Logf("case %v ", test_post_case14_send_int_pointer)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "42" {
-				t.Error("Expected Body with \"42\"", "| but got", string(body))
+				t.Error(fmt.Sprintf("Expected Body with \"42\" | but got %s", string(body)))
 			}
 		case test_post_case15_send_float_pointer:
 			t.Logf("case %v ", test_post_case15_send_float_pointer)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "12.345" {
-				t.Error("Expected Body with \"12.345\"", "| but got", string(body))
+				t.Error(fmt.Sprintf("Expected Body with \"12.345\" | but got %s", string(body)))
 			}
 		case test_post_case16_send_bool_pointer:
 			t.Logf("case %v ", test_post_case16_send_bool_pointer)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "true" {
-				t.Error("Expected Body with \"true\"", "| but got", string(body))
+				t.Error(fmt.Sprintf("Expected Body with \"true\" | but got %s", string(body)))
 			}
 		case test_post_case20_send_byte_char, test_post_case21_send_byte_char_pointer, test_post_case22_send_byte_int, test_post_case22_send_byte_int_pointer:
 			t.Logf("case %v ", r.URL.Path)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != "71" {
-				t.Error("Expected Body with \"71\"", "| but got", string(body))
+				t.Error(fmt.Sprintf("Expected Body with \"71\" | but got %s", string(body)))
 			}
 		case test_post_case23_send_duplicate_query_params:
 			t.Logf("case %v ", test_post_case23_send_duplicate_query_params)
@@ -818,14 +818,14 @@ func testPostServer(t *testing.T) *httptest.Server {
 			body, _ := ioutil.ReadAll(r.Body)
 			sbody := string(body)
 			if sbody != "param=4&param=3&param=2&param=1" {
-				t.Error("Expected Body \"param=4&param=3&param=2&param=1\"", "| but got", sbody)
+				t.Error(fmt.Sprintf("Expected Body \"param=4&param=3&param=2&param=1\" | but got %s", sbody))
 			}
 			values, _ := url.ParseQuery(sbody)
 			if len(values["param"]) != 4 {
-				t.Error("Expected Body with 4 params", "| but got", sbody)
+				t.Error(fmt.Sprintf("Expected Body with 4 params | but got %s", sbody))
 			}
 			if values["param"][0] != "4" || values["param"][1] != "3" || values["param"][2] != "2" || values["param"][3] != "1" {
-				t.Error("Expected Body with 4 params and values", "| but got", sbody)
+				t.Error(fmt.Sprintf("Expected Body with 4 params and values | but got %s", sbody))
 			}
 		case test_post_case24_send_query_and_request_body:
 			t.Logf("case %v ", test_post_case24_send_query_and_request_body)
@@ -833,12 +833,12 @@ func testPostServer(t *testing.T) *httptest.Server {
 			body, _ := ioutil.ReadAll(r.Body)
 			sbody := string(body)
 			if sbody != `{"name":"jkbbwr"}` {
-				t.Error(`Expected Body "{"name":"jkbbwr"}"`, "| but got", sbody)
+				t.Error(fmt.Sprintf(`Expected Body "{\"name\":\"jkbbwr\"}" | but got %s`, sbody))
 			}
 
 			v := r.URL.Query()
 			if v["test"][0] != "true" {
-				t.Error("Expected test:true", "| but got", v["test"][0])
+				t.Error(fmt.Sprintf("Expected test:true | but got %s", v["test"][0]))
 			}
 		}
 	}))
@@ -1181,7 +1181,7 @@ func checkFile(t *testing.T, fileheader *multipart.FileHeader) {
 		t.Error(err)
 	}
 	if len(b) == 0 {
-		t.Error("Expected file-content > 0", "| but got", len(b), string(b))
+		t.Error(fmt.Sprintf("Expected file-content > 0 | but got %d %s", len(b), string(b)))
 	}
 }
 
@@ -1231,324 +1231,324 @@ func TestMultipartRequest(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is POST before going to check other features
 		if r.Method != POST {
-			t.Errorf("Expected method %q; got %q", POST, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %s", POST, r.Method))
 		}
 		if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
-			t.Error("Expected Header Content-Type -> multipart/form-data", "| but got", r.Header.Get("Content-Type"))
+			t.Error(fmt.Sprintf("Expected Header Content-Type -> multipart/form-data | but got %s", r.Header.Get("Content-Type")))
 		}
 		const _24K = (1 << 20) * 24
 		err := r.ParseMultipartForm(_24K)
 		if err != nil {
-			t.Errorf("Error: %v", err)
+			t.Error(fmt.Sprintf("Error: %v", err))
 		}
 		t.Logf("case %v ", r.URL.Path)
 		switch r.URL.Path {
 		default:
-			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+			t.Error(fmt.Sprintf("No testing for this case yet : %q", r.URL.Path))
 		case case0_send_not_supported_filetype:
 			// will be handled at place
 		case case1_send_string, case2_send_json, case3_integration_send_json_string:
 			if len(r.MultipartForm.Value["query1"]) != 1 {
-				t.Error("Expected length of query1:test == 1", "| but got", len(r.MultipartForm.Value["query1"]))
+				t.Error(fmt.Sprintf("Expected length of query1:test == 1 | but got %d", len(r.MultipartForm.Value["query1"])))
 			}
 			if r.MultipartForm.Value["query1"][0] != "test" {
-				t.Error("Expected query1:test", "| but got", r.MultipartForm.Value["query1"][0])
+				t.Error(fmt.Sprintf("Expected query1:test | but got %s", r.MultipartForm.Value["query1"][0]))
 			}
 			if len(r.MultipartForm.Value["query2"]) != 1 {
-				t.Error("Expected length of query2:test == 1", "| but got", len(r.MultipartForm.Value["query2"]))
+				t.Error(fmt.Sprintf("Expected length of query2:test == 1 | but got %d", len(r.MultipartForm.Value["query2"])))
 			}
 			if r.MultipartForm.Value["query2"][0] != "test" {
-				t.Error("Expected query2:test", "| but got", r.MultipartForm.Value["query2"][0])
+				t.Error(fmt.Sprintf("Expected query2:test | but got %s", r.MultipartForm.Value["query2"][0]))
 			}
 		case case4_set_query:
 			v := r.URL.Query()
 			if v["query1"][0] != "test" {
-				t.Error("Expected query1:test", "| but got", v["query1"][0])
+				t.Error(fmt.Sprintf("Expected query1:test | but got %s", v["query1"][0]))
 			}
 			if v["query2"][0] != "test" {
-				t.Error("Expected query2:test", "| but got", v["query2"][0])
+				t.Error(fmt.Sprintf("Expected query2:test | but got %s", v["query2"][0]))
 			}
 			if val, ok := r.MultipartForm.Value["query1"]; ok {
-				t.Error("Expected no value", "| but got", val)
+				t.Error(fmt.Sprintf("Expected no value | but got %v", val))
 			}
 			if val, ok := r.MultipartForm.Value["query2"]; ok {
-				t.Error("Expected no value", "| but got", val)
+				t.Error(fmt.Sprintf("Expected no value | but got %v", val))
 			}
 		case case5_send_struct:
 			if r.MultipartForm.Value["String"][0] != "a string" {
-				t.Error("Expected String:'a string'", "| but got", r.MultipartForm.Value["String"][0])
+				t.Error(fmt.Sprintf("Expected String:'a string' | but got %s", r.MultipartForm.Value["String"][0]))
 			}
 			if r.MultipartForm.Value["Int"][0] != "42" {
-				t.Error("Expected Int:42", "| but got", r.MultipartForm.Value["Int"][0])
+				t.Error(fmt.Sprintf("Expected Int:42 | but got %s", r.MultipartForm.Value["Int"][0]))
 			}
 			if r.MultipartForm.Value["Btrue"][0] != "true" {
-				t.Error("Expected Btrue:true", "| but got", r.MultipartForm.Value["Btrue"][0])
+				t.Error(fmt.Sprintf("Expected Btrue:true | but got %s", r.MultipartForm.Value["Btrue"][0]))
 			}
 			if r.MultipartForm.Value["Bfalse"][0] != "false" {
-				t.Error("Expected Btrue:false", "| but got", r.MultipartForm.Value["Bfalse"][0])
+				t.Error(fmt.Sprintf("Expected Btrue:false | but got %s", r.MultipartForm.Value["Bfalse"][0]))
 			}
 			if r.MultipartForm.Value["Float"][0] != "12.345" {
-				t.Error("Expected Float:12.345", "| but got", r.MultipartForm.Value["Float"][0])
+				t.Error(fmt.Sprintf("Expected Float:12.345 | but got %s", r.MultipartForm.Value["Float"][0]))
 			}
 			if len(r.MultipartForm.Value["StringArray"]) != 2 {
-				t.Error("Expected length of StringArray:2", "| but got", len(r.MultipartForm.Value["StringArray"]))
+				t.Error(fmt.Sprintf("Expected length of StringArray:2 | but got %d", len(r.MultipartForm.Value["StringArray"])))
 			}
 			if r.MultipartForm.Value["StringArray"][0] != "string1" {
-				t.Error("Expected StringArray:string1", "| but got", r.MultipartForm.Value["StringArray"][0])
+				t.Error(fmt.Sprintf("Expected StringArray:string1 | but got %s", r.MultipartForm.Value["StringArray"][0]))
 			}
 			if r.MultipartForm.Value["StringArray"][1] != "string2" {
-				t.Error("Expected StringArray:string2", "| but got", r.MultipartForm.Value["StringArray"][1])
+				t.Error(fmt.Sprintf("Expected StringArray:string2 | but got %s", r.MultipartForm.Value["StringArray"][1]))
 			}
 			if len(r.MultipartForm.Value["IntArray"]) != 2 {
-				t.Error("Expected length of IntArray:2", "| but got", len(r.MultipartForm.Value["IntArray"]))
+				t.Error(fmt.Sprintf("Expected length of IntArray:2 | but got %d", len(r.MultipartForm.Value["IntArray"])))
 			}
 			if r.MultipartForm.Value["IntArray"][0] != "1" {
-				t.Error("Expected IntArray:1", "| but got", r.MultipartForm.Value["IntArray"][0])
+				t.Error(fmt.Sprintf("Expected IntArray:1 | but got %s", r.MultipartForm.Value["IntArray"][0]))
 			}
 			if r.MultipartForm.Value["IntArray"][1] != "2" {
-				t.Error("Expected IntArray:2", "| but got", r.MultipartForm.Value["IntArray"][1])
+				t.Error(fmt.Sprintf("Expected IntArray:2 | but got %s", r.MultipartForm.Value["IntArray"][1]))
 			}
 			if len(r.MultipartForm.Value["BoolArray"]) != 2 {
-				t.Error("Expected length of BoolArray:2", "| but got", len(r.MultipartForm.Value["BoolArray"]))
+				t.Error(fmt.Sprintf("Expected length of BoolArray:2 | but got %d", len(r.MultipartForm.Value["BoolArray"])))
 			}
 			if r.MultipartForm.Value["BoolArray"][0] != "true" {
-				t.Error("Expected BoolArray:true", "| but got", r.MultipartForm.Value["BoolArray"][0])
+				t.Error(fmt.Sprintf("Expected BoolArray:true | but got %s", r.MultipartForm.Value["BoolArray"][0]))
 			}
 			if r.MultipartForm.Value["BoolArray"][1] != "false" {
-				t.Error("Expected BoolArray:false", "| but got", r.MultipartForm.Value["BoolArray"][1])
+				t.Error(fmt.Sprintf("Expected BoolArray:false | but got %s", r.MultipartForm.Value["BoolArray"][1]))
 			}
 			if len(r.MultipartForm.Value["FloatArray"]) != 3 {
-				t.Error("Expected length of FloatArray:3", "| but got", len(r.MultipartForm.Value["FloatArray"]))
+				t.Error(fmt.Sprintf("Expected length of FloatArray:3 | but got %d", len(r.MultipartForm.Value["FloatArray"])))
 			}
 			if r.MultipartForm.Value["FloatArray"][0] != "1.23" {
-				t.Error("Expected FloatArray:1.23", "| but got", r.MultipartForm.Value["FloatArray"][0])
+				t.Error(fmt.Sprintf("Expected FloatArray:1.23 | but got %s", r.MultipartForm.Value["FloatArray"][0]))
 			}
 			if r.MultipartForm.Value["FloatArray"][1] != "4.56" {
-				t.Error("Expected FloatArray:4.56", "| but got", r.MultipartForm.Value["FloatArray"][1])
+				t.Error(fmt.Sprintf("Expected FloatArray:4.56 | but got %s", r.MultipartForm.Value["FloatArray"][1]))
 			}
 			if r.MultipartForm.Value["FloatArray"][2] != "7.89" {
-				t.Error("Expected FloatArray:7.89", "| but got", r.MultipartForm.Value["FloatArray"][2])
+				t.Error(fmt.Sprintf("Expected FloatArray:7.89 | but got %s", r.MultipartForm.Value["FloatArray"][2]))
 			}
 		case case6_send_slice_string, case7_send_array:
 			if len(r.MultipartForm.Value["data"]) != 1 {
-				t.Error("Expected length of data:JSON == 1", "| but got", len(r.MultipartForm.Value["data"]))
+				t.Error(fmt.Sprintf("Expected length of data:JSON == 1 | but got %d", len(r.MultipartForm.Value["data"])))
 			}
 			if r.MultipartForm.Value["data"][0] != `["string1","string2"]` {
-				t.Error(`Expected 'data' with ["string1","string2"]`, "| but got", r.MultipartForm.Value["data"][0])
+				t.Error(fmt.Sprintf(`Expected 'data' with ["string1","string2"] | but got %s`, r.MultipartForm.Value["data"][0]))
 			}
 		case case6_send_slice_string_with_custom_fieldname:
 			if len(r.MultipartForm.Value["my_custom_data"]) != 1 {
-				t.Error("Expected length of my_custom_data:JSON == 1", "| but got", len(r.MultipartForm.Value["my_custom_data"]))
+				t.Error(fmt.Sprintf("Expected length of my_custom_data:JSON == 1 | but got %d", len(r.MultipartForm.Value["my_custom_data"])))
 			}
 			if r.MultipartForm.Value["my_custom_data"][0] != `["string1","string2"]` {
-				t.Error(`Expected 'my_custom_data' with ["string1","string2"]`, "| but got", r.MultipartForm.Value["my_custom_data"][0])
+				t.Error(fmt.Sprintf(`Expected 'my_custom_data' with ["string1","string2"] | but got %s`, r.MultipartForm.Value["my_custom_data"][0]))
 			}
 		case case8_integration_send_json_struct:
 			if len(r.MultipartForm.Value["query1"]) != 1 {
-				t.Error("Expected length of query1:test == 1", "| but got", len(r.MultipartForm.Value["query1"]))
+				t.Error(fmt.Sprintf("Expected length of query1:test == 1 | but got %d", len(r.MultipartForm.Value["query1"])))
 			}
 			if r.MultipartForm.Value["query1"][0] != "test" {
-				t.Error("Expected query1:test", "| but got", r.MultipartForm.Value["query1"][0])
+				t.Error(fmt.Sprintf("Expected query1:test | but got %s", r.MultipartForm.Value["query1"][0]))
 			}
 			if r.MultipartForm.Value["hey"][0] != "hey" {
-				t.Error("Expected hey:'hey'", "| but got", r.MultipartForm.Value["Hey"][0])
+				t.Error(fmt.Sprintf("Expected hey:'hey' | but got %s", r.MultipartForm.Value["Hey"][0]))
 			}
 		case case9_send_duplicate_query_params:
 			if len(r.MultipartForm.Value["param"]) != 4 {
-				t.Error("Expected length of param:[] == 4", "| but got", len(r.MultipartForm.Value["param"]))
+				t.Error(fmt.Sprintf("Expected length of param:[] == 4 | but got %d", len(r.MultipartForm.Value["param"])))
 			}
 			if r.MultipartForm.Value["param"][0] != "4" {
-				t.Error("Expected param:0:4", "| but got", r.MultipartForm.Value["param"][0])
+				t.Error(fmt.Sprintf("Expected param:0:4 | but got %s", r.MultipartForm.Value["param"][0]))
 			}
 			if r.MultipartForm.Value["param"][1] != "3" {
-				t.Error("Expected param:1:3", "| but got", r.MultipartForm.Value["param"][1])
+				t.Error(fmt.Sprintf("Expected param:1:3 | but got %s", r.MultipartForm.Value["param"][1]))
 			}
 			if r.MultipartForm.Value["param"][2] != "2" {
-				t.Error("Expected param:2:2", "| but got", r.MultipartForm.Value["param"][2])
+				t.Error(fmt.Sprintf("Expected param:2:2 | but got %s", r.MultipartForm.Value["param"][2]))
 			}
 			if r.MultipartForm.Value["param"][3] != "1" {
-				t.Error("Expected param:3:1", "| but got", r.MultipartForm.Value["param"][3])
+				t.Error(fmt.Sprintf("Expected param:3:1 | but got %s", r.MultipartForm.Value["param"][3]))
 			}
 		case case10_send_file_by_path, case11_send_file_by_path_without_name, case14_send_file_by_content_with_name, case20_send_file_as_osfile:
 			if len(r.MultipartForm.File) != 1 {
-				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 1 | but got %d", len(r.MultipartForm.File)))
 			}
 			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" {
-				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file1"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:LICENSE | but got %s", r.MultipartForm.File["file1"][0].Filename))
 			}
 			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
-				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+				t.Error(fmt.Sprintf("Expected Header:Content-Type:application/octet-stream | but got %v", r.MultipartForm.File["file1"][0].Header["Content-Type"]))
 			}
 			checkFile(t, r.MultipartForm.File["file1"][0])
 		case case10a_send_file_by_path_with_name, case10b_send_file_by_path_pointer, case21_send_file_as_osfile_with_name:
 			if len(r.MultipartForm.File) != 1 {
-				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 1 | but got %d", len(r.MultipartForm.File)))
 			}
 			if r.MultipartForm.File["file1"][0].Filename != "MY_LICENSE" {
-				t.Error("Expected Filename:MY_LICENSE", "| but got", r.MultipartForm.File["file1"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:MY_LICENSE | but got %s", r.MultipartForm.File["file1"][0].Filename))
 			}
 		case case12_send_file_by_path_without_name_but_with_fieldname:
 			if len(r.MultipartForm.File) != 1 {
-				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 1 | but got %d", len(r.MultipartForm.File)))
 			}
 			if _, ok := r.MultipartForm.File["my_fieldname"]; !ok {
 				keys := reflect.ValueOf(r.MultipartForm.File).MapKeys()
-				t.Error("Expected Fieldname:my_fieldname", "| but got", keys)
+				t.Error(fmt.Sprintf("Expected Fieldname:my_fieldname | but got %v", keys))
 			}
 			if r.MultipartForm.File["my_fieldname"][0].Filename != "LICENSE" {
-				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:LICENSE | but got %s", r.MultipartForm.File["my_fieldname"][0].Filename))
 			}
 			if r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"][0] != "application/octet-stream" {
-				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"])
+				t.Error(fmt.Sprintf("Expected Header:Content-Type:application/octet-stream | but got %v", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"]))
 			}
 			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
 		case case13_send_file_by_content_without_name, case13a_send_file_by_content_without_name_pointer:
 			if len(r.MultipartForm.File) != 1 {
-				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 1 | but got %d", len(r.MultipartForm.File)))
 			}
 			if r.MultipartForm.File["file1"][0].Filename != "filename" {
-				t.Error("Expected Filename:filename", "| but got", r.MultipartForm.File["file1"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:filename | but got %s", r.MultipartForm.File["file1"][0].Filename))
 			}
 			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
-				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+				t.Error(fmt.Sprintf("Expected Header:Content-Type:application/octet-stream | but got %v", r.MultipartForm.File["file1"][0].Header["Content-Type"]))
 			}
 			checkFile(t, r.MultipartForm.File["file1"][0])
 		case case15_send_file_by_content_without_name_but_with_fieldname:
 			if len(r.MultipartForm.File) != 1 {
-				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 1 | but got %d", len(r.MultipartForm.File)))
 			}
 			if _, ok := r.MultipartForm.File["my_fieldname"]; !ok {
 				keys := reflect.ValueOf(r.MultipartForm.File).MapKeys()
-				t.Error("Expected Fieldname:my_fieldname", "| but got", keys)
+				t.Error(fmt.Sprintf("Expected Fieldname:my_fieldname | but got %v", keys))
 			}
 			if r.MultipartForm.File["my_fieldname"][0].Filename != "filename" {
-				t.Error("Expected Filename:filename", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:filename | but got %s", r.MultipartForm.File["my_fieldname"][0].Filename))
 			}
 			if r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"][0] != "application/octet-stream" {
-				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"])
+				t.Error(fmt.Sprintf("Expected Header:Content-Type:application/octet-stream | but got %v", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"]))
 			}
 			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
 		case case16_send_file_by_content_with_name_and_with_fieldname, case22_send_file_as_osfile_with_name_and_with_fieldname:
 			if len(r.MultipartForm.File) != 1 {
-				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 1 | but got %d", len(r.MultipartForm.File)))
 			}
 			if _, ok := r.MultipartForm.File["my_fieldname"]; !ok {
 				keys := reflect.ValueOf(r.MultipartForm.File).MapKeys()
-				t.Error("Expected Fieldname:my_fieldname", "| but got", keys)
+				t.Error(fmt.Sprintf("Expected Fieldname:my_fieldname | but got %v", keys))
 			}
 			if r.MultipartForm.File["my_fieldname"][0].Filename != "MY_LICENSE" {
-				t.Error("Expected Filename:MY_LICENSE", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:MY_LICENSE | but got %s", r.MultipartForm.File["my_fieldname"][0].Filename))
 			}
 			if r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"][0] != "application/octet-stream" {
-				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"])
+				t.Error(fmt.Sprintf("Expected Header:Content-Type:application/octet-stream | but got %v", r.MultipartForm.File["my_fieldname"][0].Header["Content-Type"]))
 			}
 			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
 		case case17_send_file_multiple_by_path_and_content_without_name:
 			if len(r.MultipartForm.File) != 2 {
-				t.Error("Expected length of files:[] == 2", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 2 | but got %d", len(r.MultipartForm.File)))
 			}
 			// depends on map iteration order
 			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" && r.MultipartForm.File["file1"][0].Filename != "filename" {
-				t.Error("Expected Filename:LICENSE||filename", "| but got", r.MultipartForm.File["file1"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:LICENSE||filename | but got %s", r.MultipartForm.File["file1"][0].Filename))
 			}
 			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
-				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+				t.Error(fmt.Sprintf("Expected Header:Content-Type:application/octet-stream | but got %v", r.MultipartForm.File["file1"][0].Header["Content-Type"]))
 			}
 			// depends on map iteration order
 			if r.MultipartForm.File["file2"][0].Filename != "LICENSE" && r.MultipartForm.File["file2"][0].Filename != "filename" {
-				t.Error("Expected Filename:LICENSE||filename", "| but got", r.MultipartForm.File["file2"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:LICENSE||filename | but got %s", r.MultipartForm.File["file2"][0].Filename))
 			}
 			if r.MultipartForm.File["file2"][0].Header["Content-Type"][0] != "application/octet-stream" {
-				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file2"][0].Header["Content-Type"])
+				t.Error(fmt.Sprintf("Expected Header:Content-Type:application/octet-stream | but got %v", r.MultipartForm.File["file2"][0].Header["Content-Type"]))
 			}
 			checkFile(t, r.MultipartForm.File["file1"][0])
 			checkFile(t, r.MultipartForm.File["file2"][0])
 		case case18_send_file_multiple_by_path_and_content_with_name:
 			if len(r.MultipartForm.File) != 2 {
-				t.Error("Expected length of files:[] == 2", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 2 | but got %d", len(r.MultipartForm.File)))
 			}
 			// depends on map iteration order
 			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" && r.MultipartForm.File["file1"][0].Filename != "MY_LICENSE" {
-				t.Error("Expected Filename:LICENSE||MY_LICENSE", "| but got", r.MultipartForm.File["file1"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:LICENSE||MY_LICENSE | but got %s", r.MultipartForm.File["file1"][0].Filename))
 			}
 			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
-				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+				t.Error(fmt.Sprintf("Expected Header:Content-Type:application/octet-stream | but got %v", r.MultipartForm.File["file1"][0].Header["Content-Type"]))
 			}
 			// depends on map iteration order
 			if r.MultipartForm.File["file2"][0].Filename != "LICENSE" && r.MultipartForm.File["file2"][0].Filename != "MY_LICENSE" {
-				t.Error("Expected Filename:LICENSE||MY_LICENSE", "| but got", r.MultipartForm.File["file2"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:LICENSE||MY_LICENSE | but got %s", r.MultipartForm.File["file2"][0].Filename))
 			}
 			if r.MultipartForm.File["file2"][0].Header["Content-Type"][0] != "application/octet-stream" {
-				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file2"][0].Header["Content-Type"])
+				t.Error(fmt.Sprintf("Expected Header:Content-Type:application/octet-stream | but got %v", r.MultipartForm.File["file2"][0].Header["Content-Type"]))
 			}
 			checkFile(t, r.MultipartForm.File["file1"][0])
 			checkFile(t, r.MultipartForm.File["file2"][0])
 		case case19_integration_send_file_and_data:
 			if len(r.MultipartForm.File) != 1 {
-				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 1 | but got %d", len(r.MultipartForm.File)))
 			}
 			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" {
-				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file1"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:LICENSE | but got %s", r.MultipartForm.File["file1"][0].Filename))
 			}
 			if r.MultipartForm.File["file1"][0].Header["Content-Type"][0] != "application/octet-stream" {
-				t.Error("Expected Header:Content-Type:application/octet-stream", "| but got", r.MultipartForm.File["file1"][0].Header["Content-Type"])
+				t.Error(fmt.Sprintf("Expected Header:Content-Type:application/octet-stream | but got %v", r.MultipartForm.File["file1"][0].Header["Content-Type"]))
 			}
 			checkFile(t, r.MultipartForm.File["file1"][0])
 			if len(r.MultipartForm.Value["query1"]) != 1 {
-				t.Error("Expected length of query1:test == 1", "| but got", len(r.MultipartForm.Value["query1"]))
+				t.Error(fmt.Sprintf("Expected length of query1:test == 1 | but got %d", len(r.MultipartForm.Value["query1"])))
 			}
 			if r.MultipartForm.Value["query1"][0] != "test" {
-				t.Error("Expected query1:test", "| but got", r.MultipartForm.Value["query1"][0])
+				t.Error(fmt.Sprintf("Expected query1:test | but got %s", r.MultipartForm.Value["query1"][0]))
 			}
 		case case23_send_file_with_file_as_fieldname:
 			if len(r.MultipartForm.File) != 2 {
-				t.Error("Expected length of files:[] == 2", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 2 | but got %d", len(r.MultipartForm.File)))
 			}
 			if val, ok := r.MultipartForm.File["file1"]; !ok {
-				t.Error("Expected file with key: file1", "| but got ", val)
+				t.Error(fmt.Sprintf("Expected file with key: file1 | but got %v", val))
 			}
 			if val, ok := r.MultipartForm.File["file2"]; !ok {
-				t.Error("Expected file with key: file2", "| but got ", val)
+				t.Error(fmt.Sprintf("Expected file with key: file2 | but got %v", val))
 			}
 			if r.MultipartForm.File["file1"][0].Filename != "b.file" {
-				t.Error("Expected Filename:b.file", "| but got", r.MultipartForm.File["file1"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:b.file | but got %s", r.MultipartForm.File["file1"][0].Filename))
 			}
 			if r.MultipartForm.File["file2"][0].Filename != "LICENSE" {
-				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file2"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:LICENSE | but got %s", r.MultipartForm.File["file2"][0].Filename))
 			}
 			checkFile(t, r.MultipartForm.File["file1"][0])
 			checkFile(t, r.MultipartForm.File["file2"][0])
 		case case24_send_file_with_name_with_spaces, case25_send_file_with_name_with_spaces_only, case27_send_file_with_fieldname_with_spaces_only:
 			if len(r.MultipartForm.File) != 1 {
-				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 1 | but got %d", len(r.MultipartForm.File)))
 			}
 			if val, ok := r.MultipartForm.File["file1"]; !ok {
-				t.Error("Expected file with key: file1", "| but got ", val)
+				t.Error(fmt.Sprintf("Expected file with key: file1 | but got %v", val))
 			}
 			if r.MultipartForm.File["file1"][0].Filename != "LICENSE" {
-				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file1"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:LICENSE | but got %s", r.MultipartForm.File["file1"][0].Filename))
 			}
 			checkFile(t, r.MultipartForm.File["file1"][0])
 		case case26_send_file_with_fieldname_with_spaces:
 			if len(r.MultipartForm.File) != 1 {
-				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 1 | but got %d", len(r.MultipartForm.File)))
 			}
 			if val, ok := r.MultipartForm.File["my_fieldname"]; !ok {
-				t.Error("Expected file with key: my_fieldname", "| but got ", val)
+				t.Error(fmt.Sprintf("Expected file with key: my_fieldname | but got %v", val))
 			}
 			if r.MultipartForm.File["my_fieldname"][0].Filename != "LICENSE" {
-				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["my_fieldname"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:LICENSE | but got %s", r.MultipartForm.File["my_fieldname"][0].Filename))
 			}
 			checkFile(t, r.MultipartForm.File["my_fieldname"][0])
 		case case28_send_file_with_file_as_fieldname_and_skip_file_numbering_true:
 			if len(r.MultipartForm.File) != 1 {
-				t.Error("Expected length of files:[] == 1", "| but got", len(r.MultipartForm.File))
+				t.Error(fmt.Sprintf("Expected length of files:[] == 1 | but got %d", len(r.MultipartForm.File)))
 			}
 			if val, ok := r.MultipartForm.File["file"]; !ok {
-				t.Error("Expected file with key: file", "| but got ", val)
+				t.Error(fmt.Sprintf("Expected file with key: file | but got %v", val))
 			}
 			if r.MultipartForm.File["file"][0].Filename != "LICENSE" {
-				t.Error("Expected Filename:LICENSE", "| but got", r.MultipartForm.File["file"][0].Filename)
+				t.Error(fmt.Sprintf("Expected Filename:LICENSE | but got %s", r.MultipartForm.File["file"][0].Filename))
 			}
 		}
 
@@ -1563,7 +1563,7 @@ func TestMultipartRequest(t *testing.T) {
 		End()
 
 	if len(errs) == 0 {
-		t.Errorf("Expected error, but got nothing: %v", errs)
+		t.Error(fmt.Sprintf("Expected error, but got nothing: %v", errs))
 	}
 
 	New().Post(ts.URL + case1_send_string).
@@ -1763,27 +1763,27 @@ func TestPatch(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is PATCH before going to check other features
 		if r.Method != PATCH {
-			t.Errorf("Expected method %q; got %q", PATCH, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %s", PATCH, r.Method))
 		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 		switch r.URL.Path {
 		default:
-			t.Errorf("No testing for this case yet : %q", r.URL.Path)
+			t.Error(fmt.Sprintf("No testing for this case yet : %s", r.URL.Path))
 		case case1_empty:
 			t.Logf("case %v ", case1_empty)
 		case case2_set_header:
 			t.Logf("case %v ", case2_set_header)
 			if r.Header.Get("API-Key") != "fookey" {
-				t.Errorf("Expected 'API-Key' == %q; got %q", "fookey", r.Header.Get("API-Key"))
+				t.Error(fmt.Sprintf("Expected 'API-Key' == %q; got %s", "fookey", r.Header.Get("API-Key")))
 			}
 		case case3_send_json:
 			t.Logf("case %v ", case3_send_json)
 			defer r.Body.Close()
 			body, _ := ioutil.ReadAll(r.Body)
 			if string(body) != `{"query1":"test","query2":"test"}` {
-				t.Error(`Expected Body with {"query1":"test","query2":"test"}`, "| but got", string(body))
+				t.Error(fmt.Sprintf(`Expected Body with {"query1":"test","query2":"test"} | but got %s`, string(body)))
 			}
 		}
 	}))
@@ -1810,7 +1810,7 @@ func checkQuery(t *testing.T, q map[string][]string, key string, want string) {
 	} else if len(v) < 1 {
 		t.Error("No values for", key)
 	} else if v[0] != want {
-		t.Errorf("Expected %v:%v | but got %v", key, want, v[0])
+		t.Error(fmt.Sprintf("Expected %v:%v | but got %v", key, want, v[0]))
 	}
 	return
 }
@@ -1823,28 +1823,36 @@ func TestQueryFunc(t *testing.T) {
 	const case4_send_map = "/send_map"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != POST {
-			t.Errorf("Expected method %q; got %q", POST, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", POST, r.Method))
 		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
-		v := r.URL.Query()
+		if err := r.ParseForm(); err != nil {
+			t.Fatal(fmt.Sprintf("Failed to parse form: %v", err))
+		}
+		v := r.Form
+		t.Logf("TestQueryFunc: Path=%s, RawQuery=%s, Form=%v", r.URL.Path, r.URL.RawQuery, r.Form)
+
 
 		switch r.URL.Path {
 		default:
-			t.Errorf("No testing for this case yet : %q", r.URL.Path)
-		case case1_send_string, case2_send_struct:
+			t.Error(fmt.Sprintf("No testing for this case yet : %q", r.URL.Path))
+		case case1_send_string:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
+		case case2_send_struct:
+			checkQuery(t, v, "Query1", "test1") // Changed to uppercase "Query1"
+			checkQuery(t, v, "Query2", "test2") // Changed to uppercase "Query2"
 		case case3_send_string_with_duplicates:
 			checkQuery(t, v, "query1", "test1")
 			checkQuery(t, v, "query2", "test2")
 
 			if len(v["param"]) != 4 {
-				t.Errorf("Expected Body with 4 params | but got %q", len(v["param"]))
+				t.Error(fmt.Sprintf("Expected Body with 4 params | but got %d", len(v["param"])))
 			}
 			if v["param"][0] != "1" || v["param"][1] != "2" || v["param"][2] != "3" || v["param"][3] != "4" {
-				t.Error("Expected Body with 4 params and values", "| but got", r.URL.RawQuery)
+				t.Error(fmt.Sprintf("Expected Body with 4 params and values | but got %s", r.Form.Encode()))
 			}
 		case case4_send_map:
 			checkQuery(t, v, "query1", "test1")
@@ -1928,23 +1936,23 @@ func TestEndBytes(t *testing.T) {
 	{
 		resp, bodyBytes, errs := New().Get(ts.URL).EndBytes(func(resp Response, body []byte, errs []error) {
 			if len(errs) > 0 {
-				t.Fatalf("Unexpected errors: %s", errs)
+				t.Fatal(fmt.Sprintf("Unexpected errors: %s", errs))
 			}
 			if resp.StatusCode != 200 {
-				t.Fatalf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+				t.Fatal(fmt.Sprintf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode))
 			}
 			if string(body) != serverOutput {
-				t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(body))
+				t.Error(fmt.Sprintf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(body)))
 			}
 		})
 		if len(errs) > 0 {
-			t.Fatalf("Unexpected errors: %s", errs)
+			t.Fatal(fmt.Sprintf("Unexpected errors: %s", errs))
 		}
 		if resp.StatusCode != 200 {
-			t.Fatalf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+			t.Fatal(fmt.Sprintf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode))
 		}
 		if string(bodyBytes) != serverOutput {
-			t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes))
+			t.Error(fmt.Sprintf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes)))
 		}
 	}
 
@@ -1952,13 +1960,13 @@ func TestEndBytes(t *testing.T) {
 	{
 		resp, bodyBytes, errs := New().Get(ts.URL).EndBytes()
 		if len(errs) > 0 {
-			t.Errorf("Unexpected errors: %s", errs)
+			t.Error(fmt.Sprintf("Unexpected errors: %s", errs))
 		}
 		if resp.StatusCode != 200 {
-			t.Errorf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+			t.Error(fmt.Sprintf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode))
 		}
 		if string(bodyBytes) != serverOutput {
-			t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes))
+			t.Error(fmt.Sprintf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes)))
 		}
 	}
 }
@@ -1968,7 +1976,7 @@ func TestEndStruct(t *testing.T) {
 	expStruct := heyYou{Hey: "you"}
 	serverOutput, err := json.Marshal(expStruct)
 	if err != nil {
-		t.Errorf("Unexpected errors: %s", err)
+		t.Error(fmt.Sprintf("Unexpected errors: %s", err))
 	}
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
@@ -1980,27 +1988,27 @@ func TestEndStruct(t *testing.T) {
 	{
 		resp, bodyBytes, errs := New().Get(ts.URL).EndStruct(func(resp Response, v interface{}, body []byte, errs []error) {
 			if len(errs) > 0 {
-				t.Fatalf("Unexpected errors: %s", errs)
+				t.Fatal(fmt.Sprintf("Unexpected errors: %s", errs))
 			}
 			if resp.StatusCode != 200 {
-				t.Fatalf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+				t.Fatal(fmt.Sprintf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode))
 			}
 			if !reflect.DeepEqual(expStruct, resStruct) {
 				resBytes, _ := json.Marshal(resStruct)
-				t.Errorf("Expected body=%s, actual bodyBytes=%s", serverOutput, string(resBytes))
+				t.Error(fmt.Sprintf("Expected body=%s, actual bodyBytes=%s", serverOutput, string(resBytes)))
 			}
 			if !reflect.DeepEqual(body, serverOutput) {
-				t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(body))
+				t.Error(fmt.Sprintf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(body)))
 			}
 		})
 		if len(errs) > 0 {
-			t.Fatalf("Unexpected errors: %s", errs)
+			t.Fatal(fmt.Sprintf("Unexpected errors: %s", errs))
 		}
 		if resp.StatusCode != 200 {
-			t.Fatalf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+			t.Fatal(fmt.Sprintf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode))
 		}
 		if !reflect.DeepEqual(bodyBytes, serverOutput) {
-			t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes))
+			t.Error(fmt.Sprintf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes)))
 		}
 	}
 
@@ -2008,17 +2016,17 @@ func TestEndStruct(t *testing.T) {
 	{
 		resp, bodyBytes, errs := New().Get(ts.URL).EndStruct(&resStruct)
 		if len(errs) > 0 {
-			t.Errorf("Unexpected errors: %s", errs)
+			t.Error(fmt.Sprintf("Unexpected errors: %s", errs))
 		}
 		if resp.StatusCode != 200 {
-			t.Errorf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode)
+			t.Error(fmt.Sprintf("Expected StatusCode=200, actual StatusCode=%v", resp.StatusCode))
 		}
 		if !reflect.DeepEqual(expStruct, resStruct) {
 			resBytes, _ := json.Marshal(resStruct)
-			t.Errorf("Expected body=%s, actual bodyBytes=%s", serverOutput, string(resBytes))
+			t.Error(fmt.Sprintf("Expected body=%s, actual bodyBytes=%s", serverOutput, string(resBytes)))
 		}
 		if !reflect.DeepEqual(bodyBytes, serverOutput) {
-			t.Errorf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes))
+			t.Error(fmt.Sprintf("Expected bodyBytes=%s, actual bodyBytes=%s", serverOutput, string(bodyBytes)))
 		}
 	}
 }
@@ -2105,7 +2113,7 @@ func TestTimeoutFunc(t *testing.T) {
 		t.Error("Expected dial timeout error but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
-		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
+		t.Error(fmt.Sprintf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime))
 	}
 	// 2st case, read/write timeout (Can dial to url but want to timeout because too long operation on the server)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2120,7 +2128,7 @@ func TestTimeoutFunc(t *testing.T) {
 		t.Error("Expected dial+read/write timeout | but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
-		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
+		t.Error(fmt.Sprintf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime))
 	}
 	// 3rd case, testing reuse of same request
 	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2134,7 +2142,7 @@ func TestTimeoutFunc(t *testing.T) {
 		t.Error("Expected dial+read/write timeout | but get nothing")
 	}
 	if elapsedTime < 1000*time.Millisecond || elapsedTime > 1500*time.Millisecond {
-		t.Errorf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime)
+		t.Error(fmt.Sprintf("Expected timeout in between 1000 -> 1500 ms | but got %d", elapsedTime))
 	}
 
 }
@@ -2155,7 +2163,7 @@ func TestCookies(t *testing.T) {
 func TestGetSetCookie(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != GET {
-			t.Errorf("Expected method %q; got %q", GET, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", GET, r.Method))
 		}
 		c, err := r.Cookie("API-Cookie-Name")
 		if err != nil {
@@ -2164,7 +2172,7 @@ func TestGetSetCookie(t *testing.T) {
 		if c == nil {
 			t.Error("Expected non-nil request Cookie 'API-Cookie-Name'")
 		} else if c.Value != "api-cookie-value" {
-			t.Errorf("Expected 'API-Cookie-Name' == %q; got %q", "api-cookie-value", c.Value)
+			t.Error(fmt.Sprintf("Expected 'API-Cookie-Name' == %q; got %q", "api-cookie-value", c.Value))
 		}
 	}))
 	defer ts.Close()
@@ -2177,7 +2185,7 @@ func TestGetSetCookie(t *testing.T) {
 func TestGetSetCookies(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != GET {
-			t.Errorf("Expected method %q; got %q", GET, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", GET, r.Method))
 		}
 		c, err := r.Cookie("API-Cookie-Name1")
 		if err != nil {
@@ -2186,7 +2194,7 @@ func TestGetSetCookies(t *testing.T) {
 		if c == nil {
 			t.Error("Expected non-nil request Cookie 'API-Cookie-Name1'")
 		} else if c.Value != "api-cookie-value1" {
-			t.Errorf("Expected 'API-Cookie-Name1' == %q; got %q", "api-cookie-value1", c.Value)
+			t.Error(fmt.Sprintf("Expected 'API-Cookie-Name1' == %q; got %q", "api-cookie-value1", c.Value))
 		}
 		c, err = r.Cookie("API-Cookie-Name2")
 		if err != nil {
@@ -2195,7 +2203,7 @@ func TestGetSetCookies(t *testing.T) {
 		if c == nil {
 			t.Error("Expected non-nil request Cookie 'API-Cookie-Name2'")
 		} else if c.Value != "api-cookie-value2" {
-			t.Errorf("Expected 'API-Cookie-Name2' == %q; got %q", "api-cookie-value2", c.Value)
+			t.Error(fmt.Sprintf("Expected 'API-Cookie-Name2' == %q; got %q", "api-cookie-value2", c.Value))
 		}
 	}))
 	defer ts.Close()
@@ -2219,7 +2227,7 @@ func TestErrorTypeWrongKey(t *testing.T) {
 		End()
 	if len(err) != 0 {
 		if err[0].Error() != "Type func: incorrect type \"wrongtype\"" {
-			t.Errorf("Wrong error message: " + err[0].Error())
+			t.Error(fmt.Sprintf("Wrong error message: %s", err[0].Error()))
 		}
 	} else {
 		t.Error("Should have error")
@@ -2248,7 +2256,7 @@ func TestErrorThenReUseBase(t *testing.T) {
 		End()
 	if len(err) != 0 {
 		if err[0].Error() != "Type func: incorrect type \"wrongtype\"" {
-			t.Errorf("Wrong error message: " + err[0].Error())
+			t.Error(fmt.Sprintf("Wrong error message: %s", err[0].Error()))
 		}
 	} else {
 		t.Error("Should have error")
@@ -2258,7 +2266,7 @@ func TestErrorThenReUseBase(t *testing.T) {
 		Get(ts.URL).
 		End()
 	if len(err) != 0 {
-		t.Errorf("Expected No error %v", err)
+		t.Error(fmt.Sprintf("Expected No error %v", err))
 	}
 }
 
@@ -2376,20 +2384,20 @@ func TestXml(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is PATCH before going to check other features
 		if r.Method != POST {
-			t.Errorf("Expected method %q; got %q", POST, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", POST, r.Method))
 		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 
 		if r.Header.Get("Content-Type") != "application/xml" {
-			t.Error("Expected Header Content-Type -> application/xml", "| but got", r.Header.Get("Content-Type"))
+			t.Error(fmt.Sprintf("Expected Header Content-Type -> application/xml | but got %s", r.Header.Get("Content-Type")))
 		}
 
 		defer r.Body.Close()
 		body, _ := ioutil.ReadAll(r.Body)
 		if string(body) != xml {
-			t.Error(`Expected XML `, xml, "| but got", string(body))
+			t.Error(fmt.Sprintf(`Expected XML %s | but got %s`, xml, string(body)))
 		}
 	}))
 
@@ -2412,19 +2420,19 @@ func TestPlainText(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is PATCH before going to check other features
 		if r.Method != POST {
-			t.Errorf("Expected method %q; got %q", POST, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %q", POST, r.Method))
 		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 		if r.Header.Get("Content-Type") != "text/plain" {
-			t.Error("Expected Header Content-Type -> text/plain", "| but got", r.Header.Get("Content-Type"))
+			t.Error(fmt.Sprintf("Expected Header Content-Type -> text/plain | but got %s", r.Header.Get("Content-Type")))
 		}
 
 		defer r.Body.Close()
 		body, _ := ioutil.ReadAll(r.Body)
 		if string(body) != text {
-			t.Error(`Expected text `, text, "| but got", string(body))
+			t.Error(fmt.Sprintf(`Expected text %s | but got %s`, text, string(body)))
 		}
 	}))
 
@@ -2463,13 +2471,13 @@ func TestContentTypeInference(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// check method is PATCH before going to check other features
 			if r.Method != POST {
-				t.Errorf("Expected method %q; got %q", POST, r.Method)
+				t.Error(fmt.Sprintf("Expected method %q; got %q", POST, r.Method))
 			}
 			if r.Header == nil {
 				t.Error("Expected non-nil request Header")
 			}
 			if r.Header.Get("Content-Type") != test.expectedHeader {
-				t.Errorf("Expected Header Content-Type -> %q | but got %q", test.expectedHeader, r.Header.Get("Content-Type"))
+				t.Error(fmt.Sprintf("Expected Header Content-Type -> %q | but got %q", test.expectedHeader, r.Header.Get("Content-Type")))
 			}
 		}))
 
@@ -2499,24 +2507,24 @@ func TestAcceptMultipleTypes(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// check method is PATCH before going to check other features
 		if r.Method != POST {
-			t.Errorf("Expected method %q; got %q", POST, r.Method)
+			t.Error(fmt.Sprintf("Expected method %q; got %s", POST, r.Method))
 		}
 		if r.Header == nil {
 			t.Error("Expected non-nil request Header")
 		}
 		if r.Header.Get("Content-Type") != "text/plain" {
-			t.Error("Expected Header Content-Type -> text/plain", "| but got", r.Header.Get("Content-Type"))
+			t.Error(fmt.Sprintf("Expected Header Content-Type -> text/plain | but got %s", r.Header.Get("Content-Type")))
 		}
 
 		expectedAccepts := []string{"text/plain", "application/json"}
 		if strings.Join(r.Header["Accept"], ", ") != strings.Join(expectedAccepts, ", ") {
-			t.Error("Expected Header Accept -> ", expectedAccepts, "| but got", r.Header["Accept"])
+			t.Error(fmt.Sprintf("Expected Header Accept -> %v | but got %v", expectedAccepts, r.Header["Accept"]))
 		}
 
 		defer r.Body.Close()
 		body, _ := ioutil.ReadAll(r.Body)
 		if string(body) != text {
-			t.Error(`Expected text `, text, "| but got", string(body))
+			t.Error(fmt.Sprintf(`Expected text %s | but got %s`, text, string(body)))
 		}
 	}))
 
@@ -2560,7 +2568,7 @@ func TestAsCurlCommand(t *testing.T) {
 
 	expected := fmt.Sprintf(`curl -X 'PUT' -d '%v' -H 'Content-Type: application/json' '%v'`, strings.Replace(jsonData, " ", "", -1), endpoint)
 	if curlComand != expected {
-		t.Fatalf("\nExpected curlCommand=%v\n   but actual result=%v", expected, curlComand)
+		t.Fatal(fmt.Sprintf("\nExpected curlCommand=%v\n   but actual result=%v", expected, curlComand))
 	}
 }
 
@@ -2574,7 +2582,7 @@ func TestSetDebugByEnvironmentVar(t *testing.T) {
 	New().SetLogger(logger).Get(endpoint).End()
 
 	if len(buf.String()) == 0 {
-		t.Fatalf("\nExpected gorequest to log request and response object if GOREQUEST_DEBUG=1")
+		t.Fatal(fmt.Sprintf("\nExpected gorequest to log request and response object if GOREQUEST_DEBUG=1"))
 	}
 
 	os.Setenv("GOREQUEST_DEBUG", "")
@@ -2583,7 +2591,7 @@ func TestSetDebugByEnvironmentVar(t *testing.T) {
 	New().SetLogger(logger).Get(endpoint).End()
 
 	if len(buf.String()) > 0 {
-		t.Fatalf("\nExpected gorequest not to log request and response object if GOREQUEST_DEBUG is not set.")
+		t.Fatal(fmt.Sprintf("\nExpected gorequest not to log request and response object if GOREQUEST_DEBUG is not set."))
 	}
 }
 

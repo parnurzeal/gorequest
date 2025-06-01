@@ -606,6 +606,34 @@ func (s *SuperAgent) TLSClientConfig(config *tls.Config) *SuperAgent {
 	return s
 }
 
+func (s *SuperAgent) safeModifyTransport() {
+	if !s.isClone {
+		return
+	}
+	oldTransport := s.Transport
+	s.Transport = &http.Transport{}
+
+	s.Transport.Proxy = oldTransport.Proxy
+	s.Transport.DialContext = oldTransport.DialContext
+	s.Transport.Dial = oldTransport.Dial
+	s.Transport.DialTLS = oldTransport.DialTLS
+	s.Transport.TLSClientConfig = oldTransport.TLSClientConfig
+	s.Transport.TLSHandshakeTimeout = oldTransport.TLSHandshakeTimeout
+	s.Transport.DisableKeepAlives = oldTransport.DisableKeepAlives
+	s.Transport.DisableCompression = oldTransport.DisableCompression
+	s.Transport.MaxIdleConns = oldTransport.MaxIdleConns
+	s.Transport.MaxIdleConnsPerHost = oldTransport.MaxIdleConnsPerHost
+	s.Transport.IdleConnTimeout = oldTransport.IdleConnTimeout
+	s.Transport.ResponseHeaderTimeout = oldTransport.ResponseHeaderTimeout
+	s.Transport.ExpectContinueTimeout = oldTransport.ExpectContinueTimeout
+	s.Transport.TLSNextProto = oldTransport.TLSNextProto
+	s.Transport.MaxResponseHeaderBytes = oldTransport.MaxResponseHeaderBytes
+	s.Transport.ProxyConnectHeader = oldTransport.ProxyConnectHeader
+	// Note: Consider adding other fields from http.Transport if necessary for Go 1.24.3 compatibility
+
+	s.Client.Transport = s.Transport
+}
+
 // Proxy function accepts a proxy url string to setup proxy url for any request.
 // It provides a convenience way to setup proxy which have advantages over usual old ways.
 // One example is you might try to set `http_proxy` environment. This means you are setting proxy up for all the requests.
@@ -650,6 +678,25 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 		}
 		return policy(Request(r), vv)
 	}
+	return s
+}
+
+func (s *SuperAgent) safeModifyHttpClient() {
+	if !s.isClone {
+		return
+	}
+	oldClient := s.Client
+	s.Client = &http.Client{}
+	s.Client.Jar = oldClient.Jar
+	s.Client.Transport = oldClient.Transport
+	s.Client.Timeout = oldClient.Timeout
+	s.Client.CheckRedirect = oldClient.CheckRedirect
+}
+
+// Timeout sets the timeout for the HTTP client.
+func (s *SuperAgent) Timeout(timeout time.Duration) *SuperAgent {
+	s.safeModifyHttpClient()
+	s.Client.Timeout = timeout
 	return s
 }
 
