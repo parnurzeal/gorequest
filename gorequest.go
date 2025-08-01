@@ -83,6 +83,7 @@ type SuperAgent struct {
 	BasicAuth            struct{ Username, Password string }
 	Debug                bool
 	CurlCommand          bool
+	EscapeHTML        bool
 	logger               Logger
 	Retryable            superAgentRetryable
 	DoNotClearSuperAgent bool
@@ -118,6 +119,7 @@ func New() *SuperAgent {
 		BasicAuth:         struct{ Username, Password string }{},
 		Debug:             debug,
 		CurlCommand:       false,
+		EscapeHTML:        true,
 		logger:            log.New(os.Stderr, "[gorequest]", log.LstdFlags),
 		isClone:           false,
 		context:           nil,
@@ -246,6 +248,12 @@ func (s *SuperAgent) SetDebug(enable bool) *SuperAgent {
 // Enable the curlcommand mode which display a CURL command line
 func (s *SuperAgent) SetCurlCommand(enable bool) *SuperAgent {
 	s.CurlCommand = enable
+	return s
+}
+
+// SetEscapeHTML escape html by default, set to false to disable
+func (s *SuperAgent) SetEscapeHTML(escapeHTML bool) *SuperAgent {
+	s.EscapeHTML = escapeHTML
 	return s
 }
 
@@ -533,7 +541,7 @@ func (s *SuperAgent) Query(content interface{}) *SuperAgent {
 }
 
 func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
-	if marshalContent, err := json.Marshal(content); err != nil {
+	if marshalContent, err := s.encodeJson(content); err != nil {
 		s.Errors = append(s.Errors, err)
 	} else {
 		var val map[string]interface{}
@@ -550,7 +558,7 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 				case time.Time:
 					queryVal = t.Format(time.RFC3339)
 				default:
-					j, err := json.Marshal(v)
+					j, err := s.encodeJson(v)
 					if err != nil {
 						continue
 					}
@@ -810,7 +818,7 @@ func (s *SuperAgent) SendMap(content interface{}) *SuperAgent {
 // SendStruct (similar to SendString) returns SuperAgent's itself for any next chain and takes content interface{} as a parameter.
 // Its duty is to transfrom interface{} (implicitly always a struct) into s.Data (map[string]interface{}) which later changes into appropriate format such as json, form, text, etc. in the End() func.
 func (s *SuperAgent) SendStruct(content interface{}) *SuperAgent {
-	if marshalContent, err := json.Marshal(content); err != nil {
+	if marshalContent, err := s.encodeJson(content); err != nil {
 		s.Errors = append(s.Errors, err)
 	} else {
 		var val map[string]interface{}
@@ -1336,9 +1344,9 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		if s.BounceToRawString {
 			contentJson = []byte(s.RawString)
 		} else if len(s.Data) != 0 {
-			contentJson, _ = json.Marshal(s.Data)
+			contentJson, _ = s.encodeJson(s.Data)
 		} else if len(s.SliceData) != 0 {
-			contentJson, _ = json.Marshal(s.SliceData)
+			contentJson, _ = s.encodeJson(s.SliceData)
 		}
 		if contentJson != nil {
 			contentReader = bytes.NewReader(contentJson)
@@ -1404,7 +1412,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"`, fieldName))
 			h.Set("Content-Type", "application/json")
 			fw, _ := mw.CreatePart(h)
-			contentJson, err := json.Marshal(s.SliceData)
+			contentJson, err := s.encodeJson(s.SliceData)
 			if err != nil {
 				return nil, err
 			}
@@ -1491,4 +1499,17 @@ func (s *SuperAgent) AsCurlCommand() (string, error) {
 		return "", err
 	}
 	return cmd.String(), nil
+}
+
+// Encode writes the JSON encoding of v to the stream,
+func (s *SuperAgent) encodeJson(val interface{}) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	encoder := json.NewEncoder(buf)
+	encoder.SetEscapeHTML(s.EscapeHTML)
+
+	if err := encoder.Encode(val); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
