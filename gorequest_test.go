@@ -1903,6 +1903,85 @@ func TestQueryFunc(t *testing.T) {
 		End()
 }
 
+// TestSetRawQueryString tests that SetRawQueryString preserves query parameter order
+func TestSetRawQueryString(t *testing.T) {
+	const case1_raw_query = "/raw_query"
+	const case2_raw_query_with_url_params = "/raw_query_with_url_params"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != GET {
+			t.Error(fmt.Sprintf("Expected method %q; got %q", GET, r.Method))
+		}
+		t.Logf("TestSetRawQueryString: Path=%s, RawQuery=%s", r.URL.Path, r.URL.RawQuery)
+
+		switch r.URL.Path {
+		default:
+			t.Error(fmt.Sprintf("No testing for this case yet : %q", r.URL.Path))
+		case case1_raw_query:
+			// The raw query string should be preserved exactly as provided
+			expectedRawQuery := "z=last&a=first&m=middle"
+			if r.URL.RawQuery != expectedRawQuery {
+				t.Error(fmt.Sprintf("Expected RawQuery=%s | but got %s", expectedRawQuery, r.URL.RawQuery))
+			}
+		case case2_raw_query_with_url_params:
+			// URL already has params, raw query should be appended
+			expectedRawQuery := "existing=param&z=last&a=first"
+			if r.URL.RawQuery != expectedRawQuery {
+				t.Error(fmt.Sprintf("Expected RawQuery=%s | but got %s", expectedRawQuery, r.URL.RawQuery))
+			}
+		}
+	}))
+	defer ts.Close()
+
+	// Test case 1: SetRawQueryString preserves order
+	New().Get(ts.URL + case1_raw_query).
+		SetRawQueryString("z=last&a=first&m=middle").
+		End()
+
+	// Test case 2: SetRawQueryString with existing URL parameters
+	New().Get(ts.URL + case2_raw_query_with_url_params + "?existing=param").
+		SetRawQueryString("z=last&a=first").
+		End()
+}
+
+// TestSetRawQueryStringClone tests that RawQueryString is properly cloned
+func TestSetRawQueryStringClone(t *testing.T) {
+	const case1_base = "/base"
+	const case2_override = "/override"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("TestSetRawQueryStringClone: Path=%s, RawQuery=%s", r.URL.Path, r.URL.RawQuery)
+
+		switch r.URL.Path {
+		default:
+			t.Error(fmt.Sprintf("No testing for this case yet : %q", r.URL.Path))
+		case case1_base:
+			expectedRawQuery := "z=last&a=first"
+			if r.URL.RawQuery != expectedRawQuery {
+				t.Error(fmt.Sprintf("Expected RawQuery=%s | but got %s", expectedRawQuery, r.URL.RawQuery))
+			}
+		case case2_override:
+			expectedRawQuery := "different=query&order=preserved"
+			if r.URL.RawQuery != expectedRawQuery {
+				t.Error(fmt.Sprintf("Expected RawQuery=%s | but got %s", expectedRawQuery, r.URL.RawQuery))
+			}
+		}
+	}))
+	defer ts.Close()
+
+	// Set up base request with a raw query string
+	baseRequest := New().SetRawQueryString("z=last&a=first")
+
+	// Clone 1 should inherit the raw query string
+	baseRequest.Clone().Get(ts.URL + case1_base).End()
+
+	// Clone 2 with override
+	baseRequest.Clone().Get(ts.URL + case2_override).
+		SetRawQueryString("different=query&order=preserved").
+		End()
+
+	// Clone 3 should still have the original raw query string
+	baseRequest.Clone().Get(ts.URL + case1_base).End()
+}
+
 // TODO: more tests on redirect
 func TestRedirectPolicyFunc(t *testing.T) {
 	redirectSuccess := false

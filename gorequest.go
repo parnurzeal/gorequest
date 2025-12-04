@@ -73,6 +73,7 @@ type SuperAgent struct {
 	SliceData            []interface{}
 	FormData             url.Values
 	QueryData            url.Values
+	RawQueryString       string
 	FileData             []File
 	BounceToRawString    bool
 	RawString            string
@@ -218,6 +219,7 @@ func (s *SuperAgent) Clone() *SuperAgent {
 		SliceData:            shallowCopyDataSlice(s.SliceData),
 		FormData:             url.Values(cloneMapArray(s.FormData)),
 		QueryData:            url.Values(cloneMapArray(s.QueryData)),
+		RawQueryString:       s.RawQueryString,
 		FileData:             shallowCopyFileArray(s.FileData),
 		BounceToRawString:    s.BounceToRawString,
 		RawString:            s.RawString,
@@ -272,6 +274,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.SliceData = []interface{}{}
 	s.FormData = url.Values{}
 	s.QueryData = url.Values{}
+	s.RawQueryString = ""
 	s.FileData = make([]File, 0)
 	s.BounceToRawString = false
 	s.RawString = ""
@@ -593,6 +596,21 @@ func (s *SuperAgent) queryMap(content interface{}) *SuperAgent {
 // This Param is then created as an alternative method to solve this.
 func (s *SuperAgent) Param(key string, value string) *SuperAgent {
 	s.QueryData.Add(key, value)
+	return s
+}
+
+// SetRawQueryString sets a raw query string that will be used as-is without any encoding or reordering.
+// This is useful when you need to preserve the exact order of query parameters (e.g., for signature generation).
+// Note: When RawQueryString is set, it takes precedence over QueryData.
+//
+// Example:
+//
+//	gorequest.New().
+//	  Get("http://example.com/api").
+//	  SetRawQueryString("z=last&a=first&m=middle").
+//	  End()
+func (s *SuperAgent) SetRawQueryString(rawQueryString string) *SuperAgent {
+	s.RawQueryString = rawQueryString
 	return s
 }
 
@@ -1458,13 +1476,24 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	}
 
 	// Add all querystring from Query func
-	q := req.URL.Query()
-	for k, v := range s.QueryData {
-		for _, vv := range v {
-			q.Add(k, vv)
+	// If RawQueryString is set, use it directly (preserves order)
+	// Otherwise, use url.Values.Encode() which sorts alphabetically
+	if s.RawQueryString != "" {
+		// Use raw query string as-is, preserving order
+		if req.URL.RawQuery != "" {
+			req.URL.RawQuery = req.URL.RawQuery + "&" + s.RawQueryString
+		} else {
+			req.URL.RawQuery = s.RawQueryString
 		}
+	} else {
+		q := req.URL.Query()
+		for k, v := range s.QueryData {
+			for _, vv := range v {
+				q.Add(k, vv)
+			}
+		}
+		req.URL.RawQuery = q.Encode()
 	}
-	req.URL.RawQuery = q.Encode()
 
 	// Add basic auth
 	if s.BasicAuth != struct{ Username, Password string }{} {
