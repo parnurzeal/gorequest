@@ -2620,3 +2620,21 @@ func TestContenxt(t *testing.T) {
 		cancel()
 	}
 }
+
+func TestForceContentType(t *testing.T) {
+	endpoint := "http://github.com/parnurzeal/gorequest"
+
+	request, err := New().
+		Post(endpoint).
+		Type(TypeJSON).
+		SendString(`notJSON`).
+		MakeRequest()
+
+	if err != nil {
+		t.Errorf("Error is not nil: %v", err)
+	}
+
+	if contentType := request.Header.Get("Content-Type"); contentType != Types[TypeJSON] {
+		t.Errorf("Content-Type is not JSON: %v", contentType)
+	}
+}
