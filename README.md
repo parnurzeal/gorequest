@@ -271,6 +271,37 @@ resp, body, errs := request.Get("http://example.com/").
                     End()
 ```
 
+## Raw Query String (Preserving Parameter Order)
+
+By default, query parameters are sorted alphabetically when encoded. This can be problematic for APIs that require signature generation based on parameter order.
+
+Use `SetRawQueryString` to send query parameters exactly as provided, preserving their order:
+
+```go
+// Parameters will be sent in the exact order: z=last&a=first&m=middle
+request := gorequest.New()
+resp, body, errs := request.Get("http://example.com/api").
+                    SetRawQueryString("z=last&a=first&m=middle").
+                    End()
+```
+
+This is useful when:
+- You need to generate signatures based on query parameter order
+- The API requires parameters in a specific order
+- You want full control over the query string format
+
+Note: When `SetRawQueryString` is set, it takes precedence over `Query()` or `Param()` methods. The raw query string is used as-is without any encoding or reordering.
+
+For JSON body order, you can use `Send()` with a raw JSON string directly:
+
+```go
+// JSON will be sent exactly as provided, preserving key order
+request := gorequest.New()
+resp, body, errs := request.Post("http://example.com/api").
+                    Send(`{"z":"last","a":"first","m":"middle"}`).
+                    End()
+```
+
 ## Handling Redirects
 
 Redirects can be handled with RedirectPolicy which behaves similarly to
