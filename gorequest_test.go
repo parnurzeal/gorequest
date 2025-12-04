@@ -849,6 +849,12 @@ func TestPost(t *testing.T) {
 	ts := testPostServer(t)
 	defer ts.Close()
 
+	// Add a test case for multiple Host headers
+	New().Post(ts.URL + test_post_case1_empty).
+		Set("Host", "bad.host").
+		Set("Host", "good.host").
+		End()
+
 	New().Post(ts.URL + test_post_case1_empty).
 		End()
 

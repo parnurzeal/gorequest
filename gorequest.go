@@ -1440,7 +1440,7 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 
 		// Setting the Host header is a special case, see this issue: https://github.com/golang/go/issues/7682
 		if strings.EqualFold(k, "Host") {
-			req.Host = vals[0]
+			req.Host = vals[len(vals)-1]
 		}
 	}
 
