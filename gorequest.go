@@ -73,6 +73,7 @@ type SuperAgent struct {
 	SliceData            []interface{}
 	FormData             url.Values
 	QueryData            url.Values
+	queryKeys            []string // Track key order for QueryData
 	FileData             []File
 	BounceToRawString    bool
 	RawString            string
@@ -109,6 +110,7 @@ func New() *SuperAgent {
 		SliceData:         []interface{}{},
 		FormData:          url.Values{},
 		QueryData:         url.Values{},
+		queryKeys:         []string{},
 		FileData:          make([]File, 0),
 		BounceToRawString: false,
 		Client:            &http.Client{Jar: jar},
@@ -188,6 +190,15 @@ func shallowCopyErrors(old []error) []error {
 	return newData
 }
 
+func shallowCopyStringSlice(old []string) []string {
+	if old == nil {
+		return nil
+	}
+	newData := make([]string, len(old))
+	copy(newData, old)
+	return newData
+}
+
 // just need to change the array pointer?
 func copyRetryable(old superAgentRetryable) superAgentRetryable {
 	newRetryable := old
@@ -218,6 +229,7 @@ func (s *SuperAgent) Clone() *SuperAgent {
 		SliceData:            shallowCopyDataSlice(s.SliceData),
 		FormData:             url.Values(cloneMapArray(s.FormData)),
 		QueryData:            url.Values(cloneMapArray(s.QueryData)),
+		queryKeys:            shallowCopyStringSlice(s.queryKeys),
 		FileData:             shallowCopyFileArray(s.FileData),
 		BounceToRawString:    s.BounceToRawString,
 		RawString:            s.RawString,
@@ -272,6 +284,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.SliceData = []interface{}{}
 	s.FormData = url.Values{}
 	s.QueryData = url.Values{}
+	s.queryKeys = []string{}
 	s.FileData = make([]File, 0)
 	s.BounceToRawString = false
 	s.RawString = ""
@@ -556,7 +569,7 @@ func (s *SuperAgent) queryStruct(content interface{}) *SuperAgent {
 					}
 					queryVal = string(j)
 				}
-				s.QueryData.Add(k, queryVal)
+				s.addQueryParam(k, queryVal)
 			}
 		}
 	}
@@ -567,13 +580,13 @@ func (s *SuperAgent) queryString(content string) *SuperAgent {
 	var val map[string]string
 	if err := json.Unmarshal([]byte(content), &val); err == nil {
 		for k, v := range val {
-			s.QueryData.Add(k, v)
+			s.addQueryParam(k, v)
 		}
 	} else {
 		if queryData, err := url.ParseQuery(content); err == nil {
 			for k, queryValues := range queryData {
 				for _, queryValue := range queryValues {
-					s.QueryData.Add(k, string(queryValue))
+					s.addQueryParam(k, string(queryValue))
 				}
 			}
 		} else {
@@ -588,11 +601,21 @@ func (s *SuperAgent) queryMap(content interface{}) *SuperAgent {
 	return s.queryStruct(content)
 }
 
+// addQueryParam adds a query parameter while tracking the key order.
+// If the key is new, it adds it to the order list.
+func (s *SuperAgent) addQueryParam(key string, value string) {
+	// Track order only for new keys
+	if _, exists := s.QueryData[key]; !exists {
+		s.queryKeys = append(s.queryKeys, key)
+	}
+	s.QueryData.Add(key, value)
+}
+
 // As Go conventions accepts ; as a synonym for &. (https://github.com/golang/go/issues/2210)
 // Thus, Query won't accept ; in a querystring if we provide something like fields=f1;f2;f3
 // This Param is then created as an alternative method to solve this.
 func (s *SuperAgent) Param(key string, value string) *SuperAgent {
-	s.QueryData.Add(key, value)
+	s.addQueryParam(key, value)
 	return s
 }
 
@@ -1457,14 +1480,23 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		req.Header.Set("Content-Type", contentType)
 	}
 
-	// Add all querystring from Query func
-	q := req.URL.Query()
-	for k, v := range s.QueryData {
-		for _, vv := range v {
-			q.Add(k, vv)
+	// Add all querystring from Query func, preserving order
+	// First, get any existing query parameters from the URL
+	existingQuery := req.URL.RawQuery
+
+	// Build query string in the order keys were added
+	var queryParts []string
+	if existingQuery != "" {
+		queryParts = append(queryParts, existingQuery)
+	}
+	for _, k := range s.queryKeys {
+		if values, ok := s.QueryData[k]; ok {
+			for _, v := range values {
+				queryParts = append(queryParts, url.QueryEscape(k)+"="+url.QueryEscape(v))
+			}
 		}
 	}
-	req.URL.RawQuery = q.Encode()
+	req.URL.RawQuery = strings.Join(queryParts, "&")
 
 	// Add basic auth
 	if s.BasicAuth != struct{ Username, Password string }{} {
