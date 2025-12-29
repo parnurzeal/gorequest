@@ -1256,13 +1256,7 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 
 	// Log details of this request
 	if s.Debug {
-		dump, err := httputil.DumpRequest(req, true)
-		s.logger.SetPrefix("[http] ")
-		if err != nil {
-			s.logger.Println("Error:", err)
-		} else {
-			s.logger.Printf("HTTP Request: %s", string(dump))
-		}
+		s.Dump()
 	}
 
 	// Display CURL command line
@@ -1491,4 +1485,20 @@ func (s *SuperAgent) AsCurlCommand() (string, error) {
 		return "", err
 	}
 	return cmd.String(), nil
+}
+
+// Dump creates the required request and logs it's contents.
+func (s *SuperAgent) Dump() {
+	req, err := s.MakeRequest()
+	if err != nil {
+		s.logger.Println("Error:", err)
+	}
+
+	dump, err := httputil.DumpRequest(req, true)
+	s.logger.SetPrefix("[http] ")
+	if err != nil {
+		s.logger.Println("Error:", err)
+	} else {
+		s.logger.Printf("HTTP Request: %s", string(dump))
+	}
 }
