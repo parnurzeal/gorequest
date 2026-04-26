@@ -307,7 +307,7 @@ baseRequest.Timeout(10 * time.Millisecond).
   BasicAuth("user", "password")
 
 // then reuse the base request elsewhere, cloning before modifying or using it.
-resp, body, errs := baseRequest.Clone().Get("http://exmaple.com/").End()
+resp, body, errs := baseRequest.Clone().Get("http://example.com/").End()
 ```
 
 ## Debug
