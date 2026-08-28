@@ -293,6 +293,26 @@ resp, body, errs := request.Get("http://example.com/").
                     End()
 ```
 
+### Headers on redirects
+
+When a redirect (e.g. a 301/302 response) is followed, Go's `net/http` client
+builds the redirected request by copying the original request's headers —
+behaviour that has historically been inconsistent, especially across domains
+(see golang/go#4800). If you rely on a custom header such as `User-Agent`
+surviving a redirect, verify it explicitly rather than assuming it was copied.
+You can set the header again inside a `RedirectPolicy` callback to be certain:
+
+```go
+request := gorequest.New()
+resp, body, errs := request.Get("http://example.com/").
+                    Set("User-Agent", "my-agent").
+                    RedirectPolicy(func(req Request, via []*Request) error {
+                      req.Header.Set("User-Agent", "my-agent")
+                      return nil
+                    }).
+                    End()
+```
+
 
 ## Clone
 
