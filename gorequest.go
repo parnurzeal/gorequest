@@ -111,7 +111,7 @@ func New() *SuperAgent {
 		QueryData:         url.Values{},
 		FileData:          make([]File, 0),
 		BounceToRawString: false,
-		Client:            &http.Client{Jar: jar},
+		Client:            &http.Client{Jar: jar, CheckRedirect: defaultCheckRedirect},
 		Transport:         &http.Transport{},
 		Cookies:           make([]*http.Cookie, 0),
 		Errors:            nil,
@@ -675,7 +675,14 @@ func (s *SuperAgent) Proxy(proxyUrl string) *SuperAgent {
 // past requests in order of oldest first.
 func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) error) *SuperAgent {
 	s.safeModifyHttpClient()
+	if policy == nil {
+		s.Client.CheckRedirect = defaultCheckRedirect
+		return s
+	}
 	s.Client.CheckRedirect = func(r *http.Request, v []*http.Request) error {
+		if len(v) > 0 && (isCrossDomainOrOrigin(v[0].URL, r.URL) || isCrossDomainOrOrigin(v[len(v)-1].URL, r.URL)) {
+			stripSensitiveHeaders(r)
+		}
 		vv := make([]Request, len(v))
 		for i, r := range v {
 			vv[i] = Request(r)
@@ -683,6 +690,114 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 		return policy(Request(r), vv)
 	}
 	return s
+}
+
+func defaultCheckRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if len(via) > 0 && (isCrossDomainOrOrigin(via[0].URL, req.URL) || isCrossDomainOrOrigin(via[len(via)-1].URL, req.URL)) {
+		stripSensitiveHeaders(req)
+	}
+	return nil
+}
+
+func isCrossDomainOrOrigin(initial, dest *url.URL) bool {
+	if initial == nil || dest == nil {
+		return false
+	}
+	initScheme := strings.ToLower(initial.Scheme)
+	destScheme := strings.ToLower(dest.Scheme)
+	if initScheme == "https" && destScheme != "https" {
+		return true
+	}
+	if initial.Host == dest.Host && initScheme == destScheme {
+		return false
+	}
+	if !strings.EqualFold(initial.Hostname(), dest.Hostname()) {
+		return true
+	}
+	if initScheme != destScheme {
+		return true
+	}
+	if getPort(initial) != getPort(dest) {
+		return true
+	}
+	return false
+}
+
+func getPort(u *url.URL) string {
+	if port := u.Port(); port != "" {
+		return port
+	}
+	if strings.EqualFold(u.Scheme, "https") || strings.EqualFold(u.Scheme, "wss") {
+		return "443"
+	}
+	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "ws") {
+		return "80"
+	}
+	return ""
+}
+
+func isSensitiveHeader(name string) bool {
+	switch textproto.CanonicalMIMEHeaderKey(name) {
+	case "Authorization",
+		"Proxy-Authorization",
+		"Www-Authenticate",
+		"Proxy-Authenticate",
+		"Cookie",
+		"Cookie2",
+		"Api-Key",
+		"X-Api-Key",
+		"Apikey",
+		"X-Auth-Token",
+		"Auth-Token",
+		"Token",
+		"X-Access-Token",
+		"Access-Token",
+		"Private-Token",
+		"Secret-Token",
+		"X-Secret-Token",
+		"Session-Token",
+		"X-Session-Token",
+		"X-Csrf-Token",
+		"X-Xsrf-Token",
+		"X-Csrftoken",
+		"X-Xsrftoken",
+		"Bearer",
+		"X-User-Token",
+		"X-App-Token",
+		"X-Client-Token",
+		"X-Device-Token",
+		"X-Security-Token":
+		return true
+	}
+	lower := strings.ToLower(name)
+	if strings.Contains(lower, "token") ||
+		strings.Contains(lower, "api-key") ||
+		strings.Contains(lower, "apikey") ||
+		strings.Contains(lower, "secret") ||
+		strings.Contains(lower, "password") ||
+		(strings.Contains(lower, "auth") && !strings.Contains(lower, "author")) {
+		return true
+	}
+	return false
+}
+
+func stripSensitiveHeaders(req *http.Request) {
+	if req == nil || req.Header == nil {
+		return
+	}
+	var toDelete []string
+	for k := range req.Header {
+		if isSensitiveHeader(k) {
+			toDelete = append(toDelete, k)
+		}
+	}
+	for _, k := range toDelete {
+		delete(req.Header, k)
+		req.Header.Del(k)
+	}
 }
 
 func (s *SuperAgent) safeModifyHttpClient() {
@@ -1277,6 +1392,9 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 
 	// Send request
+	if s.Client.CheckRedirect == nil {
+		s.Client.CheckRedirect = defaultCheckRedirect
+	}
 	resp, err = s.Client.Do(req)
 	if err != nil {
 		s.Errors = append(s.Errors, err)
