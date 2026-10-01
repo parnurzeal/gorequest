@@ -2578,6 +2578,60 @@ func TestAsCurlCommand(t *testing.T) {
 	}
 }
 
+func TestAsCurlCommandForceType(t *testing.T) {
+	endpoint := "http://github.com/parnurzeal/gorequest"
+
+	// Form type
+	reqForm := New().Post(endpoint).Type("form").Send(map[string]interface{}{"name": "john"})
+	curlForm, err := reqForm.AsCurlCommand()
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedForm := fmt.Sprintf("curl -X 'POST' -d 'name=john' -H 'Content-Type: application/x-www-form-urlencoded' '%s'", endpoint)
+	if curlForm != expectedForm {
+		t.Fatalf("Expected curlCommand=%v but got=%v", expectedForm, curlForm)
+	}
+
+	// Text type
+	reqText := New().Post(endpoint).Type("text").Send("sample text")
+	curlText, err := reqText.AsCurlCommand()
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedText := fmt.Sprintf("curl -X 'POST' -d 'sample text' -H 'Content-Type: text/plain' '%s'", endpoint)
+	if curlText != expectedText {
+		t.Fatalf("Expected curlCommand=%v but got=%v", expectedText, curlText)
+	}
+
+	// XML type
+	reqXML := New().Post(endpoint).Type("xml").Send("<request>data</request>")
+	curlXML, err := reqXML.AsCurlCommand()
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedXML := fmt.Sprintf("curl -X 'POST' -d '<request>data</request>' -H 'Content-Type: application/xml' '%s'", endpoint)
+	if curlXML != expectedXML {
+		t.Fatalf("Expected curlCommand=%v but got=%v", expectedXML, curlXML)
+	}
+}
+
+func TestMakeRequestForceType(t *testing.T) {
+	endpoint := "http://github.com/parnurzeal/gorequest"
+
+	req := New().Post(endpoint).Type("form").Send(map[string]interface{}{"name": "john"})
+	httpReq, err := req.MakeRequest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if httpReq.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		t.Errorf("Expected Content-Type 'application/x-www-form-urlencoded', got '%s'", httpReq.Header.Get("Content-Type"))
+	}
+	body, _ := ioutil.ReadAll(httpReq.Body)
+	if string(body) != "name=john" {
+		t.Errorf("Expected body 'name=john', got '%s'", string(body))
+	}
+}
+
 func TestSetDebugByEnvironmentVar(t *testing.T) {
 	endpoint := "http://github.com/parnurzeal/gorequest"
 
