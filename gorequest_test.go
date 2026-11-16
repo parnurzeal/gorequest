@@ -2469,7 +2469,7 @@ func TestContentTypeInference(t *testing.T) {
 	}{
 		{"application/json", "json", "application/json", "{}"},
 		{"", "json", "", ""},
-		{"", "json", "", "{}"},
+		{"", "json", "application/json", "{}"},
 		{"text/json", "json", "text/json", "{}"},
 		{"text/xml", "json", "text/xml", "<a />"},
 	}
@@ -2502,6 +2502,35 @@ func TestContentTypeInference(t *testing.T) {
 			Type(test.Type).
 			Send(test.body).
 			End()
+		ts.Close()
+	}
+}
+
+// Test for sending empty JSON containers: "{}" and "[]" are valid bodies and
+// must be sent verbatim instead of being silently dropped.
+func TestSendEmptyJSONBody(t *testing.T) {
+	var tests = []struct {
+		send     interface{}
+		expected string
+	}{
+		{`{}`, "{}"},
+		{`[]`, "[]"},
+		{map[string]string{}, "{}"},
+		{[]string{}, "[]"},
+		{struct{}{}, "{}"},
+	}
+	for _, test := range tests {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, _ := ioutil.ReadAll(r.Body)
+			if string(body) != test.expected {
+				t.Error(fmt.Sprintf("Expected body %q | but got %q", test.expected, string(body)))
+			}
+			if r.Header.Get("Content-Type") != "application/json" {
+				t.Error(fmt.Sprintf("Expected Header Content-Type -> %q | but got %q", "application/json", r.Header.Get("Content-Type")))
+			}
+		}))
+
+		New().Post(ts.URL).Send(test.send).End()
 		ts.Close()
 	}
 }

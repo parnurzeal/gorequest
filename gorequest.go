@@ -88,6 +88,8 @@ type SuperAgent struct {
 	DoNotClearSuperAgent bool
 	isClone              bool
 	context				 context.Context
+	// emptyBody keeps an empty JSON literal ("{}" or "[]") that must still be sent as the body.
+	emptyBody string
 }
 
 var DisableTransportSwap = false
@@ -221,6 +223,7 @@ func (s *SuperAgent) Clone() *SuperAgent {
 		FileData:             shallowCopyFileArray(s.FileData),
 		BounceToRawString:    s.BounceToRawString,
 		RawString:            s.RawString,
+		emptyBody:            s.emptyBody,
 		Client:               s.Client,
 		Transport:            s.Transport,
 		Cookies:              shallowCopyCookies(s.Cookies),
@@ -275,6 +278,7 @@ func (s *SuperAgent) ClearSuperAgent() {
 	s.FileData = make([]File, 0)
 	s.BounceToRawString = false
 	s.RawString = ""
+	s.emptyBody = ""
 	s.ForceType = ""
 	s.TargetType = TypeJSON
 	s.Cookies = make([]*http.Cookie, 0)
@@ -799,6 +803,10 @@ func makeSliceOfReflectValue(v reflect.Value) (slice []interface{}) {
 // SendSlice (similar to SendString) returns SuperAgent's itself for any next chain and takes content []interface{} as a parameter.
 // Its duty is to append slice of interface{} into s.SliceData ([]interface{}) which later changes into json array in the End() func.
 func (s *SuperAgent) SendSlice(content []interface{}) *SuperAgent {
+	if len(content) == 0 && len(s.SliceData) == 0 {
+		s.emptyBody = "[]"
+		return s
+	}
 	s.SliceData = append(s.SliceData, content...)
 	return s
 }
@@ -818,6 +826,8 @@ func (s *SuperAgent) SendStruct(content interface{}) *SuperAgent {
 		d.UseNumber()
 		if err := d.Decode(&val); err != nil {
 			s.Errors = append(s.Errors, err)
+		} else if len(val) == 0 {
+			s.emptyBody = "{}"
 		} else {
 			for k, v := range val {
 				s.Data[k] = v
@@ -836,14 +846,24 @@ func (s *SuperAgent) SendString(content string) *SuperAgent {
 		d := json.NewDecoder(strings.NewReader(content))
 		d.UseNumber()
 		if err := d.Decode(&val); err == nil {
-			switch v := reflect.ValueOf(val); v.Kind() {
+			switch reflect.ValueOf(val).Kind() {
 			case reflect.Map:
-				for k, v := range val.(map[string]interface{}) {
+				m := val.(map[string]interface{})
+				if len(m) == 0 {
+					s.emptyBody = content
+					break
+				}
+				for k, v := range m {
 					s.Data[k] = v
 				}
 			// add to SliceData
 			case reflect.Slice:
-				s.SendSlice(val.([]interface{}))
+				arr := val.([]interface{})
+				if len(arr) == 0 {
+					s.emptyBody = content
+					break
+				}
+				s.SendSlice(arr)
 			// bounce to rawstring if it is arrayjson, or others
 			default:
 				s.BounceToRawString = true
@@ -1339,6 +1359,8 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 			contentJson, _ = json.Marshal(s.Data)
 		} else if len(s.SliceData) != 0 {
 			contentJson, _ = json.Marshal(s.SliceData)
+		} else if s.emptyBody != "" {
+			contentJson = []byte(s.emptyBody)
 		}
 		if contentJson != nil {
 			contentReader = bytes.NewReader(contentJson)
