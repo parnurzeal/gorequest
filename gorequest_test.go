@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1930,21 +1931,28 @@ func TestRedirectPolicyFunc(t *testing.T) {
 	}
 }
 
+func newMockDomainAgent(serverAddr string) *SuperAgent {
+	agent := New()
+	agent.Transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, serverAddr)
+	}
+	return agent
+}
+
 func TestRedirectStripSensitiveHeadersOnCrossDomain(t *testing.T) {
 	var targetHeaders http.Header
-	tsRedirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirect" {
+			http.Redirect(w, r, "http://other.com/target", http.StatusFound)
+			return
+		}
 		targetHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
 	}))
-	defer tsRedirect.Close()
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, tsRedirect.URL, http.StatusFound)
-	}))
 	defer ts.Close()
 
-	resp, _, errs := New().
-		Get(ts.URL).
+	resp, _, errs := newMockDomainAgent(ts.Listener.Addr().String()).
+		Get("http://example.com/redirect").
 		Set("API-Key", "fookey").
 		Set("X-Auth-Token", "secrettoken").
 		Set("Authorization", "Bearer mytoken").
@@ -1978,19 +1986,18 @@ func TestRedirectStripSensitiveHeadersOnCrossDomain(t *testing.T) {
 func TestRedirectStripSensitiveHeadersWithRedirectPolicy(t *testing.T) {
 	var targetHeaders http.Header
 	policyCalled := false
-	tsRedirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirect" {
+			http.Redirect(w, r, "http://other.com/target", http.StatusMovedPermanently)
+			return
+		}
 		targetHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
 	}))
-	defer tsRedirect.Close()
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, tsRedirect.URL, http.StatusMovedPermanently)
-	}))
 	defer ts.Close()
 
-	resp, _, errs := New().
-		Get(ts.URL).
+	resp, _, errs := newMockDomainAgent(ts.Listener.Addr().String()).
+		Get("http://example.com/redirect").
 		Set("API-Key", "fookey").
 		Set("X-Auth-Token", "secrettoken").
 		Set("Custom-Header", "preserveme").
@@ -2062,19 +2069,18 @@ func TestRedirectPreserveSensitiveHeadersOnSameDomain(t *testing.T) {
 
 func TestRedirectStripSensitiveHeadersBasicAuth(t *testing.T) {
 	var targetHeaders http.Header
-	tsRedirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirect" {
+			http.Redirect(w, r, "http://other.com/target", http.StatusFound)
+			return
+		}
 		targetHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
 	}))
-	defer tsRedirect.Close()
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, tsRedirect.URL, http.StatusFound)
-	}))
 	defer ts.Close()
 
-	resp, _, errs := New().
-		Get(ts.URL).
+	resp, _, errs := newMockDomainAgent(ts.Listener.Addr().String()).
+		Get("http://example.com/redirect").
 		SetBasicAuth("myuser", "mypassword").
 		End()
 
@@ -2091,23 +2097,22 @@ func TestRedirectStripSensitiveHeadersBasicAuth(t *testing.T) {
 
 func TestRedirectStripSensitiveHeadersClonedSuperAgent(t *testing.T) {
 	var targetHeaders http.Header
-	tsRedirect := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirect" {
+			http.Redirect(w, r, "http://other.com/target", http.StatusFound)
+			return
+		}
 		targetHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
 	}))
-	defer tsRedirect.Close()
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, tsRedirect.URL, http.StatusFound)
-	}))
 	defer ts.Close()
 
-	base := New().
+	base := newMockDomainAgent(ts.Listener.Addr().String()).
 		AppendHeader("API-Key", "fookey").
 		AppendHeader("X-Auth-Token", "secrettoken")
 
 	resp, _, errs := base.Clone().
-		Get(ts.URL).
+		Get("http://example.com/redirect").
 		End()
 
 	if len(errs) > 0 {
@@ -2121,6 +2126,366 @@ func TestRedirectStripSensitiveHeadersClonedSuperAgent(t *testing.T) {
 	}
 	if v := targetHeaders.Get("X-Auth-Token"); v != "" {
 		t.Errorf("Expected X-Auth-Token to be stripped on cloned superagent redirect, got %q", v)
+	}
+}
+
+func TestRedirectHTTPSDowngradeStripsCredentials(t *testing.T) {
+	var targetHeaders http.Header
+	tsHTTP := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer tsHTTP.Close()
+
+	tsTLS := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, tsHTTP.URL, http.StatusFound)
+	}))
+	defer tsTLS.Close()
+
+	agent := New().
+		Get(tsTLS.URL).
+		TLSClientConfig(tsTLS.Client().Transport.(*http.Transport).TLSClientConfig).
+		Set("Authorization", "Bearer mysecrettoken").
+		Set("API-Key", "fookey").
+		Set("X-Auth-Token", "secrettoken").
+		Set("Safe-Header", "preserveme")
+
+	resp, _, errs := agent.End()
+	if len(errs) > 0 {
+		t.Fatalf("Unexpected errors: %v", errs)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d", resp.StatusCode)
+	}
+	if v := targetHeaders.Get("Authorization"); v != "" {
+		t.Errorf("Expected Authorization to be stripped on https -> http downgrade, got %q", v)
+	}
+	if v := targetHeaders.Get("API-Key"); v != "" {
+		t.Errorf("Expected API-Key to be stripped on https -> http downgrade, got %q", v)
+	}
+	if v := targetHeaders.Get("X-Auth-Token"); v != "" {
+		t.Errorf("Expected X-Auth-Token to be stripped on https -> http downgrade, got %q", v)
+	}
+	if v := targetHeaders.Get("Safe-Header"); v != "preserveme" {
+		t.Errorf("Expected Safe-Header to be preserved, got %q", v)
+	}
+}
+
+func TestRedirectDomainToSubdomainPreservesCredentials(t *testing.T) {
+	var targetHeaders http.Header
+	var targetHost string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirect" {
+			http.Redirect(w, r, "http://api.example.com/target", http.StatusFound)
+			return
+		}
+		targetHost = r.Host
+		targetHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	agent := newMockDomainAgent(ts.Listener.Addr().String()).
+		Get("http://example.com/redirect").
+		Set("Authorization", "Bearer mytoken").
+		Set("API-Key", "fookey").
+		Set("X-Auth-Token", "secrettoken").
+		Set("Safe-Header", "preserveme")
+
+	resp, _, errs := agent.End()
+	if len(errs) > 0 {
+		t.Fatalf("Unexpected errors: %v", errs)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d", resp.StatusCode)
+	}
+	if targetHost != "api.example.com" {
+		t.Errorf("Expected target host api.example.com, got %q", targetHost)
+	}
+	if v := targetHeaders.Get("Authorization"); v != "Bearer mytoken" {
+		t.Errorf("Expected Authorization to be preserved on domain to subdomain redirect, got %q", v)
+	}
+	if v := targetHeaders.Get("API-Key"); v != "fookey" {
+		t.Errorf("Expected API-Key to be preserved on domain to subdomain redirect, got %q", v)
+	}
+	if v := targetHeaders.Get("X-Auth-Token"); v != "secrettoken" {
+		t.Errorf("Expected X-Auth-Token to be preserved on domain to subdomain redirect, got %q", v)
+	}
+	if v := targetHeaders.Get("Safe-Header"); v != "preserveme" {
+		t.Errorf("Expected Safe-Header to be preserved, got %q", v)
+	}
+}
+
+func TestRedirectPortOnlyChangePreservesCredentials(t *testing.T) {
+	var targetHeaders http.Header
+	tsTarget := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer tsTarget.Close()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, tsTarget.URL, http.StatusFound)
+	}))
+	defer ts.Close()
+
+	resp, _, errs := New().
+		Get(ts.URL).
+		Set("Authorization", "Bearer mytoken").
+		Set("API-Key", "fookey").
+		Set("X-Auth-Token", "secrettoken").
+		Set("Custom-Header", "preserveme").
+		End()
+
+	if len(errs) > 0 {
+		t.Fatalf("Unexpected errors: %v", errs)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d", resp.StatusCode)
+	}
+	if v := targetHeaders.Get("Authorization"); v != "Bearer mytoken" {
+		t.Errorf("Expected Authorization to be preserved on port-only change, got %q", v)
+	}
+	if v := targetHeaders.Get("API-Key"); v != "fookey" {
+		t.Errorf("Expected API-Key to be preserved on port-only change, got %q", v)
+	}
+	if v := targetHeaders.Get("X-Auth-Token"); v != "secrettoken" {
+		t.Errorf("Expected X-Auth-Token to be preserved on port-only change, got %q", v)
+	}
+	if v := targetHeaders.Get("Custom-Header"); v != "preserveme" {
+		t.Errorf("Expected Custom-Header to be preserved, got %q", v)
+	}
+}
+
+func TestRedirectCustomHeadersStrippedOnCrossDomain(t *testing.T) {
+	var targetHeaders http.Header
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirect" {
+			http.Redirect(w, r, "http://other.com/target", http.StatusFound)
+			return
+		}
+		targetHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	resp, _, errs := newMockDomainAgent(ts.Listener.Addr().String()).
+		Get("http://example.com/redirect").
+		Set("X-Api-Key", "apikey123").
+		Set("X-Auth-Token", "token123").
+		Set("Private-Token", "secrettoken").
+		Set("Token", "tokenval").
+		Set("Normal-Header", "normalval").
+		End()
+
+	if len(errs) > 0 {
+		t.Fatalf("Unexpected errors: %v", errs)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d", resp.StatusCode)
+	}
+	if v := targetHeaders.Get("X-Api-Key"); v != "" {
+		t.Errorf("Expected X-Api-Key to be stripped on cross-domain redirect, got %q", v)
+	}
+	if v := targetHeaders.Get("X-Auth-Token"); v != "" {
+		t.Errorf("Expected X-Auth-Token to be stripped on cross-domain redirect, got %q", v)
+	}
+	if v := targetHeaders.Get("Private-Token"); v != "" {
+		t.Errorf("Expected Private-Token to be stripped on cross-domain redirect, got %q", v)
+	}
+	if v := targetHeaders.Get("Token"); v != "" {
+		t.Errorf("Expected Token to be stripped on cross-domain redirect, got %q", v)
+	}
+	if v := targetHeaders.Get("Normal-Header"); v != "normalval" {
+		t.Errorf("Expected Normal-Header to be preserved, got %q", v)
+	}
+}
+
+func TestRedirectTenHopLimit(t *testing.T) {
+	hopCount := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hopCount++
+		http.Redirect(w, r, fmt.Sprintf("/hop%d", hopCount), http.StatusFound)
+	}))
+	defer ts.Close()
+
+	_, _, errs := New().
+		Get(ts.URL).
+		End()
+
+	if len(errs) == 0 {
+		t.Fatal("Expected error after 10 redirects, got none")
+	}
+	foundLimitErr := false
+	for _, err := range errs {
+		if strings.Contains(err.Error(), "stopped after 10 redirects") {
+			foundLimitErr = true
+			break
+		}
+	}
+	if !foundLimitErr {
+		t.Fatalf("Expected 'stopped after 10 redirects' in errors, got: %v", errs)
+	}
+	if hopCount != 10 {
+		t.Errorf("Expected 10 requests handled before redirect cap, got %d", hopCount)
+	}
+}
+
+func TestRedirectPolicyTenHopLimit(t *testing.T) {
+	hopCount := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hopCount++
+		http.Redirect(w, r, fmt.Sprintf("/hop%d", hopCount), http.StatusFound)
+	}))
+	defer ts.Close()
+
+	_, _, errs := New().
+		Get(ts.URL).
+		RedirectPolicy(func(req Request, via []Request) error {
+			return nil
+		}).
+		End()
+
+	if len(errs) == 0 {
+		t.Fatal("Expected error after 10 redirects, got none")
+	}
+	foundLimitErr := false
+	for _, err := range errs {
+		if strings.Contains(err.Error(), "stopped after 10 redirects") {
+			foundLimitErr = true
+			break
+		}
+	}
+	if !foundLimitErr {
+		t.Fatalf("Expected 'stopped after 10 redirects' in errors, got: %v", errs)
+	}
+	if hopCount != 10 {
+		t.Errorf("Expected 10 requests handled before redirect cap with RedirectPolicy, got %d", hopCount)
+	}
+}
+
+func TestRedirectRelativeLocationPreservesCredentials(t *testing.T) {
+	var targetHeaders http.Header
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirect" {
+			http.Redirect(w, r, "/target", http.StatusFound)
+			return
+		}
+		targetHeaders = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	resp, _, errs := New().
+		Get(ts.URL + "/redirect").
+		Set("Authorization", "Bearer mytoken").
+		Set("API-Key", "fookey").
+		Set("X-Auth-Token", "secrettoken").
+		Set("Safe-Header", "preserveme").
+		End()
+
+	if len(errs) > 0 {
+		t.Fatalf("Unexpected errors: %v", errs)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d", resp.StatusCode)
+	}
+	if v := targetHeaders.Get("Authorization"); v != "Bearer mytoken" {
+		t.Errorf("Expected Authorization to be preserved on relative redirect, got %q", v)
+	}
+	if v := targetHeaders.Get("API-Key"); v != "fookey" {
+		t.Errorf("Expected API-Key to be preserved on relative redirect, got %q", v)
+	}
+	if v := targetHeaders.Get("X-Auth-Token"); v != "secrettoken" {
+		t.Errorf("Expected X-Auth-Token to be preserved on relative redirect, got %q", v)
+	}
+	if v := targetHeaders.Get("Safe-Header"); v != "preserveme" {
+		t.Errorf("Expected Safe-Header to be preserved, got %q", v)
+	}
+}
+
+func TestIsDomainOrSubdomain(t *testing.T) {
+	cases := []struct {
+		sub      string
+		parent   string
+		expected bool
+	}{
+		{"example.com", "example.com", true},
+		{"api.example.com", "example.com", true},
+		{"sub.api.example.com", "example.com", true},
+		{"example.com", "api.example.com", false},
+		{"other.com", "example.com", false},
+		{"notexample.com", "example.com", false},
+		{"127.0.0.1", "127.0.0.1", true},
+		{"127.0.0.2", "127.0.0.1", false},
+		{"::1", "::1", true},
+		{"::2", "::1", false},
+	}
+
+	for _, tc := range cases {
+		actual := isDomainOrSubdomain(tc.sub, tc.parent)
+		if actual != tc.expected {
+			t.Errorf("isDomainOrSubdomain(%q, %q) = %v; want %v", tc.sub, tc.parent, actual, tc.expected)
+		}
+	}
+}
+
+func TestIsCrossDomainOrOrigin(t *testing.T) {
+	cases := []struct {
+		initial  string
+		dest     string
+		expected bool
+	}{
+		{"https://example.com", "https://example.com/target", false},
+		{"https://example.com", "https://api.example.com", false},
+		{"https://example.com", "https://sub.api.example.com", false},
+		{"https://example.com", "https://example.com:8443", false},
+		{"http://example.com:80", "http://example.com:8080", false},
+		{"http://example.com", "https://example.com", false},
+		{"http://example.com", "https://api.example.com", false},
+		{"https://example.com", "http://example.com", true},
+		{"https://example.com", "http://api.example.com", true},
+		{"https://example.com", "https://other.com", true},
+		{"https://example.com", "https://badexample.com", true},
+		{"https://api.example.com", "https://example.com", true},
+		{"https://127.0.0.1", "https://127.0.0.1:8443", false},
+		{"https://127.0.0.1", "https://127.0.0.2", true},
+	}
+
+	for _, tc := range cases {
+		u1, err1 := url.Parse(tc.initial)
+		u2, err2 := url.Parse(tc.dest)
+		if err1 != nil || err2 != nil {
+			t.Fatalf("Failed to parse urls: %v, %v", err1, err2)
+		}
+		actual := isCrossDomainOrOrigin(u1, u2)
+		if actual != tc.expected {
+			t.Errorf("isCrossDomainOrOrigin(%q, %q) = %v; want %v", tc.initial, tc.dest, actual, tc.expected)
+		}
+	}
+}
+
+func TestIsSensitiveHeaderResponseHeadersNotStripped(t *testing.T) {
+	if isSensitiveHeader("Www-Authenticate") {
+		t.Error("Expected Www-Authenticate to not be treated as sensitive request header")
+	}
+	if isSensitiveHeader("Proxy-Authenticate") {
+		t.Error("Expected Proxy-Authenticate to not be treated as sensitive request header")
+	}
+	if !isSensitiveHeader("Authorization") {
+		t.Error("Expected Authorization to be treated as sensitive request header")
+	}
+	if !isSensitiveHeader("Proxy-Authorization") {
+		t.Error("Expected Proxy-Authorization to be treated as sensitive request header")
+	}
+	if !isSensitiveHeader("X-Api-Key") {
+		t.Error("Expected X-Api-Key to be treated as sensitive request header")
+	}
+	if !isSensitiveHeader("X-Auth-Token") {
+		t.Error("Expected X-Auth-Token to be treated as sensitive request header")
+	}
+	if !isSensitiveHeader("Private-Token") {
+		t.Error("Expected Private-Token to be treated as sensitive request header")
 	}
 }
 

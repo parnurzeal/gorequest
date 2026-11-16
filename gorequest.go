@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
@@ -680,7 +681,10 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 		return s
 	}
 	s.Client.CheckRedirect = func(r *http.Request, v []*http.Request) error {
-		if len(v) > 0 && (isCrossDomainOrOrigin(v[0].URL, r.URL) || isCrossDomainOrOrigin(v[len(v)-1].URL, r.URL)) {
+		if len(v) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		if len(v) > 0 && (isCrossDomainOrOrigin(v[0].URL, r.URL) || isSchemeDowngrade(v[len(v)-1].URL, r.URL)) {
 			stripSensitiveHeaders(r)
 		}
 		vv := make([]Request, len(v))
@@ -696,10 +700,17 @@ func defaultCheckRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= 10 {
 		return errors.New("stopped after 10 redirects")
 	}
-	if len(via) > 0 && (isCrossDomainOrOrigin(via[0].URL, req.URL) || isCrossDomainOrOrigin(via[len(via)-1].URL, req.URL)) {
+	if len(via) > 0 && (isCrossDomainOrOrigin(via[0].URL, req.URL) || isSchemeDowngrade(via[len(via)-1].URL, req.URL)) {
 		stripSensitiveHeaders(req)
 	}
 	return nil
+}
+
+func isSchemeDowngrade(from, to *url.URL) bool {
+	if from == nil || to == nil {
+		return false
+	}
+	return strings.EqualFold(from.Scheme, "https") && !strings.EqualFold(to.Scheme, "https")
 }
 
 func isCrossDomainOrOrigin(initial, dest *url.URL) bool {
@@ -708,43 +719,44 @@ func isCrossDomainOrOrigin(initial, dest *url.URL) bool {
 	}
 	initScheme := strings.ToLower(initial.Scheme)
 	destScheme := strings.ToLower(dest.Scheme)
+	if destScheme == "" && dest.Host == "" {
+		destScheme = initScheme
+	}
 	if initScheme == "https" && destScheme != "https" {
 		return true
 	}
-	if initial.Host == dest.Host && initScheme == destScheme {
+	if dest.Host == "" && destScheme == initScheme {
 		return false
 	}
-	if !strings.EqualFold(initial.Hostname(), dest.Hostname()) {
-		return true
-	}
-	if initScheme != destScheme {
-		return true
-	}
-	if getPort(initial) != getPort(dest) {
-		return true
-	}
-	return false
+	ihost := strings.ToLower(initial.Hostname())
+	dhost := strings.ToLower(dest.Hostname())
+	return !isDomainOrSubdomain(dhost, ihost)
 }
 
-func getPort(u *url.URL) string {
-	if port := u.Port(); port != "" {
-		return port
+// isDomainOrSubdomain reports whether sub is a subdomain (or exact match) of parent.
+// Both sub and parent must be lowercased hostnames (without port).
+func isDomainOrSubdomain(sub, parent string) bool {
+	if sub == parent {
+		return true
 	}
-	if strings.EqualFold(u.Scheme, "https") || strings.EqualFold(u.Scheme, "wss") {
-		return "443"
+	if strings.ContainsAny(sub, ":%") || strings.ContainsAny(parent, ":%") {
+		return false
 	}
-	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "ws") {
-		return "80"
+	if net.ParseIP(sub) != nil || net.ParseIP(parent) != nil {
+		return false
 	}
-	return ""
+	if !strings.HasSuffix(sub, parent) {
+		return false
+	}
+	return len(sub) > len(parent) && sub[len(sub)-len(parent)-1] == '.'
 }
 
 func isSensitiveHeader(name string) bool {
 	switch textproto.CanonicalMIMEHeaderKey(name) {
+	case "Www-Authenticate", "Proxy-Authenticate":
+		return false
 	case "Authorization",
 		"Proxy-Authorization",
-		"Www-Authenticate",
-		"Proxy-Authenticate",
 		"Cookie",
 		"Cookie2",
 		"Api-Key",
@@ -795,7 +807,6 @@ func stripSensitiveHeaders(req *http.Request) {
 		}
 	}
 	for _, k := range toDelete {
-		delete(req.Header, k)
 		req.Header.Del(k)
 	}
 }
@@ -1392,9 +1403,6 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	}
 
 	// Send request
-	if s.Client.CheckRedirect == nil {
-		s.Client.CheckRedirect = defaultCheckRedirect
-	}
 	resp, err = s.Client.Do(req)
 	if err != nil {
 		s.Errors = append(s.Errors, err)
