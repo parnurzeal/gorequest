@@ -136,6 +136,8 @@ resp, body, errs := request.Post("http://version.com/update").
   End()
 ```
 
+Empty JSON containers are valid bodies too, so `Send("{}")` and `Send("[]")` send the literal `{}` or `[]` instead of an empty body.
+
 Not only for Send() but Query() is also supported. Just give it a try! :)
 
 ## Callback
