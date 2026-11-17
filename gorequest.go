@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
@@ -111,7 +112,7 @@ func New() *SuperAgent {
 		QueryData:         url.Values{},
 		FileData:          make([]File, 0),
 		BounceToRawString: false,
-		Client:            &http.Client{Jar: jar},
+		Client:            &http.Client{Jar: jar, CheckRedirect: defaultCheckRedirect},
 		Transport:         &http.Transport{},
 		Cookies:           make([]*http.Cookie, 0),
 		Errors:            nil,
@@ -675,7 +676,17 @@ func (s *SuperAgent) Proxy(proxyUrl string) *SuperAgent {
 // past requests in order of oldest first.
 func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) error) *SuperAgent {
 	s.safeModifyHttpClient()
+	if policy == nil {
+		s.Client.CheckRedirect = defaultCheckRedirect
+		return s
+	}
 	s.Client.CheckRedirect = func(r *http.Request, v []*http.Request) error {
+		if len(v) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		if len(v) > 0 && (isCrossDomainOrOrigin(v[0].URL, r.URL) || isSchemeDowngrade(v[len(v)-1].URL, r.URL)) {
+			stripSensitiveHeaders(r)
+		}
 		vv := make([]Request, len(v))
 		for i, r := range v {
 			vv[i] = Request(r)
@@ -683,6 +694,121 @@ func (s *SuperAgent) RedirectPolicy(policy func(req Request, via []Request) erro
 		return policy(Request(r), vv)
 	}
 	return s
+}
+
+func defaultCheckRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if len(via) > 0 && (isCrossDomainOrOrigin(via[0].URL, req.URL) || isSchemeDowngrade(via[len(via)-1].URL, req.URL)) {
+		stripSensitiveHeaders(req)
+	}
+	return nil
+}
+
+func isSchemeDowngrade(from, to *url.URL) bool {
+	if from == nil || to == nil {
+		return false
+	}
+	return strings.EqualFold(from.Scheme, "https") && !strings.EqualFold(to.Scheme, "https")
+}
+
+func isCrossDomainOrOrigin(initial, dest *url.URL) bool {
+	if initial == nil || dest == nil {
+		return false
+	}
+	initScheme := strings.ToLower(initial.Scheme)
+	destScheme := strings.ToLower(dest.Scheme)
+	if destScheme == "" && dest.Host == "" {
+		destScheme = initScheme
+	}
+	if initScheme == "https" && destScheme != "https" {
+		return true
+	}
+	if dest.Host == "" && destScheme == initScheme {
+		return false
+	}
+	ihost := strings.ToLower(initial.Hostname())
+	dhost := strings.ToLower(dest.Hostname())
+	return !isDomainOrSubdomain(dhost, ihost)
+}
+
+// isDomainOrSubdomain reports whether sub is a subdomain (or exact match) of parent.
+// Both sub and parent must be lowercased hostnames (without port).
+func isDomainOrSubdomain(sub, parent string) bool {
+	if sub == parent {
+		return true
+	}
+	if strings.ContainsAny(sub, ":%") || strings.ContainsAny(parent, ":%") {
+		return false
+	}
+	if net.ParseIP(sub) != nil || net.ParseIP(parent) != nil {
+		return false
+	}
+	if !strings.HasSuffix(sub, parent) {
+		return false
+	}
+	return len(sub) > len(parent) && sub[len(sub)-len(parent)-1] == '.'
+}
+
+func isSensitiveHeader(name string) bool {
+	switch textproto.CanonicalMIMEHeaderKey(name) {
+	case "Www-Authenticate", "Proxy-Authenticate":
+		return false
+	case "Authorization",
+		"Proxy-Authorization",
+		"Cookie",
+		"Cookie2",
+		"Api-Key",
+		"X-Api-Key",
+		"Apikey",
+		"X-Auth-Token",
+		"Auth-Token",
+		"Token",
+		"X-Access-Token",
+		"Access-Token",
+		"Private-Token",
+		"Secret-Token",
+		"X-Secret-Token",
+		"Session-Token",
+		"X-Session-Token",
+		"X-Csrf-Token",
+		"X-Xsrf-Token",
+		"X-Csrftoken",
+		"X-Xsrftoken",
+		"Bearer",
+		"X-User-Token",
+		"X-App-Token",
+		"X-Client-Token",
+		"X-Device-Token",
+		"X-Security-Token":
+		return true
+	}
+	lower := strings.ToLower(name)
+	if strings.Contains(lower, "token") ||
+		strings.Contains(lower, "api-key") ||
+		strings.Contains(lower, "apikey") ||
+		strings.Contains(lower, "secret") ||
+		strings.Contains(lower, "password") ||
+		(strings.Contains(lower, "auth") && !strings.Contains(lower, "author")) {
+		return true
+	}
+	return false
+}
+
+func stripSensitiveHeaders(req *http.Request) {
+	if req == nil || req.Header == nil {
+		return
+	}
+	var toDelete []string
+	for k := range req.Header {
+		if isSensitiveHeader(k) {
+			toDelete = append(toDelete, k)
+		}
+	}
+	for _, k := range toDelete {
+		req.Header.Del(k)
+	}
 }
 
 func (s *SuperAgent) safeModifyHttpClient() {
