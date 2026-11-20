@@ -2455,6 +2455,39 @@ func TestPlainText(t *testing.T) {
 		End()
 }
 
+func TestHTML(t *testing.T) {
+	html := `<!DOCTYPE html><html><body><h1>Hello World</h1></body></html>`
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != POST {
+			t.Errorf("Expected method %q; got %q", POST, r.Method)
+		}
+		if r.Header == nil {
+			t.Error("Expected non-nil request Header")
+		}
+		if r.Header.Get("Content-Type") != "text/html" {
+			t.Errorf("Expected Header Content-Type -> text/html | but got %s", r.Header.Get("Content-Type"))
+		}
+
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
+		if string(body) != html {
+			t.Errorf(`Expected HTML %s | but got %s`, html, string(body))
+		}
+	}))
+	defer ts.Close()
+
+	New().Post(ts.URL).
+		Type("html").
+		Send(html).
+		End()
+
+	New().Post(ts.URL).
+		Set("Content-Type", "text/html").
+		Send(html).
+		End()
+}
+
 // TestContentTypeInference tests that the ContentType header is set
 // properly when a custom override is provided using AppendHeader
 // or Set methods.
@@ -2592,6 +2625,39 @@ func TestAsCurlCommandForceType(t *testing.T) {
 		t.Fatalf("Expected curlCommand=%v but got=%v", expectedForm, curlForm)
 	}
 
+	// Form-data type
+	reqFormData := New().Post(endpoint).Type("form-data").Send(map[string]interface{}{"name": "john"})
+	curlFormData, err := reqFormData.AsCurlCommand()
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedFormData := fmt.Sprintf("curl -X 'POST' -d 'name=john' -H 'Content-Type: application/x-www-form-urlencoded' '%s'", endpoint)
+	if curlFormData != expectedFormData {
+		t.Fatalf("Expected curlCommand=%v but got=%v", expectedFormData, curlFormData)
+	}
+
+	// Urlencoded type
+	reqUrlencoded := New().Post(endpoint).Type("urlencoded").Send(map[string]interface{}{"name": "john"})
+	curlUrlencoded, err := reqUrlencoded.AsCurlCommand()
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedUrlencoded := fmt.Sprintf("curl -X 'POST' -d 'name=john' -H 'Content-Type: application/x-www-form-urlencoded' '%s'", endpoint)
+	if curlUrlencoded != expectedUrlencoded {
+		t.Fatalf("Expected curlCommand=%v but got=%v", expectedUrlencoded, curlUrlencoded)
+	}
+
+	// HTML type
+	reqHTML := New().Post(endpoint).Type("html").Send("<h1>sample html</h1>")
+	curlHTML, err := reqHTML.AsCurlCommand()
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedHTML := fmt.Sprintf("curl -X 'POST' -d '<h1>sample html</h1>' -H 'Content-Type: text/html' '%s'", endpoint)
+	if curlHTML != expectedHTML {
+		t.Fatalf("Expected curlCommand=%v but got=%v", expectedHTML, curlHTML)
+	}
+
 	// Text type
 	reqText := New().Post(endpoint).Type("text").Send("sample text")
 	curlText, err := reqText.AsCurlCommand()
@@ -2618,6 +2684,7 @@ func TestAsCurlCommandForceType(t *testing.T) {
 func TestMakeRequestForceType(t *testing.T) {
 	endpoint := "http://github.com/parnurzeal/gorequest"
 
+	// Form
 	req := New().Post(endpoint).Type("form").Send(map[string]interface{}{"name": "john"})
 	httpReq, err := req.MakeRequest()
 	if err != nil {
@@ -2629,6 +2696,164 @@ func TestMakeRequestForceType(t *testing.T) {
 	body, _ := ioutil.ReadAll(httpReq.Body)
 	if string(body) != "name=john" {
 		t.Errorf("Expected body 'name=john', got '%s'", string(body))
+	}
+
+	// Form-data
+	reqFormData := New().Post(endpoint).Type("form-data").Send(map[string]interface{}{"name": "john"})
+	httpReqFormData, err := reqFormData.MakeRequest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if httpReqFormData.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		t.Errorf("Expected Content-Type 'application/x-www-form-urlencoded', got '%s'", httpReqFormData.Header.Get("Content-Type"))
+	}
+	bodyFormData, _ := ioutil.ReadAll(httpReqFormData.Body)
+	if string(bodyFormData) != "name=john" {
+		t.Errorf("Expected body 'name=john', got '%s'", string(bodyFormData))
+	}
+
+	// Urlencoded
+	reqUrlencoded := New().Post(endpoint).Type("urlencoded").Send(map[string]interface{}{"name": "john"})
+	httpReqUrlencoded, err := reqUrlencoded.MakeRequest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if httpReqUrlencoded.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		t.Errorf("Expected Content-Type 'application/x-www-form-urlencoded', got '%s'", httpReqUrlencoded.Header.Get("Content-Type"))
+	}
+	bodyUrlencoded, _ := ioutil.ReadAll(httpReqUrlencoded.Body)
+	if string(bodyUrlencoded) != "name=john" {
+		t.Errorf("Expected body 'name=john', got '%s'", string(bodyUrlencoded))
+	}
+
+	// HTML
+	reqHTML := New().Post(endpoint).Type("html").Send("<h1>hello</h1>")
+	httpReqHTML, err := reqHTML.MakeRequest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if httpReqHTML.Header.Get("Content-Type") != "text/html" {
+		t.Errorf("Expected Content-Type 'text/html', got '%s'", httpReqHTML.Header.Get("Content-Type"))
+	}
+	bodyHTML, _ := ioutil.ReadAll(httpReqHTML.Body)
+	if string(bodyHTML) != "<h1>hello</h1>" {
+		t.Errorf("Expected body '<h1>hello</h1>', got '%s'", string(bodyHTML))
+	}
+}
+
+func TestMakeRequestCanonicalContentType(t *testing.T) {
+	endpoint := "http://github.com/parnurzeal/gorequest"
+
+	cases := []struct {
+		name               string
+		headerContentType  string
+		expectedTargetType string
+		payload            interface{}
+		expectedBody       string
+	}{
+		{
+			name:               "canonical json",
+			headerContentType:  "application/json",
+			expectedTargetType: TypeJSON,
+			payload:            `{"name":"john"}`,
+			expectedBody:       `{"name":"john"}`,
+		},
+		{
+			name:               "canonical json with charset",
+			headerContentType:  "application/json; charset=utf-8",
+			expectedTargetType: TypeJSON,
+			payload:            `{"name":"john"}`,
+			expectedBody:       `{"name":"john"}`,
+		},
+		{
+			name:               "canonical urlencoded to form",
+			headerContentType:  "application/x-www-form-urlencoded",
+			expectedTargetType: TypeForm,
+			payload:            map[string]interface{}{"name": "john"},
+			expectedBody:       "name=john",
+		},
+		{
+			name:               "canonical urlencoded with charset",
+			headerContentType:  "application/x-www-form-urlencoded; charset=utf-8",
+			expectedTargetType: TypeForm,
+			payload:            map[string]interface{}{"name": "john"},
+			expectedBody:       "name=john",
+		},
+		{
+			name:               "canonical html",
+			headerContentType:  "text/html",
+			expectedTargetType: TypeHTML,
+			payload:            "<h1>hello</h1>",
+			expectedBody:       "<h1>hello</h1>",
+		},
+		{
+			name:               "canonical html with charset",
+			headerContentType:  "text/html; charset=utf-8",
+			expectedTargetType: TypeHTML,
+			payload:            "<h1>hello</h1>",
+			expectedBody:       "<h1>hello</h1>",
+		},
+		{
+			name:               "canonical text",
+			headerContentType:  "text/plain",
+			expectedTargetType: TypeText,
+			payload:            "plain text content",
+			expectedBody:       "plain text content",
+		},
+		{
+			name:               "canonical xml",
+			headerContentType:  "application/xml",
+			expectedTargetType: TypeXML,
+			payload:            "<root>val</root>",
+			expectedBody:       "<root>val</root>",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := New().Post(endpoint).Set("Content-Type", tc.headerContentType).Send(tc.payload)
+			req, err := s.MakeRequest()
+			if err != nil {
+				t.Fatalf("MakeRequest failed: %v", err)
+			}
+			if s.TargetType != tc.expectedTargetType {
+				t.Errorf("Expected s.TargetType = %q, got %q", tc.expectedTargetType, s.TargetType)
+			}
+			if req.Body != nil {
+				body, _ := ioutil.ReadAll(req.Body)
+				if string(body) != tc.expectedBody {
+					t.Errorf("Expected body %q, got %q", tc.expectedBody, string(body))
+				}
+			}
+		})
+	}
+}
+
+func TestMakeRequestSideEffects(t *testing.T) {
+	endpoint := "http://github.com/parnurzeal/gorequest"
+
+	// Verify TargetType and BounceToRawString side effects
+	s := New().Post(endpoint)
+	s.Data["key"] = "val"
+	s.SliceData = append(s.SliceData, "sliceVal")
+	s.RawString = "custom-raw-string"
+
+	if s.BounceToRawString {
+		t.Fatal("Expected BounceToRawString to initially be false")
+	}
+
+	req, err := s.MakeRequest()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !s.BounceToRawString {
+		t.Error("Expected MakeRequest to set BounceToRawString to true when both Data and SliceData are present")
+	}
+
+	body, _ := ioutil.ReadAll(req.Body)
+	if string(body) != "custom-raw-string" {
+		t.Errorf("Expected body to be bounced raw string 'custom-raw-string', got %q", string(body))
 	}
 }
 

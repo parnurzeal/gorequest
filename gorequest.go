@@ -1284,6 +1284,9 @@ func (s *SuperAgent) getResponseBytes() (Response, []byte, []error) {
 	return resp, body, nil
 }
 
+// MakeRequest creates and prepares the http.Request from the current SuperAgent configuration.
+// As a side effect, MakeRequest computes and sets s.TargetType (based on s.ForceType or the
+// Content-Type header) and s.BounceToRawString (when both slice and map data are present).
 func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 	var (
 		req           *http.Request
@@ -1298,15 +1301,28 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 
 	// check if there is forced type
 	switch s.ForceType {
-	case TypeJSON, TypeForm, TypeFormData, TypeUrlencoded, TypeXML, TypeText, TypeMultipart:
+	case TypeJSON, TypeForm, TypeFormData, TypeUrlencoded, TypeHTML, TypeXML, TypeText, TypeMultipart:
 		s.TargetType = s.ForceType
 		// If forcetype is not set, check whether user set Content-Type header.
 		// If yes, also bounce to the correct supported TargetType automatically.
 	default:
-		for k, v := range Types {
-			if s.Header.Get("Content-Type") == v {
-				s.TargetType = k
-			}
+		headerContentType := s.Header.Get("Content-Type")
+		if idx := strings.Index(headerContentType, ";"); idx != -1 {
+			headerContentType = headerContentType[:idx]
+		}
+		switch strings.TrimSpace(strings.ToLower(headerContentType)) {
+		case "application/json":
+			s.TargetType = TypeJSON
+		case "application/xml":
+			s.TargetType = TypeXML
+		case "application/x-www-form-urlencoded":
+			s.TargetType = TypeForm
+		case "text/html":
+			s.TargetType = TypeHTML
+		case "text/plain":
+			s.TargetType = TypeText
+		case "multipart/form-data":
+			s.TargetType = TypeMultipart
 		}
 	}
 
@@ -1355,6 +1371,11 @@ func (s *SuperAgent) MakeRequest() (*http.Request, error) {
 		if len(contentForm) != 0 {
 			contentReader = bytes.NewReader(contentForm)
 			contentType = "application/x-www-form-urlencoded"
+		}
+	case TypeHTML:
+		if len(s.RawString) != 0 {
+			contentReader = strings.NewReader(s.RawString)
+			contentType = "text/html"
 		}
 	case TypeText:
 		if len(s.RawString) != 0 {
